@@ -1,0 +1,42 @@
+{% extends 'base.html' %}
+{% block title %}Attack Log - MIRAGE Junior{% endblock %}
+{% block header_title %}Full Attack Log{% endblock %}
+{% block content %}
+<div class="card full-width">
+    <div class="table-controls">
+        <input type="text" id="search-log" placeholder="Search IP or Action...">
+        <button class="btn btn-primary">Export CSV</button>
+    </div>
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>Time</th>
+                <th>IP</th>
+                <th>Country</th>
+                <th>Protocol</th>
+                <th>Event Type</th>
+                <th>Threat Pts</th>
+                <th>MITRE ID</th>
+                <th>Score</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>2026-10-03 11:03:52</td>
+                <td><a href="/attacker/45.33.32.156">45.33.32.156</a></td>
+                <td>🇷🇺 RU</td>
+                <td>SSH</td>
+                <td>shell_command</td>
+                <td>+15</td>
+                <td><span class="tag">T1059</span></td>
+                <td><span class="badge badge-critical">94</span></td>
+            </tr>
+        </tbody>
+    </table>
+    <div class="pagination">
+        <button disabled>&laquo; Prev</button>
+        <span>Page 1 of 42</span>
+        <button>Next &raquo;</button>
+    </div>
+</div>
+{% endblock %}

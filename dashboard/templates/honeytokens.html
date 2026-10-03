@@ -1,0 +1,35 @@
+{% extends 'base.html' %}
+{% block title %}Honeytokens - MIRAGE Junior{% endblock %}
+{% block header_title %}Honeytoken Tripwires{% endblock %}
+{% block content %}
+<div class="card full-width">
+    <h3>Planted Tokens</h3>
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>Token Name</th>
+                <th>Type</th>
+                <th>Location</th>
+                <th>Status</th>
+                <th>Total Triggers</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>.env file</td>
+                <td>HTTP Decoy</td>
+                <td>/var/www/html/.env</td>
+                <td><span style="color: var(--neon-green)">Active</span></td>
+                <td>14</td>
+            </tr>
+            <tr>
+                <td>backup_database.sql</td>
+                <td>Filesystem</td>
+                <td>/opt/mirage/bait/</td>
+                <td><span style="color: var(--neon-green)">Active</span></td>
+                <td>2</td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+{% endblock %}

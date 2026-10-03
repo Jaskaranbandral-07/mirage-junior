@@ -1,0 +1,79 @@
+{% extends 'base.html' %}
+{% block title %}Overview - MIRAGE Junior{% endblock %}
+{% block header_title %}Overview Dashboard{% endblock %}
+
+{% block content %}
+<div class="stats-grid">
+    <div class="stat-card" style="border-left-color: var(--neon-blue);">
+        <h3>Total Hits</h3>
+        <p id="stat-total-hits">0</p>
+    </div>
+    <div class="stat-card" style="border-left-color: var(--neon-purple);">
+        <h3>Unique IPs</h3>
+        <p id="stat-unique-ips">0</p>
+    </div>
+    <div class="stat-card" style="border-left-color: var(--neon-yellow);">
+        <h3>Creds Captured</h3>
+        <p id="stat-creds">0</p>
+    </div>
+    <div class="stat-card" style="border-left-color: var(--neon-orange);">
+        <h3>Avg Threat Score</h3>
+        <p id="stat-avg-score">0</p>
+    </div>
+    <div class="stat-card" style="border-left-color: var(--neon-red);">
+        <h3>IPs Quarantined</h3>
+        <p id="stat-quarantined">0</p>
+    </div>
+</div>
+
+<div class="charts-grid">
+    <div class="chart-card">
+        <h3>Threat Distribution</h3>
+        <canvas id="threatDistChart"></canvas>
+    </div>
+    <div class="chart-card">
+        <h3>Top Attacking Countries</h3>
+        <canvas id="topCountriesChart"></canvas>
+    </div>
+    <div class="chart-card full-width">
+        <h3>Attack Timeline (Last 24h)</h3>
+        <canvas id="attackTimelineChart"></canvas>
+    </div>
+    <div class="chart-card full-width">
+        <h3>MITRE ATT&CK Heatmap</h3>
+        <canvas id="mitreChart"></canvas>
+    </div>
+</div>
+
+<div class="tables-grid">
+    <div class="table-card">
+        <h3>Live Attack Log</h3>
+        <table id="live-attack-table">
+            <thead>
+                <tr>
+                    <th>Time</th><th>IP</th><th>Country</th><th>Action</th><th>Score</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+    <div class="table-card">
+        <h3>Recent Quarantines</h3>
+        <table id="quarantine-table">
+            <thead>
+                <tr>
+                    <th>IP</th><th>Blocked At</th><th>Status</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/charts.js') }}"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', initCharts);
+</script>
+{% endblock %}

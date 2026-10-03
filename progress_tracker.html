@@ -1,0 +1,956 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MIRAGE Junior — Synced Progress Tracker</title>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+        :root {
+            --bg-primary: #0a0e17;
+            --bg-secondary: #111827;
+            --bg-card: #1a2332;
+            --bg-card-hover: #1f2b3d;
+            --border: #2d3a4d;
+            --text-primary: #e2e8f0;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            --accent-blue: #3b82f6;
+            --accent-cyan: #06b6d4;
+            --accent-green: #10b981;
+            --accent-yellow: #f59e0b;
+            --accent-orange: #f97316;
+            --accent-red: #ef4444;
+            --accent-purple: #8b5cf6;
+            --accent-pink: #ec4899;
+            --jaskaran: #3b82f6;
+            --friend: #8b5cf6;
+            --both: #06b6d4;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background:
+                radial-gradient(ellipse at 20% 50%, rgba(59,130,246,0.08) 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 20%, rgba(139,92,246,0.06) 0%, transparent 50%),
+                radial-gradient(ellipse at 50% 80%, rgba(6,182,212,0.05) 0%, transparent 50%);
+            z-index: 0; pointer-events: none;
+        }
+
+        .container { max-width: 1200px; margin: 0 auto; padding: 20px; position: relative; z-index: 1; }
+
+        /* ===== SETUP OVERLAY ===== */
+        .setup-overlay {
+            position: fixed; inset: 0; z-index: 1000;
+            background: rgba(10,14,23,0.95);
+            backdrop-filter: blur(20px);
+            display: flex; align-items: center; justify-content: center;
+            padding: 20px;
+        }
+        .setup-overlay.hidden { display: none; }
+
+        .setup-box {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 36px;
+            max-width: 580px;
+            width: 100%;
+            text-align: center;
+        }
+
+        .setup-box h2 {
+            font-size: 1.6rem; font-weight: 800; margin-bottom: 6px;
+            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-blue), var(--accent-purple));
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+        }
+        .setup-box .setup-sub { color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 24px; }
+
+        .setup-box label { display: block; text-align: left; font-size: 0.8rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 6px; margin-top: 16px; text-transform: uppercase; letter-spacing: 1px; }
+
+        .setup-box input, .setup-box textarea {
+            width: 100%; padding: 12px 14px; background: var(--bg-secondary); border: 1px solid var(--border);
+            border-radius: 8px; color: var(--text-primary); font-family: 'JetBrains Mono', monospace; font-size: 0.82rem;
+            outline: none; transition: border-color 0.2s;
+        }
+        .setup-box input:focus, .setup-box textarea:focus { border-color: var(--accent-blue); }
+        .setup-box textarea { min-height: 120px; resize: vertical; }
+
+        .identity-pick {
+            display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 8px;
+        }
+        .identity-btn {
+            padding: 16px; border-radius: 12px; border: 2px solid var(--border);
+            background: var(--bg-secondary); cursor: pointer; transition: all 0.3s; text-align: center;
+        }
+        .identity-btn:hover { border-color: var(--text-muted); }
+        .identity-btn.selected-j { border-color: var(--jaskaran); background: rgba(59,130,246,0.1); }
+        .identity-btn.selected-f { border-color: var(--friend); background: rgba(139,92,246,0.1); }
+        .identity-btn .id-emoji { font-size: 2rem; margin-bottom: 6px; }
+        .identity-btn .id-name { font-size: 0.9rem; font-weight: 700; color: var(--text-primary); }
+        .identity-btn .id-role { font-size: 0.72rem; color: var(--text-muted); margin-top: 2px; }
+
+        .setup-btn {
+            width: 100%; padding: 14px; border: none; border-radius: 10px; font-size: 1rem; font-weight: 700;
+            cursor: pointer; margin-top: 24px; font-family: 'Inter', sans-serif; transition: all 0.3s;
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+            color: white;
+        }
+        .setup-btn:hover { transform: translateY(-1px); box-shadow: 0 8px 25px rgba(59,130,246,0.3); }
+        .setup-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; box-shadow: none; }
+
+        .setup-status { margin-top: 12px; font-size: 0.82rem; padding: 8px 14px; border-radius: 8px; display: none; }
+        .setup-status.error { display: block; background: rgba(239,68,68,0.15); color: var(--accent-red); border: 1px solid rgba(239,68,68,0.3); }
+        .setup-status.success { display: block; background: rgba(16,185,129,0.15); color: var(--accent-green); border: 1px solid rgba(16,185,129,0.3); }
+
+        .setup-instructions {
+            text-align: left; background: var(--bg-secondary); border-radius: 10px; padding: 16px; margin-top: 12px;
+            border: 1px solid var(--border);
+        }
+        .setup-instructions h4 { font-size: 0.85rem; color: var(--accent-cyan); margin-bottom: 10px; }
+        .setup-instructions ol { padding-left: 20px; }
+        .setup-instructions li { font-size: 0.78rem; color: var(--text-secondary); padding: 3px 0; line-height: 1.5; }
+        .setup-instructions code { font-family: 'JetBrains Mono', monospace; background: var(--bg-primary); padding: 1px 5px; border-radius: 3px; font-size: 0.74rem; color: var(--accent-cyan); border: 1px solid var(--border); }
+        .setup-instructions a { color: var(--accent-blue); text-decoration: none; }
+
+        /* ===== HEADER ===== */
+        .header { text-align: center; padding: 40px 20px 20px; margin-bottom: 20px; }
+        .header h1 {
+            font-size: 2.5rem; font-weight: 900; letter-spacing: -1px; margin-bottom: 8px;
+            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-blue), var(--accent-purple));
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+        }
+        .header .subtitle { font-size: 1.05rem; color: var(--text-secondary); }
+        .header .date-range {
+            display: inline-block; margin-top: 12px; padding: 6px 16px;
+            background: var(--bg-card); border: 1px solid var(--border); border-radius: 20px;
+            font-size: 0.85rem; color: var(--accent-cyan); font-family: 'JetBrains Mono', monospace;
+        }
+
+        /* ===== PRESENCE BAR ===== */
+        .presence-bar {
+            display: flex; align-items: center; justify-content: center; gap: 24px;
+            padding: 12px 20px; margin-bottom: 20px;
+            background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px;
+        }
+        .presence-item { display: flex; align-items: center; gap: 8px; font-size: 0.85rem; }
+        .presence-dot {
+            width: 10px; height: 10px; border-radius: 50%; background: var(--text-muted);
+            transition: all 0.3s;
+        }
+        .presence-dot.online { background: var(--accent-green); box-shadow: 0 0 8px rgba(16,185,129,0.6); animation: pulse 2s infinite; }
+        @keyframes pulse { 0%, 100% { box-shadow: 0 0 8px rgba(16,185,129,0.6); } 50% { box-shadow: 0 0 14px rgba(16,185,129,0.9); } }
+        .presence-name { color: var(--text-secondary); font-weight: 500; }
+        .presence-name.you { font-weight: 700; color: var(--text-primary); }
+        .sync-badge {
+            font-size: 0.7rem; padding: 3px 10px; border-radius: 12px;
+            background: rgba(16,185,129,0.15); color: var(--accent-green); border: 1px solid rgba(16,185,129,0.3);
+            font-weight: 600; letter-spacing: 0.5px;
+        }
+        .sync-badge.offline { background: rgba(239,68,68,0.15); color: var(--accent-red); border-color: rgba(239,68,68,0.3); }
+        .my-identity-badge {
+            font-size: 0.7rem; padding: 3px 10px; border-radius: 12px; font-weight: 600;
+        }
+        .my-identity-badge.j-badge { background: rgba(59,130,246,0.15); color: var(--jaskaran); border: 1px solid rgba(59,130,246,0.3); }
+        .my-identity-badge.f-badge { background: rgba(139,92,246,0.15); color: var(--friend); border: 1px solid rgba(139,92,246,0.3); }
+
+        /* ===== MASTER PROGRESS ===== */
+        .master-progress {
+            background: var(--bg-card); border: 1px solid var(--border); border-radius: 16px;
+            padding: 28px; margin-bottom: 24px; position: relative; overflow: hidden;
+        }
+        .master-progress::after { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: linear-gradient(90deg, var(--accent-cyan), var(--accent-blue), var(--accent-purple)); }
+
+        .progress-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 14px; margin-bottom: 20px; }
+        .stat-box { text-align: center; padding: 12px; background: var(--bg-secondary); border-radius: 10px; border: 1px solid var(--border); }
+        .stat-box .stat-value { font-size: 1.8rem; font-weight: 800; font-family: 'JetBrains Mono', monospace; }
+        .stat-box .stat-label { font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; margin-top: 4px; }
+        .stat-box.total .stat-value { color: var(--accent-cyan); }
+        .stat-box.done .stat-value { color: var(--accent-green); }
+        .stat-box.pending .stat-value { color: var(--accent-yellow); }
+        .stat-box.jaskaran-stat .stat-value { color: var(--jaskaran); }
+        .stat-box.friend-stat .stat-value { color: var(--friend); }
+
+        .progress-bar-container { background: var(--bg-secondary); border-radius: 10px; height: 28px; overflow: hidden; position: relative; border: 1px solid var(--border); }
+        .progress-bar-fill {
+            height: 100%; background: linear-gradient(90deg, var(--accent-green), var(--accent-cyan));
+            border-radius: 10px; transition: width 0.6s cubic-bezier(0.4,0,0.2,1); position: relative;
+            display: flex; align-items: center; justify-content: center; min-width: 50px;
+        }
+        .progress-bar-fill::after { content: ''; position: absolute; inset: 0; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent); animation: shimmer 2s infinite; }
+        @keyframes shimmer { 0% { transform: translateX(-100%); } 100% { transform: translateX(100%); } }
+        .progress-percent { font-size: 0.8rem; font-weight: 700; color: white; z-index: 1; text-shadow: 0 1px 3px rgba(0,0,0,0.5); }
+
+        /* ===== LEGEND ===== */
+        .legend { display: flex; gap: 24px; justify-content: center; margin: 20px 0; flex-wrap: wrap; }
+        .legend-item { display: flex; align-items: center; gap: 8px; font-size: 0.83rem; color: var(--text-secondary); }
+        .legend-dot { width: 14px; height: 14px; border-radius: 4px; }
+        .legend-dot.jaskaran { background: var(--jaskaran); }
+        .legend-dot.friend { background: var(--friend); }
+        .legend-dot.both-legend { background: linear-gradient(135deg, var(--jaskaran), var(--friend)); }
+
+        /* ===== WORKLOAD SPLIT ===== */
+        .collab-section { background: var(--bg-card); border: 1px solid var(--border); border-radius: 14px; padding: 28px; margin-bottom: 24px; }
+        .collab-section h2 { font-size: 1.3rem; font-weight: 700; margin-bottom: 16px; display: flex; align-items: center; gap: 10px; }
+        .collab-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+        .member-card { background: var(--bg-secondary); border-radius: 12px; padding: 20px; border: 2px solid var(--border); }
+        .member-card.jaskaran-card { border-color: rgba(59,130,246,0.3); }
+        .member-card.friend-card { border-color: rgba(139,92,246,0.3); }
+        .member-card h3 { font-size: 1rem; font-weight: 700; margin-bottom: 4px; }
+        .member-card .role { font-size: 0.78rem; color: var(--text-muted); margin-bottom: 10px; }
+        .member-card .workload { font-size: 2rem; font-weight: 900; font-family: 'JetBrains Mono', monospace; }
+        .member-card .workload-label { font-size: 0.72rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; }
+        .member-card ul { list-style: none; margin-top: 10px; }
+        .member-card ul li { font-size: 0.78rem; color: var(--text-secondary); padding: 3px 0 3px 16px; position: relative; }
+        .member-card ul li::before { content: '→'; position: absolute; left: 0; color: var(--text-muted); }
+
+        .split-bar { display: flex; height: 36px; border-radius: 8px; overflow: hidden; margin: 14px 0; border: 1px solid var(--border); }
+        .split-jaskaran { background: linear-gradient(135deg, var(--jaskaran), #2563eb); display: flex; align-items: center; justify-content: center; color: white; font-size: 0.78rem; font-weight: 700; }
+        .split-friend { background: linear-gradient(135deg, var(--friend), #7c3aed); display: flex; align-items: center; justify-content: center; color: white; font-size: 0.78rem; font-weight: 700; }
+
+        .tip-box { background: rgba(59,130,246,0.08); border: 1px solid rgba(59,130,246,0.2); border-radius: 10px; padding: 14px 18px; margin: 12px 0; font-size: 0.8rem; color: var(--text-secondary); }
+        .tip-box strong { color: var(--accent-blue); }
+
+        /* ===== GITHUB STEPS ===== */
+        .git-steps { counter-reset: step; }
+        .git-step { display: flex; gap: 16px; padding: 12px 0; border-bottom: 1px solid var(--border); }
+        .git-step:last-child { border-bottom: none; }
+        .git-step-num { width: 32px; height: 32px; border-radius: 50%; background: var(--accent-blue); color: white; display: flex; align-items: center; justify-content: center; font-size: 0.78rem; font-weight: 700; flex-shrink: 0; }
+        .git-step-content h4 { font-size: 0.88rem; font-weight: 600; margin-bottom: 4px; }
+        .git-step-content p { font-size: 0.8rem; color: var(--text-secondary); line-height: 1.5; }
+        .git-step-content code { font-family: 'JetBrains Mono', monospace; background: var(--bg-primary); padding: 2px 6px; border-radius: 4px; font-size: 0.74rem; color: var(--accent-cyan); border: 1px solid var(--border); }
+
+        /* ===== DAY CARDS ===== */
+        .day-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 14px; margin-bottom: 14px; overflow: hidden; transition: all 0.3s; }
+        .day-card:hover { border-color: rgba(59,130,246,0.4); }
+        .day-card.completed { border-color: var(--accent-green); box-shadow: 0 0 20px rgba(16,185,129,0.15); }
+
+        .day-header { display: flex; align-items: center; justify-content: space-between; padding: 16px 22px; cursor: pointer; user-select: none; transition: background 0.2s; }
+        .day-header:hover { background: var(--bg-card-hover); }
+        .day-header-left { display: flex; align-items: center; gap: 14px; }
+        .day-number { width: 42px; height: 42px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 1.1rem; font-family: 'JetBrains Mono', monospace; background: var(--bg-secondary); border: 2px solid var(--border); color: var(--text-secondary); transition: all 0.3s; }
+        .day-card.completed .day-number { background: var(--accent-green); border-color: var(--accent-green); color: white; }
+        .day-info h3 { font-size: 1rem; font-weight: 600; }
+        .day-info .day-date { font-size: 0.78rem; color: var(--text-muted); margin-top: 2px; font-family: 'JetBrains Mono', monospace; }
+        .day-header-right { display: flex; align-items: center; gap: 12px; }
+        .day-progress-mini { font-size: 0.78rem; font-weight: 600; color: var(--text-muted); font-family: 'JetBrains Mono', monospace; }
+        .chevron { color: var(--text-muted); transition: transform 0.3s; font-size: 1.1rem; }
+        .day-card.expanded .chevron { transform: rotate(180deg); }
+
+        .day-body { max-height: 0; overflow: hidden; transition: max-height 0.4s cubic-bezier(0.4,0,0.2,1); }
+        .day-card.expanded .day-body { max-height: 3000px; }
+        .day-content { padding: 0 22px 18px; }
+
+        .task-group { margin-bottom: 14px; }
+        .task-group-title { font-size: 0.72rem; font-weight: 600; text-transform: uppercase; letter-spacing: 1.5px; color: var(--text-muted); margin-bottom: 8px; padding-bottom: 6px; border-bottom: 1px solid var(--border); }
+
+        .task-item { display: flex; align-items: flex-start; gap: 12px; padding: 9px 12px; border-radius: 8px; margin-bottom: 3px; transition: background 0.2s; cursor: pointer; }
+        .task-item:hover { background: var(--bg-secondary); }
+
+        .task-checkbox {
+            width: 22px; height: 22px; border: 2px solid var(--border); border-radius: 6px;
+            cursor: pointer; display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0; margin-top: 1px; transition: all 0.2s; position: relative;
+        }
+        .task-checkbox.checked-j { background: var(--jaskaran); border-color: var(--jaskaran); }
+        .task-checkbox.checked-f { background: var(--friend); border-color: var(--friend); }
+        .task-checkbox.checked-j::after, .task-checkbox.checked-f::after { content: '✓'; color: white; font-size: 13px; font-weight: 700; }
+
+        .task-details { flex: 1; }
+        .task-name { font-size: 0.88rem; color: var(--text-primary); transition: all 0.2s; }
+        .task-item.done .task-name { color: var(--text-muted); text-decoration: line-through; }
+        .task-meta { display: flex; gap: 6px; margin-top: 4px; flex-wrap: wrap; align-items: center; }
+        .task-tag { font-size: 0.68rem; padding: 2px 7px; border-radius: 4px; font-weight: 600; letter-spacing: 0.5px; }
+        .tag-jaskaran { background: rgba(59,130,246,0.15); color: var(--jaskaran); border: 1px solid rgba(59,130,246,0.3); }
+        .tag-friend { background: rgba(139,92,246,0.15); color: var(--friend); border: 1px solid rgba(139,92,246,0.3); }
+        .tag-both { background: rgba(6,182,212,0.15); color: var(--both); border: 1px solid rgba(6,182,212,0.3); }
+        .tag-file { background: rgba(249,115,22,0.15); color: var(--accent-orange); border: 1px solid rgba(249,115,22,0.2); font-family: 'JetBrains Mono', monospace; font-size: 0.64rem; }
+
+        .completed-by-tag {
+            font-size: 0.62rem; padding: 1px 6px; border-radius: 3px; font-weight: 600; margin-left: 4px;
+        }
+        .completed-by-tag.by-j { background: rgba(59,130,246,0.2); color: var(--jaskaran); }
+        .completed-by-tag.by-f { background: rgba(139,92,246,0.2); color: var(--friend); }
+
+        /* ===== TOOLBAR ===== */
+        .toolbar { display: flex; gap: 10px; justify-content: flex-end; margin-bottom: 14px; flex-wrap: wrap; }
+        .btn { padding: 8px 16px; border-radius: 8px; border: none; font-weight: 600; font-size: 0.8rem; cursor: pointer; transition: all 0.2s; font-family: 'Inter', sans-serif; }
+        .btn-reset { background: rgba(239,68,68,0.15); color: var(--accent-red); border: 1px solid rgba(239,68,68,0.3); }
+        .btn-reset:hover { background: rgba(239,68,68,0.25); }
+        .btn-expand { background: rgba(59,130,246,0.15); color: var(--accent-blue); border: 1px solid rgba(59,130,246,0.3); }
+        .btn-expand:hover { background: rgba(59,130,246,0.25); }
+        .btn-switch { background: rgba(249,115,22,0.15); color: var(--accent-orange); border: 1px solid rgba(249,115,22,0.3); }
+        .btn-switch:hover { background: rgba(249,115,22,0.25); }
+
+        /* ===== NOTES ===== */
+        .notes-area {
+            width: 100%; background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 8px;
+            padding: 12px; color: var(--text-primary); font-family: 'Inter', sans-serif; font-size: 0.85rem;
+            resize: vertical; min-height: 80px; outline: none; transition: border-color 0.2s;
+        }
+        .notes-area:focus { border-color: var(--accent-blue); }
+        .notes-area::placeholder { color: var(--text-muted); }
+
+        /* ===== CELEBRATION ===== */
+        .celebration { display: none; text-align: center; padding: 40px; animation: fadeIn 0.5s; }
+        .celebration.show { display: block; }
+        .celebration h2 { font-size: 2rem; margin-bottom: 10px; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        .footer { text-align: center; padding: 30px; color: var(--text-muted); font-size: 0.78rem; }
+
+        @media (max-width: 768px) {
+            .collab-grid { grid-template-columns: 1fr; }
+            .header h1 { font-size: 1.8rem; }
+            .progress-stats { grid-template-columns: repeat(2, 1fr); }
+            .presence-bar { flex-direction: column; gap: 10px; }
+            .identity-pick { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- ===== SETUP OVERLAY ===== -->
+<div class="setup-overlay" id="setupOverlay">
+    <div class="setup-box">
+        <h2>🛡️ MIRAGE Junior</h2>
+        <div class="setup-sub">Synced Progress Tracker — First Time Setup</div>
+
+        <label>Step 1 — Who are you?</label>
+        <div class="identity-pick">
+            <div class="identity-btn" id="pickJaskaran" onclick="pickIdentity('jaskaran')">
+                <div class="id-emoji">⚡</div>
+                <div class="id-name">Jaskaran</div>
+                <div class="id-role">Lead Dev — Core & Engine</div>
+            </div>
+            <div class="identity-btn" id="pickFriend" onclick="pickIdentity('friend')">
+                <div class="id-emoji">🤝</div>
+                <div class="id-name">Partner</div>
+                <div class="id-role">Dev — UI, DB & Docs</div>
+            </div>
+        </div>
+
+        <label>Step 2 — Paste your Firebase config JSON</label>
+        <textarea id="firebaseConfigInput" placeholder='{
+  "apiKey": "AIza...",
+  "authDomain": "your-project.firebaseapp.com",
+  "databaseURL": "https://your-project-default-rtdb.firebaseio.com",
+  "projectId": "your-project",
+  "storageBucket": "your-project.appspot.com",
+  "messagingSenderId": "123456",
+  "appId": "1:123456:web:abc123"
+}'></textarea>
+
+        <div class="setup-instructions">
+            <h4>📋 How to get Firebase config (free, 3 minutes):</h4>
+            <ol>
+                <li>Go to <a href="https://console.firebase.google.com/" target="_blank">console.firebase.google.com</a> → <b>Create a project</b> (name it anything, e.g. "mirage-tracker")</li>
+                <li>Disable Google Analytics when asked (not needed) → Create</li>
+                <li>Click the <b>Web icon</b> <code>&lt;/&gt;</code> → Register app (any nickname) → Copy the <code>firebaseConfig</code> JSON object shown</li>
+                <li>Go to <b>Build → Realtime Database</b> → Create Database → choose any location → Start in <b>Test mode</b> → Enable</li>
+                <li>Paste the config JSON above ↑</li>
+                <li><b>Share this same config with your partner</b> so they paste it too!</li>
+            </ol>
+        </div>
+
+        <div class="setup-status" id="setupStatus"></div>
+
+        <button class="setup-btn" id="setupBtn" onclick="completeSetup()" disabled>🚀 Connect & Start Tracking</button>
+    </div>
+</div>
+
+<!-- ===== MAIN APP ===== -->
+<div class="container" id="mainApp" style="display:none">
+
+    <div class="header">
+        <h1>🛡️ MIRAGE Junior</h1>
+        <div class="subtitle">Intelligent Deception Network — Synced Progress Tracker</div>
+        <div class="date-range">📅 Sept 30 → Oct 8, 2026</div>
+    </div>
+
+    <!-- Presence Bar -->
+    <div class="presence-bar">
+        <div class="presence-item">
+            <div class="presence-dot" id="jaskaranDot"></div>
+            <span class="presence-name" id="jaskaranPresName">⚡ Jaskaran</span>
+        </div>
+        <div class="presence-item">
+            <div class="presence-dot" id="friendDot"></div>
+            <span class="presence-name" id="friendPresName">🤝 Partner</span>
+        </div>
+        <div style="margin-left: auto; display: flex; gap: 8px; align-items: center;">
+            <span class="sync-badge" id="syncBadge">🔴 OFFLINE</span>
+            <span class="my-identity-badge" id="myBadge"></span>
+        </div>
+    </div>
+
+    <!-- Master Progress -->
+    <div class="master-progress">
+        <div class="progress-stats">
+            <div class="stat-box total"><div class="stat-value" id="totalTasks">0</div><div class="stat-label">Total Tasks</div></div>
+            <div class="stat-box done"><div class="stat-value" id="doneTasks">0</div><div class="stat-label">Completed</div></div>
+            <div class="stat-box pending"><div class="stat-value" id="pendingTasks">0</div><div class="stat-label">Remaining</div></div>
+            <div class="stat-box jaskaran-stat"><div class="stat-value" id="jaskaranDone">0</div><div class="stat-label">Jaskaran ✓</div></div>
+            <div class="stat-box friend-stat"><div class="stat-value" id="friendDone">0</div><div class="stat-label">Partner ✓</div></div>
+        </div>
+        <div class="progress-bar-container">
+            <div class="progress-bar-fill" id="progressBar" style="width:0%">
+                <span class="progress-percent" id="progressPercent">0%</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="legend">
+        <div class="legend-item"><div class="legend-dot jaskaran"></div><span>Jaskaran (Lead)</span></div>
+        <div class="legend-item"><div class="legend-dot friend"></div><span>Partner</span></div>
+        <div class="legend-item"><div class="legend-dot both-legend"></div><span>Both / Shared</span></div>
+    </div>
+
+    <!-- Workload Section -->
+    <div class="collab-section">
+        <h2>👥 Team Workload Split</h2>
+        <div class="split-bar">
+            <div class="split-jaskaran" style="width:60%">Jaskaran — 60%</div>
+            <div class="split-friend" style="width:40%">Partner — 40%</div>
+        </div>
+        <div class="collab-grid">
+            <div class="member-card jaskaran-card">
+                <h3 style="color:var(--jaskaran)">⚡ Jaskaran (You)</h3>
+                <div class="role">Lead Developer — Core Systems & Intelligence</div>
+                <div class="workload" style="color:var(--jaskaran)">60%</div>
+                <div class="workload-label">of total work</div>
+                <ul>
+                    <li>SSH Honeypot + Fake Shell</li>
+                    <li>Threat Scoring Engine</li>
+                    <li>MITRE ATT&CK Mapper</li>
+                    <li>Auto-Quarantine System</li>
+                    <li>main.py integration (threading)</li>
+                    <li>Code review partner's work</li>
+                    <li>Final integration & bug fixes</li>
+                </ul>
+            </div>
+            <div class="member-card friend-card">
+                <h3 style="color:var(--friend)">🤝 Partner</h3>
+                <div class="role">Developer — UI, Data Layer & Documentation</div>
+                <div class="workload" style="color:var(--friend)">40%</div>
+                <div class="workload-label">of total work</div>
+                <ul>
+                    <li>HTTP Honeypot + HTML templates</li>
+                    <li>FTP Trap</li>
+                    <li>Database setup + CRUD manager</li>
+                    <li>Dashboard UI (all 6 pages)</li>
+                    <li>Telegram Alert integration</li>
+                    <li>GeoIP Enricher</li>
+                    <li>test_attack.py + README + PPT</li>
+                </ul>
+            </div>
+        </div>
+        <div class="tip-box" style="margin-top:14px">
+            <strong>💡 Why this split?</strong> Jaskaran handles the <em>brain</em> (scoring, MITRE, quarantine, SSH shell) — needs deeper understanding for viva. Partner handles the <em>body</em> (UI, database, templates, alerts) — AI-friendly tasks that produce impressive visible output.
+        </div>
+    </div>
+
+    <!-- GitHub Section -->
+    <div class="collab-section">
+        <h2>🔗 GitHub Collaboration Method</h2>
+        <div class="git-steps">
+            <div class="git-step"><div class="git-step-num">1</div><div class="git-step-content"><h4>Jaskaran creates the GitHub repo</h4><p>github.com → New Repo → <code>MIRAGE-Junior</code> → Private → Create → Clone locally: <code>git clone https://github.com/YOU/MIRAGE-Junior.git</code></p></div></div>
+            <div class="git-step"><div class="git-step-num">2</div><div class="git-step-content"><h4>Add partner as collaborator</h4><p>Repo → Settings → Collaborators → Add friend's GitHub username → They accept invite.</p></div></div>
+            <div class="git-step"><div class="git-step-num">3</div><div class="git-step-content"><h4>Work on separate branches</h4><p>Jaskaran: <code>git checkout -b jaskaran/core-engine</code><br>Partner: <code>git checkout -b partner/dashboard-ui</code></p></div></div>
+            <div class="git-step"><div class="git-step-num">4</div><div class="git-step-content"><h4>Push & merge daily</h4><p><code>git add . && git commit -m "feat: scoring engine" && git push</code> → PR → Merge to <code>main</code></p></div></div>
+            <div class="git-step"><div class="git-step-num">5</div><div class="git-step-content"><h4>Both use AI independently</h4><p>Each person opens the cloned repo in their own Antigravity session. Share the PRD so AI has full context.</p></div></div>
+            <div class="git-step"><div class="git-step-num">6</div><div class="git-step-content"><h4>Sync before starting each day</h4><p>Always start with: <code>git pull origin main</code></p></div></div>
+        </div>
+    </div>
+
+    <!-- Toolbar -->
+    <div class="toolbar">
+        <button class="btn btn-switch" onclick="switchIdentity()">🔄 Switch Identity</button>
+        <button class="btn btn-expand" onclick="toggleAllDays()">📂 Expand / Collapse All</button>
+        <button class="btn btn-reset" onclick="resetProgress()">🗑️ Reset All Progress</button>
+    </div>
+
+    <!-- Day Cards -->
+    <div id="dayCardsContainer"></div>
+
+    <!-- Notes -->
+    <div class="collab-section" style="margin-top:24px">
+        <h2>📝 Shared Notes & Blockers</h2>
+        <textarea class="notes-area" id="projectNotes" placeholder="Write blockers, ideas, or notes for your partner... (synced in real-time)" oninput="saveNotes()"></textarea>
+    </div>
+
+    <!-- Celebration -->
+    <div class="celebration" id="celebration">
+        <h2>🎉🚀 PROJECT COMPLETE! 🚀🎉</h2>
+        <p style="font-size:1.2rem;color:var(--accent-green);">MIRAGE Junior is ready for submission!</p>
+        <p style="color:var(--text-secondary);margin-top:8px;">Time to prepare your PPT and crush that evaluation 💪</p>
+    </div>
+
+    <div class="footer">MIRAGE Junior © 2026 — Real-time sync powered by Firebase 🔥</div>
+</div>
+
+<script>
+// ==================== TASK DATA ====================
+const projectData = [
+    { day:1, title:"Foundation — Project Setup & Database", date:"Sept 30 (Tue)", groups:[
+        { title:"Setup & Config", tasks:[
+            { name:"Create GitHub repo + clone on both machines", owner:"both" },
+            { name:"Create project folder structure (all dirs)", owner:"both" },
+            { name:"Write requirements.txt", owner:"jaskaran", file:"requirements.txt" },
+            { name:"Create config/settings.py (ports, API keys, thresholds)", owner:"jaskaran", file:"config/settings.py" },
+            { name:"Create config/scoring_rules.json", owner:"jaskaran", file:"config/scoring_rules.json" },
+            { name:"Create config/mitre_mapping.json", owner:"jaskaran", file:"config/mitre_mapping.json" },
+            { name:"Create config/whitelist.json", owner:"jaskaran", file:"config/whitelist.json" },
+        ]},
+        { title:"Database Layer", tasks:[
+            { name:"Build database/db_setup.py — create all 5 tables", owner:"friend", file:"database/db_setup.py" },
+            { name:"Build database/db_manager.py — insert/query/update", owner:"friend", file:"database/db_manager.py" },
+            { name:"Test: run db_setup.py, verify tables created", owner:"friend" },
+        ]}
+    ]},
+    { day:2, title:"HTTP Honeypot — The Web Decoy", date:"Oct 1 (Wed)", groups:[
+        { title:"HTTP Decoy Server", tasks:[
+            { name:"Build honeypots/http_decoy.py — Flask app, 7 endpoints", owner:"friend", file:"honeypots/http_decoy.py" },
+            { name:"Create templates/index.html — fake corporate page", owner:"friend", file:"templates/index.html" },
+            { name:"Create templates/admin_login.html — fake admin panel", owner:"friend", file:"templates/admin_login.html" },
+            { name:"Create templates/wp_login.html — WordPress clone", owner:"friend", file:"templates/wp_login.html" },
+            { name:"Create templates/env_file.txt — fake .env honeytoken", owner:"friend", file:"templates/env_file.txt" },
+            { name:"Add realistic HTTP headers (X-Powered-By, Server)", owner:"friend" },
+            { name:"Log all requests to database via db_manager", owner:"friend" },
+            { name:"Test: open browser, try all endpoints, verify logs", owner:"friend" },
+        ]}
+    ]},
+    { day:3, title:"SSH Trap + FTP Trap — Network Decoys", date:"Oct 2 (Thu)", groups:[
+        { title:"SSH Honeypot (Jaskaran)", tasks:[
+            { name:"Build honeypots/ssh_trap.py — paramiko SSH server", owner:"jaskaran", file:"honeypots/ssh_trap.py" },
+            { name:"Implement SSH banner spoofing (OpenSSH 7.6)", owner:"jaskaran" },
+            { name:"Build fake shell — handle whoami, id, ls, cat, uname", owner:"jaskaran" },
+            { name:"Log all credentials + shell commands to DB", owner:"jaskaran" },
+            { name:"Test: SSH from terminal, verify logging", owner:"jaskaran" },
+        ]},
+        { title:"FTP Honeypot (Partner)", tasks:[
+            { name:"Build honeypots/ftp_trap.py — pyftpdlib FTP server", owner:"friend", file:"honeypots/ftp_trap.py" },
+            { name:"Configure fake directory listing with bait files", owner:"friend" },
+            { name:"Log anonymous + credential attempts to DB", owner:"friend" },
+            { name:"Test: connect via FTP client, verify logging", owner:"friend" },
+        ]}
+    ]},
+    { day:4, title:"Intelligence Engine — Scoring, MITRE & GeoIP", date:"Oct 3 (Fri)", groups:[
+        { title:"Core Intelligence (Jaskaran)", tasks:[
+            { name:"Build engine/scoring_engine.py — weighted point system", owner:"jaskaran", file:"engine/scoring_engine.py" },
+            { name:"Implement threat classification (Scanner→Critical)", owner:"jaskaran" },
+            { name:"Build engine/mitre_tagger.py — auto-tag with ATT&CK IDs", owner:"jaskaran", file:"engine/mitre_tagger.py" },
+            { name:"Test: feed sample events, verify scores", owner:"jaskaran" },
+        ]},
+        { title:"Enrichment (Partner)", tasks:[
+            { name:"Build engine/geo_enricher.py — ip-api.com + caching", owner:"friend", file:"engine/geo_enricher.py" },
+            { name:"Test: lookup sample IPs, verify country/city", owner:"friend" },
+        ]}
+    ]},
+    { day:5, title:"Response — Alerts, Quarantine & Honeytokens", date:"Oct 4 (Sat)", groups:[
+        { title:"Alerts (Partner)", tasks:[
+            { name:"Build engine/alert_manager.py — Telegram Bot", owner:"friend", file:"engine/alert_manager.py" },
+            { name:"Create Telegram Bot via BotFather, get token", owner:"friend" },
+            { name:"Implement graded alert templates (Info→Critical)", owner:"friend" },
+            { name:"Test: trigger test alert, verify on phone", owner:"friend" },
+        ]},
+        { title:"Auto-Response (Jaskaran)", tasks:[
+            { name:"Build engine/quarantine.py — firewall rules", owner:"jaskaran", file:"engine/quarantine.py" },
+            { name:"Implement IP whitelist checking", owner:"jaskaran" },
+            { name:"Implement auto-expiry (1hr timeout)", owner:"jaskaran" },
+            { name:"Build engine/honeytoken_monitor.py — watchdog", owner:"jaskaran", file:"engine/honeytoken_monitor.py" },
+            { name:"Create bait/ directory with fake files", owner:"jaskaran", file:"bait/*" },
+            { name:"Test: touch bait file → verify alert fires", owner:"jaskaran" },
+        ]}
+    ]},
+    { day:6, title:"Dashboard — The Command Center UI", date:"Oct 5 (Sun)", groups:[
+        { title:"Dashboard Backend", tasks:[
+            { name:"Build dashboard/app.py — Flask app factory", owner:"friend", file:"dashboard/app.py" },
+            { name:"Build dashboard/routes.py — all 6 route handlers", owner:"friend", file:"dashboard/routes.py" },
+        ]},
+        { title:"Dashboard Frontend", tasks:[
+            { name:"Create templates/base.html — nav, dark theme", owner:"friend", file:"dashboard/templates/base.html" },
+            { name:"Create templates/overview.html — stats, charts, feed", owner:"friend", file:"dashboard/templates/overview.html" },
+            { name:"Create templates/attacks.html — paginated log table", owner:"friend", file:"dashboard/templates/attacks.html" },
+            { name:"Create templates/attacker.html — IP deep-dive + timeline", owner:"friend", file:"dashboard/templates/attacker.html" },
+            { name:"Create templates/quarantine.html — blocks + unblock", owner:"friend", file:"dashboard/templates/quarantine.html" },
+            { name:"Create templates/honeytokens.html — token status", owner:"friend", file:"dashboard/templates/honeytokens.html" },
+            { name:"Create static/css/style.css — full dark theme", owner:"friend", file:"static/css/style.css" },
+            { name:"Create static/js/charts.js — Chart.js configs", owner:"friend", file:"static/js/charts.js" },
+            { name:"Create static/js/timeline.js — timeline renderer", owner:"friend", file:"static/js/timeline.js" },
+        ]}
+    ]},
+    { day:7, title:"Integration — main.py & Demo Script", date:"Oct 6 (Mon)", groups:[
+        { title:"Integration (Jaskaran)", tasks:[
+            { name:"Build main.py — threaded launcher for all services", owner:"jaskaran", file:"main.py" },
+            { name:"Wire scoring engine into honeypot event callbacks", owner:"jaskaran" },
+            { name:"Wire MITRE tagger into event pipeline", owner:"jaskaran" },
+            { name:"Wire quarantine trigger into scoring threshold", owner:"jaskaran" },
+            { name:"End-to-end test: main.py → all services running", owner:"jaskaran" },
+        ]},
+        { title:"Demo & Testing (Partner)", tasks:[
+            { name:"Build tests/test_attack.py — simulated attack", owner:"friend", file:"tests/test_attack.py" },
+            { name:"Build tests/test_scoring.py — unit tests", owner:"friend", file:"tests/test_scoring.py" },
+            { name:"Run full demo: test_attack → dashboard shows data", owner:"both" },
+        ]}
+    ]},
+    { day:8, title:"Polish — Bug Fixes, README & Submission", date:"Oct 7 (Tue)", groups:[
+        { title:"Final Polish", tasks:[
+            { name:"Fix bugs found during Day 7 testing", owner:"both" },
+            { name:"Add code comments to all Python files", owner:"both" },
+            { name:"Write README.md — setup guide + architecture", owner:"friend", file:"README.md" },
+            { name:"Create settings.html — config page on dashboard", owner:"friend", file:"dashboard/templates/settings.html" },
+            { name:"Take dashboard screenshots for report", owner:"both" },
+            { name:"Final git push — tag as v1.0 release", owner:"jaskaran" },
+            { name:"Prepare PPT presentation slides", owner:"both" },
+            { name:"Practice live demo walkthrough", owner:"both" },
+        ]}
+    ]}
+];
+
+// ==================== STATE ====================
+let myIdentity = null; // 'jaskaran' or 'friend'
+let db = null;
+let taskStates = {};
+let allExpanded = false;
+let isConnected = false;
+
+// ==================== SETUP ====================
+let chosenIdentity = null;
+
+function pickIdentity(who) {
+    chosenIdentity = who;
+    document.getElementById('pickJaskaran').className = 'identity-btn' + (who === 'jaskaran' ? ' selected-j' : '');
+    document.getElementById('pickFriend').className = 'identity-btn' + (who === 'friend' ? ' selected-f' : '');
+    checkSetupReady();
+}
+
+function checkSetupReady() {
+    const configText = document.getElementById('firebaseConfigInput').value.trim();
+    document.getElementById('setupBtn').disabled = !(chosenIdentity && configText.length > 20);
+}
+
+document.getElementById('firebaseConfigInput').addEventListener('input', checkSetupReady);
+
+function completeSetup() {
+    const statusEl = document.getElementById('setupStatus');
+    const configText = document.getElementById('firebaseConfigInput').value.trim();
+
+    try {
+        let config;
+        try { config = JSON.parse(configText); }
+        catch(e) {
+            // Try extracting from JS snippet
+            const match = configText.match(/\{[\s\S]*\}/);
+            if (match) config = JSON.parse(match[0]);
+            else throw new Error('Invalid JSON');
+        }
+
+        if (!config.databaseURL) throw new Error('Missing databaseURL in config');
+
+        // Save to localStorage
+        localStorage.setItem('mirage_firebase_config', JSON.stringify(config));
+        localStorage.setItem('mirage_identity', chosenIdentity);
+
+        // Initialize
+        myIdentity = chosenIdentity;
+        initFirebase(config);
+
+    } catch(e) {
+        statusEl.className = 'setup-status error';
+        statusEl.textContent = '❌ Invalid config: ' + e.message + '. Make sure you paste the full JSON object.';
+    }
+}
+
+function initFirebase(config) {
+    try {
+        if (!firebase.apps.length) firebase.initializeApp(config);
+        db = firebase.database();
+
+        // Test connection
+        const connRef = db.ref('.info/connected');
+        connRef.on('value', (snap) => {
+            isConnected = snap.val() === true;
+            updateSyncBadge();
+            if (isConnected) {
+                showMainApp();
+                setupPresence();
+                listenForChanges();
+            }
+        });
+
+        // Timeout fallback
+        setTimeout(() => {
+            if (!isConnected) {
+                const statusEl = document.getElementById('setupStatus');
+                statusEl.className = 'setup-status error';
+                statusEl.textContent = '⏳ Connection is taking long. Check if databaseURL is correct and database is in Test mode.';
+            }
+        }, 8000);
+
+    } catch(e) {
+        const statusEl = document.getElementById('setupStatus');
+        statusEl.className = 'setup-status error';
+        statusEl.textContent = '❌ Firebase error: ' + e.message;
+    }
+}
+
+function showMainApp() {
+    document.getElementById('setupOverlay').classList.add('hidden');
+    document.getElementById('mainApp').style.display = 'block';
+
+    // Set identity badge
+    const badge = document.getElementById('myBadge');
+    if (myIdentity === 'jaskaran') {
+        badge.textContent = '⚡ You: Jaskaran';
+        badge.className = 'my-identity-badge j-badge';
+        document.getElementById('jaskaranPresName').classList.add('you');
+    } else {
+        badge.textContent = '🤝 You: Partner';
+        badge.className = 'my-identity-badge f-badge';
+        document.getElementById('friendPresName').classList.add('you');
+    }
+
+    renderDayCards();
+    updateMasterProgress();
+}
+
+function updateSyncBadge() {
+    const badge = document.getElementById('syncBadge');
+    if (!badge) return;
+    if (isConnected) {
+        badge.textContent = '🟢 SYNCED LIVE';
+        badge.className = 'sync-badge';
+    } else {
+        badge.textContent = '🔴 OFFLINE';
+        badge.className = 'sync-badge offline';
+    }
+}
+
+// ==================== PRESENCE ====================
+function setupPresence() {
+    const myPresRef = db.ref('presence/' + myIdentity);
+    myPresRef.set(true);
+    myPresRef.onDisconnect().set(false);
+
+    // Listen to both
+    db.ref('presence/jaskaran').on('value', snap => {
+        const dot = document.getElementById('jaskaranDot');
+        if (dot) dot.className = 'presence-dot' + (snap.val() ? ' online' : '');
+    });
+    db.ref('presence/friend').on('value', snap => {
+        const dot = document.getElementById('friendDot');
+        if (dot) dot.className = 'presence-dot' + (snap.val() ? ' online' : '');
+    });
+}
+
+// ==================== FIREBASE SYNC ====================
+function listenForChanges() {
+    // Tasks
+    db.ref('tasks').on('value', snap => {
+        taskStates = snap.val() || {};
+        renderDayCards();
+        updateMasterProgress();
+    });
+
+    // Notes
+    db.ref('notes').on('value', snap => {
+        const notes = snap.val() || '';
+        const el = document.getElementById('projectNotes');
+        if (el && document.activeElement !== el) el.value = notes;
+    });
+}
+
+function saveTaskState(key, value) {
+    if (db) db.ref('tasks/' + key).set(value);
+}
+
+function saveNotes() {
+    const val = document.getElementById('projectNotes').value;
+    if (db) db.ref('notes').set(val);
+}
+
+// ==================== RENDER ====================
+function buildTaskKey(dayNum, taskIdx) {
+    return 'd' + dayNum + '_t' + taskIdx;
+}
+
+function renderDayCards() {
+    const container = document.getElementById('dayCardsContainer');
+    if (!container) return;
+
+    const wasExpanded = {};
+    container.querySelectorAll('.day-card.expanded').forEach(c => { wasExpanded[c.id] = true; });
+
+    container.innerHTML = '';
+
+    projectData.forEach(day => {
+        let totalDay = 0, doneDay = 0, taskIdx = 0;
+        day.groups.forEach(g => g.tasks.forEach(() => {
+            const key = buildTaskKey(day.day, taskIdx);
+            totalDay++;
+            if (taskStates[key]) doneDay++;
+            taskIdx++;
+        }));
+
+        const isComplete = doneDay === totalDay && totalDay > 0;
+        const wasOpen = wasExpanded['day-' + day.day];
+
+        const card = document.createElement('div');
+        card.className = `day-card${isComplete ? ' completed' : ''}${wasOpen ? ' expanded' : ''}`;
+        card.id = `day-${day.day}`;
+
+        taskIdx = 0;
+        let groupsHTML = '';
+        day.groups.forEach(group => {
+            let tasksHTML = '';
+            group.tasks.forEach(task => {
+                const key = buildTaskKey(day.day, taskIdx);
+                const state = taskStates[key]; // false/null or 'jaskaran'/'friend'
+                const done = !!state;
+                const checkedClass = state === 'jaskaran' ? 'checked-j' : state === 'friend' ? 'checked-f' : '';
+
+                const ownerTag = task.owner === 'jaskaran' ? '<span class="task-tag tag-jaskaran">JASKARAN</span>' :
+                                 task.owner === 'friend' ? '<span class="task-tag tag-friend">PARTNER</span>' :
+                                 '<span class="task-tag tag-both">BOTH</span>';
+                const fileTag = task.file ? `<span class="task-tag tag-file">${task.file}</span>` : '';
+                const byTag = done ? `<span class="completed-by-tag ${state === 'jaskaran' ? 'by-j' : 'by-f'}">✓ by ${state === 'jaskaran' ? 'Jaskaran' : 'Partner'}</span>` : '';
+
+                tasksHTML += `
+                    <div class="task-item${done ? ' done' : ''}" onclick="toggleTask('${key}')">
+                        <div class="task-checkbox ${checkedClass}"></div>
+                        <div class="task-details">
+                            <div class="task-name">${task.name}</div>
+                            <div class="task-meta">${ownerTag}${fileTag}${byTag}</div>
+                        </div>
+                    </div>`;
+                taskIdx++;
+            });
+            groupsHTML += `<div class="task-group"><div class="task-group-title">${group.title}</div>${tasksHTML}</div>`;
+        });
+
+        card.innerHTML = `
+            <div class="day-header" onclick="toggleDay(${day.day})">
+                <div class="day-header-left">
+                    <div class="day-number">${isComplete ? '✓' : day.day}</div>
+                    <div class="day-info">
+                        <h3>Day ${day.day}: ${day.title}</h3>
+                        <div class="day-date">${day.date}</div>
+                    </div>
+                </div>
+                <div class="day-header-right">
+                    <div class="day-progress-mini">${doneDay}/${totalDay}</div>
+                    <div class="chevron">▼</div>
+                </div>
+            </div>
+            <div class="day-body"><div class="day-content">${groupsHTML}</div></div>`;
+
+        container.appendChild(card);
+    });
+}
+
+function toggleDay(dayNum) {
+    document.getElementById(`day-${dayNum}`).classList.toggle('expanded');
+}
+
+function toggleAllDays() {
+    allExpanded = !allExpanded;
+    document.querySelectorAll('.day-card').forEach(card => {
+        if (allExpanded) card.classList.add('expanded');
+        else card.classList.remove('expanded');
+    });
+}
+
+function toggleTask(key) {
+    if (taskStates[key]) {
+        saveTaskState(key, null); // uncheck
+    } else {
+        saveTaskState(key, myIdentity); // check with identity
+    }
+}
+
+function updateMasterProgress() {
+    let total = 0, done = 0, jDone = 0, fDone = 0;
+    let taskIdx;
+
+    projectData.forEach(day => {
+        taskIdx = 0;
+        day.groups.forEach(group => {
+            group.tasks.forEach(() => {
+                const key = buildTaskKey(day.day, taskIdx);
+                total++;
+                const state = taskStates[key];
+                if (state) {
+                    done++;
+                    if (state === 'jaskaran') jDone++;
+                    else if (state === 'friend') fDone++;
+                }
+                taskIdx++;
+            });
+        });
+    });
+
+    const percent = total > 0 ? Math.round((done / total) * 100) : 0;
+
+    const setT = (id, v) => { const e = document.getElementById(id); if (e) e.textContent = v; };
+    setT('totalTasks', total);
+    setT('doneTasks', done);
+    setT('pendingTasks', total - done);
+    setT('jaskaranDone', jDone);
+    setT('friendDone', fDone);
+
+    const bar = document.getElementById('progressBar');
+    if (bar) bar.style.width = Math.max(percent, 3) + '%';
+    setT('progressPercent', percent + '%');
+
+    const cel = document.getElementById('celebration');
+    if (cel) cel.className = 'celebration' + (percent === 100 ? ' show' : '');
+}
+
+// ==================== ACTIONS ====================
+function switchIdentity() {
+    localStorage.removeItem('mirage_identity');
+    localStorage.removeItem('mirage_firebase_config');
+    if (db) db.ref('presence/' + myIdentity).set(false);
+    location.reload();
+}
+
+function resetProgress() {
+    if (confirm('⚠️ Reset ALL progress for BOTH team members? This cannot be undone!')) {
+        if (db) db.ref('tasks').set(null);
+    }
+}
+
+// ==================== AUTO-LOGIN ====================
+(function autoLogin() {
+    const savedConfig = localStorage.getItem('mirage_firebase_config');
+    const savedIdentity = localStorage.getItem('mirage_identity');
+
+    if (savedConfig && savedIdentity) {
+        try {
+            myIdentity = savedIdentity;
+            chosenIdentity = savedIdentity;
+            initFirebase(JSON.parse(savedConfig));
+        } catch(e) {
+            // Show setup
+        }
+    }
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,57 @@
+{% extends 'base.html' %}
+{% block title %}Quarantine - MIRAGE Junior{% endblock %}
+{% block header_title %}Quarantine Management{% endblock %}
+{% block content %}
+<div class="card full-width">
+    <h3>Active Quarantines</h3>
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>IP Address</th>
+                <th>Threat Score</th>
+                <th>Blocked At</th>
+                <th>Expires In</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>45.33.32.156</td>
+                <td><span class="badge badge-critical">94</span></td>
+                <td>11:03:52</td>
+                <td><span style="color: var(--neon-orange)">45m 12s</span></td>
+                <td><button class="btn btn-warning" onclick="unblock('45.33.32.156')">Unblock</button></td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+<div class="card full-width" style="margin-top: 20px;">
+    <h3>Quarantine History</h3>
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>IP Address</th>
+                <th>Date Blocked</th>
+                <th>Duration</th>
+                <th>Resolution</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>103.22.4.99</td>
+                <td>2026-10-02 14:22</td>
+                <td>1 hour</td>
+                <td>Auto-expired</td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+function unblock(ip) {
+    alert('Unblocking ' + ip + '...');
+}
+</script>
+{% endblock %}

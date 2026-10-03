@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}MIRAGE Junior Dashboard{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="sidebar">
+        <div class="logo">
+            <h2><i class="fa-solid fa-shield-halved"></i> MIRAGE <span style="color:var(--neon-green)">Jr</span></h2>
+        </div>
+        <nav>
+            <a href="/"><i class="fa-solid fa-chart-line"></i> Overview</a>
+            <a href="/attacks"><i class="fa-solid fa-bolt"></i> Attack Log</a>
+            <a href="/quarantine"><i class="fa-solid fa-lock"></i> Quarantine</a>
+            <a href="/honeytokens"><i class="fa-solid fa-cheese"></i> Honeytokens</a>
+            <a href="/settings"><i class="fa-solid fa-gear"></i> Settings</a>
+        </nav>
+    </div>
+    <div class="main-content">
+        <header>
+            <h1>{% block header_title %}Dashboard{% endblock %}</h1>
+            <div class="live-indicator"><span class="pulse"></span> LIVE</div>
+        </header>
+        <main>
+            {% block content %}{% endblock %}
+        </main>
+        <footer>
+            <p>MIRAGE Junior &copy; 2026 - Deception Network</p>
+        </footer>
+    </div>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

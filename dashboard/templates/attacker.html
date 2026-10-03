@@ -1,0 +1,39 @@
+{% extends 'base.html' %}
+{% block title %}Attacker Profile - MIRAGE Junior{% endblock %}
+{% block header_title %}Attacker Deep-Dive: {{ ip }}{% endblock %}
+{% block content %}
+<div class="profile-header card">
+    <div class="profile-info">
+        <h2>IP: {{ ip }} 🇷🇺</h2>
+        <p><strong>ISP:</strong> DigitalOcean LLC</p>
+        <p><strong>First Seen:</strong> 2026-10-03 11:02:03</p>
+        <p><strong>Last Seen:</strong> 2026-10-03 11:03:52</p>
+        <div class="tags">
+            <span class="tag">T1190</span> <span class="tag">T1078</span> <span class="tag">T1059</span>
+        </div>
+    </div>
+    <div class="score-display">
+        <div class="gauge-container">
+            <h1 style="color: var(--neon-red)">94</h1>
+            <p>Threat Score</p>
+        </div>
+        <span class="badge badge-critical">CRITICAL THREAT</span>
+        <button class="btn btn-danger" style="margin-top: 10px;">Quarantined</button>
+    </div>
+</div>
+
+<div class="timeline-container card full-width">
+    <h3>Attack Timeline Replay</h3>
+    <div id="attack-timeline"></div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/timeline.js') }}"></script>
+<script>
+    // Demo timeline init
+    document.addEventListener('DOMContentLoaded', () => {
+        renderTimeline([], document.getElementById('attack-timeline'));
+    });
+</script>
+{% endblock %}
