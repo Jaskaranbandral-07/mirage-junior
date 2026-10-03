@@ -1,0 +1,11 @@
+{
+    "connection": 5,
+    "login_attempt": 8,
+    "brute_force": 10,
+    "lateral_scan": 15,
+    "targeted_recon": 20,
+    "shell_access": 15,
+    "shell_command": 5,
+    "honeytoken_trigger": 25,
+    "repeat_visit": 10
+}

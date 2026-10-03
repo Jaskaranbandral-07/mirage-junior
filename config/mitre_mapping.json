@@ -1,0 +1,12 @@
+{
+    "lateral_scan": {"id": "T1046", "name": "Network Service Scanning", "tactic": "Discovery"},
+    "login_attempt": {"id": "T1110", "name": "Brute Force", "tactic": "Credential Access"},
+    "brute_force": {"id": "T1110", "name": "Brute Force", "tactic": "Credential Access"},
+    "default_credentials": {"id": "T1078.001", "name": "Default Accounts", "tactic": "Initial Access"},
+    "targeted_recon": {"id": "T1552.001", "name": "Credentials in Files", "tactic": "Credential Access"},
+    "shell_access": {"id": "T1033", "name": "System Owner Discovery", "tactic": "Discovery"},
+    "shell_command": {"id": "T1059", "name": "Command and Scripting Interpreter", "tactic": "Execution"},
+    "cat_passwd": {"id": "T1087.001", "name": "Local Account Discovery", "tactic": "Discovery"},
+    "ftp_download": {"id": "T1005", "name": "Data from Local System", "tactic": "Collection"},
+    "honeytoken_trigger": {"id": "T1083", "name": "File and Directory Discovery", "tactic": "Discovery"}
+}

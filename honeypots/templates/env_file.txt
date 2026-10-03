@@ -1,0 +1,6 @@
+# .env - Server Configuration
+DB_HOST=192.168.1.100
+DB_USER=admin
+DB_PASS=Str0ngP@ssw0rd!2026
+AWS_ACCESS_KEY=AKIA3EXAMPLE7TOKEN
+TELEGRAM_BOT_TOKEN=fake:AAF-token-here
