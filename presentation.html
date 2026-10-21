@@ -382,6 +382,110 @@
       border: 1px solid #334155;
       color: #cbd5e1;
     }
+
+    /* ─── MOBILE PHONES RESPONSIVE ─── */
+    @media (max-width: 768px) {
+      body {
+        height: 100vh;
+        overflow: hidden;
+      }
+
+      header {
+        padding: 10px 14px;
+      }
+
+      .brand {
+        font-size: 0.95rem;
+      }
+
+      .brand span:last-child {
+        display: none;
+      }
+
+      .header-links {
+        display: none;
+      }
+
+      .deck-viewport {
+        padding: 8px 6px;
+        height: calc(100vh - 110px);
+      }
+
+      .slide {
+        width: calc(100% - 12px);
+        height: calc(100% - 8px);
+        max-height: none;
+        padding: 16px 14px 24px 14px;
+        border-radius: 14px;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+      }
+
+      .slide-title {
+        font-size: 1.35rem;
+        margin-bottom: 12px;
+        line-height: 1.25;
+      }
+
+      .slide-category {
+        font-size: 0.65rem;
+        letter-spacing: 1px;
+      }
+
+      .grid-2, .grid-3, .grid-4, .grid-5 {
+        grid-template-columns: 1fr !important;
+        gap: 12px !important;
+      }
+
+      .card {
+        padding: 14px;
+        border-radius: 10px;
+      }
+
+      .card-title {
+        font-size: 0.95rem;
+        margin-bottom: 6px;
+      }
+
+      .card-body {
+        font-size: 0.85rem;
+        line-height: 1.5;
+      }
+
+      .card-list li {
+        font-size: 0.82rem;
+      }
+
+      .formula-box {
+        font-size: 0.95rem;
+        padding: 10px;
+        margin: 8px 0;
+      }
+
+      .code-block {
+        font-size: 0.72rem;
+        padding: 8px 10px;
+      }
+
+      footer {
+        padding: 10px 14px;
+        flex-direction: row;
+        gap: 8px;
+      }
+
+      .key-hint {
+        display: none;
+      }
+
+      .slide-indicator {
+        font-size: 0.78rem;
+      }
+
+      .btn {
+        padding: 8px 12px;
+        font-size: 0.78rem;
+      }
+    }
   </style>
 </head>
 <body>
@@ -775,6 +879,36 @@
         }
       }
     });
+
+    // Mobile Touch Swipe Navigation
+    let touchStartX = 0;
+    let touchStartY = 0;
+    let touchEndX = 0;
+    let touchEndY = 0;
+
+    document.addEventListener('touchstart', (e) => {
+      touchStartX = e.changedTouches[0].screenX;
+      touchStartY = e.changedTouches[0].screenY;
+    }, { passive: true });
+
+    document.addEventListener('touchend', (e) => {
+      touchEndX = e.changedTouches[0].screenX;
+      touchEndY = e.changedTouches[0].screenY;
+      handleTouchSwipe();
+    }, { passive: true });
+
+    function handleTouchSwipe() {
+      const diffX = touchEndX - touchStartX;
+      const diffY = touchEndY - touchStartY;
+      // Trigger horizontal swipe only if movement is predominantly horizontal and > 35px
+      if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 35) {
+        if (diffX < 0) {
+          nextSlide(); // Swiped left -> Go to Next Slide
+        } else {
+          prevSlide(); // Swiped right -> Go to Previous Slide
+        }
+      }
+    }
 
     // Initialize
     showSlide(1);
