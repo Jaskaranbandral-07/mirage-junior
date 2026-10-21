@@ -2,37 +2,218 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>{% block title %}MIRAGE Junior Dashboard{% endblock %}</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
-    <div class="sidebar">
+    <!-- Mobile Cyber Top App-Bar (Visible on phones) -->
+    <div class="mobile-top-bar">
+        <div class="mobile-brand">
+            <i class="fa-solid fa-shield-halved"></i>
+            <span>MIRAGE <span class="neon-text">Jr</span></span>
+        </div>
+        <div class="mobile-top-right">
+            <div class="live-indicator-compact"><span class="pulse"></span> LIVE</div>
+            <button class="mobile-menu-toggle" id="mobileDrawerOpenBtn" aria-label="Open Navigation Menu">
+                <i class="fa-solid fa-bars-staggered"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- Desktop Sidebar (Hidden on mobile) -->
+    <aside class="sidebar">
         <div class="logo">
             <h2><i class="fa-solid fa-shield-halved"></i> MIRAGE <span style="color:var(--neon-green)">Jr</span></h2>
+            <div class="sys-badge"><span class="badge-dot"></span> DECEPTION ACTIVE</div>
         </div>
         <nav>
-            <a href="/" class="nav-link {{ 'active' if request.path == '/' else '' }}"><i class="fa-solid fa-chart-line"></i> Overview</a>
-            <a href="/attacks" class="nav-link {{ 'active' if request.path == '/attacks' else '' }}"><i class="fa-solid fa-bolt"></i> Attack Log</a>
-            <a href="/quarantine" class="nav-link {{ 'active' if request.path == '/quarantine' else '' }}"><i class="fa-solid fa-lock"></i> Quarantine</a>
-            <a href="/honeytokens" class="nav-link {{ 'active' if request.path == '/honeytokens' else '' }}"><i class="fa-solid fa-cheese"></i> Honeytokens</a>
-            <a href="/settings" class="nav-link {{ 'active' if request.path == '/settings' else '' }}"><i class="fa-solid fa-gear"></i> Settings</a>
+            <a href="/" class="nav-link {{ 'active' if request.path == '/' else '' }}">
+                <i class="fa-solid fa-chart-line"></i> <span>Overview</span>
+            </a>
+            <a href="/attacks" class="nav-link {{ 'active' if request.path == '/attacks' else '' }}">
+                <i class="fa-solid fa-bolt"></i> <span>Attack Log</span>
+            </a>
+            <a href="/quarantine" class="nav-link {{ 'active' if request.path == '/quarantine' else '' }}">
+                <i class="fa-solid fa-lock"></i> <span>Quarantine</span>
+            </a>
+            <a href="/honeytokens" class="nav-link {{ 'active' if request.path == '/honeytokens' else '' }}">
+                <i class="fa-solid fa-cheese"></i> <span>Honeytokens</span>
+            </a>
+            <a href="/settings" class="nav-link {{ 'active' if request.path == '/settings' else '' }}">
+                <i class="fa-solid fa-gear"></i> <span>Settings</span>
+            </a>
         </nav>
+        <div class="sidebar-footer">
+            <div class="quarantine-pill">
+                <i class="fa-solid fa-shield-virus"></i> Auto-Quarantine: <strong>25 pts</strong>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Slide-in Mobile Drawer Menu -->
+    <div class="mobile-drawer-backdrop" id="mobileDrawerBackdrop"></div>
+    <div class="mobile-drawer" id="mobileDrawer">
+        <div class="mobile-drawer-header">
+            <div class="mobile-brand">
+                <i class="fa-solid fa-shield-halved"></i>
+                <span>MIRAGE <span class="neon-text">Jr</span></span>
+            </div>
+            <button class="mobile-drawer-close" id="mobileDrawerCloseBtn" aria-label="Close Navigation Menu">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+
+        <div class="mobile-drawer-status">
+            <div class="status-item">
+                <span class="status-label">Engine Status</span>
+                <span class="status-val text-green"><span class="pulse"></span> Active Deception</span>
+            </div>
+            <div class="status-item">
+                <span class="status-label">Auto-Quarantine</span>
+                <span class="status-val text-red">Threshold: 25 Pts</span>
+            </div>
+            <div class="status-item">
+                <span class="status-label">Mobile Telemetry</span>
+                <span class="status-val text-cyan">Telegram Push On</span>
+            </div>
+        </div>
+
+        <div class="mobile-drawer-section-title">Navigation Options</div>
+        <nav class="mobile-drawer-nav">
+            <a href="/" class="drawer-nav-item {{ 'active' if request.path == '/' else '' }}">
+                <div class="nav-icon-box"><i class="fa-solid fa-chart-line"></i></div>
+                <div class="nav-text-box">
+                    <strong>Overview</strong>
+                    <small>High-level SOC metrics & visual charts</small>
+                </div>
+                <i class="fa-solid fa-chevron-right arrow-icon"></i>
+            </a>
+            <a href="/attacks" class="drawer-nav-item {{ 'active' if request.path == '/attacks' else '' }}">
+                <div class="nav-icon-box"><i class="fa-solid fa-bolt"></i></div>
+                <div class="nav-text-box">
+                    <strong>Attack Telemetry Log</strong>
+                    <small>10-per-page feeds & CSV export</small>
+                </div>
+                <i class="fa-solid fa-chevron-right arrow-icon"></i>
+            </a>
+            <a href="/quarantine" class="drawer-nav-item {{ 'active' if request.path == '/quarantine' else '' }}">
+                <div class="nav-icon-box"><i class="fa-solid fa-lock"></i></div>
+                <div class="nav-text-box">
+                    <strong>Quarantine Management</strong>
+                    <small>Active firewall blocks & unblock controls</small>
+                </div>
+                <i class="fa-solid fa-chevron-right arrow-icon"></i>
+            </a>
+            <a href="/honeytokens" class="drawer-nav-item {{ 'active' if request.path == '/honeytokens' else '' }}">
+                <div class="nav-icon-box"><i class="fa-solid fa-cheese"></i></div>
+                <div class="nav-text-box">
+                    <strong>Honeytoken Tripwires</strong>
+                    <small>Planted .env, .xlsx & SQL bait files</small>
+                </div>
+                <i class="fa-solid fa-chevron-right arrow-icon"></i>
+            </a>
+            <a href="/settings" class="drawer-nav-item {{ 'active' if request.path == '/settings' else '' }}">
+                <div class="nav-icon-box"><i class="fa-solid fa-gear"></i></div>
+                <div class="nav-text-box">
+                    <strong>System Settings</strong>
+                    <small>Thresholds, Telegram bot & IP whitelist</small>
+                </div>
+                <i class="fa-solid fa-chevron-right arrow-icon"></i>
+            </a>
+        </nav>
+
+        <div class="mobile-drawer-section-title" style="margin-top: 18px;">Quick Links</div>
+        <div class="mobile-drawer-links">
+            <a href="https://mirage-junior.vercel.app" target="_blank" class="drawer-link-btn">
+                <i class="fa-solid fa-globe"></i> Live Vercel Production
+            </a>
+            <a href="https://github.com/Jaskaranbandral-07/mirage-junior" target="_blank" class="drawer-link-btn">
+                <i class="fa-brands fa-github"></i> Lead GitHub (@Jaskaranbandral-07)
+            </a>
+            <a href="https://github.com/2024A7R009/mirage-junior" target="_blank" class="drawer-link-btn">
+                <i class="fa-brands fa-github-alt"></i> Contributor GitHub (@2024A7R009)
+            </a>
+        </div>
     </div>
+
+    <!-- Main Content Area -->
     <div class="main-content">
-        <header>
+        <header class="desktop-header">
             <h1>{% block header_title %}Dashboard{% endblock %}</h1>
-            <div class="live-indicator"><span class="pulse"></span> LIVE</div>
+            <div class="live-indicator"><span class="pulse"></span> LIVE MONITORING</div>
         </header>
+
         <main>
             {% block content %}{% endblock %}
         </main>
+
         <footer>
-            <p>MIRAGE Junior &copy; 2026 - Deception Network</p>
+            <p>MIRAGE Junior &copy; 2026 — Next-Gen Autonomous Deception Network</p>
         </footer>
     </div>
+
+    <!-- Futuristic Cyber Floating Bottom Navigation Dock (Phones Only) -->
+    <nav class="mobile-bottom-nav">
+        <a href="/" class="bottom-nav-item {{ 'active' if request.path == '/' else '' }}">
+            <div class="bottom-icon"><i class="fa-solid fa-chart-line"></i></div>
+            <span>Overview</span>
+            {% if request.path == '/' %}<span class="active-dot"></span>{% endif %}
+        </a>
+        <a href="/attacks" class="bottom-nav-item {{ 'active' if request.path == '/attacks' else '' }}">
+            <div class="bottom-icon"><i class="fa-solid fa-bolt"></i></div>
+            <span>Attacks</span>
+            {% if request.path == '/attacks' %}<span class="active-dot"></span>{% endif %}
+        </a>
+        <a href="/quarantine" class="bottom-nav-item {{ 'active' if request.path == '/quarantine' else '' }}">
+            <div class="bottom-icon"><i class="fa-solid fa-shield-halved"></i></div>
+            <span>Quarantine</span>
+            {% if request.path == '/quarantine' %}<span class="active-dot"></span>{% endif %}
+        </a>
+        <a href="/honeytokens" class="bottom-nav-item {{ 'active' if request.path == '/honeytokens' else '' }}">
+            <div class="bottom-icon"><i class="fa-solid fa-biohazard"></i></div>
+            <span>Bait</span>
+            {% if request.path == '/honeytokens' %}<span class="active-dot"></span>{% endif %}
+        </a>
+        <a href="/settings" class="bottom-nav-item {{ 'active' if request.path == '/settings' else '' }}">
+            <div class="bottom-icon"><i class="fa-solid fa-sliders"></i></div>
+            <span>Settings</span>
+            {% if request.path == '/settings' %}<span class="active-dot"></span>{% endif %}
+        </a>
+    </nav>
+
+    <script>
+        // Mobile Drawer Toggle Logic
+        const openBtn = document.getElementById('mobileDrawerOpenBtn');
+        const closeBtn = document.getElementById('mobileDrawerCloseBtn');
+        const drawer = document.getElementById('mobileDrawer');
+        const backdrop = document.getElementById('mobileDrawerBackdrop');
+
+        function toggleDrawer(open) {
+            if (open) {
+                drawer.classList.add('open');
+                backdrop.classList.add('open');
+                document.body.classList.add('drawer-locked');
+            } else {
+                drawer.classList.remove('open');
+                backdrop.classList.remove('open');
+                document.body.classList.remove('drawer-locked');
+            }
+        }
+
+        if (openBtn) openBtn.addEventListener('click', () => toggleDrawer(true));
+        if (closeBtn) closeBtn.addEventListener('click', () => toggleDrawer(false));
+        if (backdrop) backdrop.addEventListener('click', () => toggleDrawer(false));
+
+        // Close drawer on escape key
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && drawer && drawer.classList.contains('open')) {
+                toggleDrawer(false);
+            }
+        });
+    </script>
     {% block scripts %}{% endblock %}
 </body>
 </html>
