@@ -34,7 +34,7 @@ class ScoringEngine:
         with open(SCORING_RULES_FILE, "r") as f:
             self.rules = json.load(f)
         self.quarantine_manager = quarantine_manager or QuarantineManager()
-        self.alert_manager = alert_manager or AlertManager(bot_token=TELEGRAM_BOT_TOKEN, chat_id=TELEGRAM_CHAT_ID)
+        self.alert_manager = alert_manager or AlertManager(bot_token=getattr(settings_cfg, 'TELEGRAM_BOT_TOKEN', TELEGRAM_BOT_TOKEN), chat_id=getattr(settings_cfg, 'TELEGRAM_CHAT_ID', TELEGRAM_CHAT_ID))
 
     @classmethod
     def calculate_threat_score(cls, ip_address):

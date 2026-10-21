@@ -1,0 +1,17 @@
+# Environments and secrets
+.env
+*.env
+config/ssh_host_key
+
+# Database
+*.db
+*.sqlite3
+
+# Python bytecode
+__pycache__/
+*.pyc
+*.pyo
+
+# Testing and cache
+.pytest_cache/
+.coverage
