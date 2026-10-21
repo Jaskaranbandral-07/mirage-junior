@@ -50,6 +50,8 @@ class ScoringEngine:
             event_type = event.get('event_type')
             if event_type in self.rules:
                 score += self.rules[event_type]
+            elif event.get('threat_pts'):
+                score += int(event['threat_pts'])
             if event.get('port'):
                 services_hit.add(event['port'])
         
