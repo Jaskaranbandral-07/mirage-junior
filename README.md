@@ -13,7 +13,7 @@
   <b>A proactive cyber deception system that doesn't just passively log attacks — it scores, classifies, and auto-quarantines threats in real-time.</b>
 </p>
 
-[🌐 Live Showcase](https://mirage-junior.vercel.app) • [📖 Full PRD Document](College_PRD.md) • [👥 Contributors](CONTRIBUTORS.md) • [🚀 Quick Start](#-quick-start)
+[🌐 Live Showcase](https://mirage-junior.vercel.app) • [📚 Master Project Explanation](MASTER_PROJECT_EXPLANATION.md) • [📊 Presentation Deck (HTML)](presentation.html) • [📥 PPTX Deck](MIRAGE_Junior_Project_Presentation.pptx) • [📖 PRD](College_PRD.md) • [👥 Contributors](CONTRIBUTORS.md)
 
 </div>
 
