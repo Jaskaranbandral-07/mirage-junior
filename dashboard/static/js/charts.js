@@ -241,6 +241,65 @@ function animateValue(elementId, endVal) {
     const current = parseInt(el.innerText) || 0;
     if (current === endVal) return;
     el.innerText = endVal;
-    el.style.transform = 'scale(1.1)';
-    setTimeout(() => { el.style.transform = 'scale(1)'; }, 200);
+    el.style.transform = 'scale(1.15)';
+    setTimeout(() => { el.style.transform = 'scale(1)'; }, 250);
 }
+
+// ─── LIVE ATTACK SIMULATION TRIGGER ────────────────────────────────
+function simulateLiveAttack(type = 'sqli') {
+    const btnId = 'btnSimulate' + type.charAt(0).toUpperCase() + type.slice(1);
+    const btn = document.getElementById(btnId);
+    const originalText = btn ? btn.innerHTML : '';
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Triggering...';
+    }
+
+    fetch('/api/simulate-attack', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type: type })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.status === 'success') {
+            const ev = data.event;
+            const qMsg = ev.quarantined ? ' • 🛡️ <strong style="color:var(--neon-red)">QUARANTINED @ ' + ev.threat_score + ' PTS</strong>' : ' • Threat Pts: +' + ev.threat_pts;
+            showCyberToast(`🚨 <strong>NEW CAPTURE:</strong> ${ev.ip} (${ev.country}) ➔ [${ev.protocol} ${ev.event_type}]${qMsg}`, ev.quarantined ? 'danger' : 'success');
+            
+            // Immediate real-time refresh (instant DOM update)
+            fetchStats();
+            fetchLiveEvents();
+        } else {
+            showCyberToast(`❌ Error: ${data.message}`, 'danger');
+        }
+    })
+    .catch(err => {
+        console.error("Simulation error:", err);
+        showCyberToast(`❌ Failed to send simulated probe`, 'danger');
+    })
+    .finally(() => {
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = originalText;
+        }
+    });
+}
+
+function showCyberToast(htmlMsg, type = 'success') {
+    let toast = document.getElementById('cyberToast');
+    if (!toast) {
+        toast = document.createElement('div');
+        toast.id = 'cyberToast';
+        toast.className = 'cyber-toast';
+        document.body.appendChild(toast);
+    }
+
+    toast.innerHTML = htmlMsg;
+    toast.className = 'cyber-toast show ' + type;
+
+    setTimeout(() => {
+        toast.className = 'cyber-toast';
+    }, 4500);
+}
+
