@@ -3,6 +3,24 @@
 {% block header_title %}Overview Dashboard{% endblock %}
 
 {% block content %}
+<!-- Live Sensor & Attack Simulator Action Bar -->
+<div class="live-action-bar">
+    <div class="live-status-pill">
+        <span class="pulse"></span> <strong>Sensors Active:</strong> SSH (:2222), HTTP (:8080), FTP (:2121), Bait (.env)
+    </div>
+    <div class="live-action-buttons">
+        <button onclick="simulateLiveAttack('sqli')" class="btn btn-warning" id="btnSimulateSqli" title="Simulate SQL Injection on Port 8080">
+            <i class="fa-solid fa-bolt"></i> Simulate SQLi
+        </button>
+        <button onclick="simulateLiveAttack('ssh')" class="btn btn-primary" id="btnSimulateSsh" title="Simulate SSH Dictionary Brute Force on Port 2222">
+            <i class="fa-solid fa-terminal"></i> Simulate SSH
+        </button>
+        <button onclick="simulateLiveAttack('honeytoken')" class="btn btn-danger" id="btnSimulateHoneytoken" title="Simulate Honeytoken .env Tripwire Hit">
+            <i class="fa-solid fa-biohazard"></i> Tripwire Bait
+        </button>
+    </div>
+</div>
+
 <div class="stats-grid">
     <div class="stat-card" style="border-left-color: var(--neon-blue);">
         <h3>Total Hits</h3>
