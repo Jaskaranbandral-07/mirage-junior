@@ -86,6 +86,12 @@ def setup_database():
     );
     ''')
 
+    # 6. indexes
+    cursor.execute('CREATE INDEX IF NOT EXISTS idx_events_ip ON events(ip_address)')
+    cursor.execute('CREATE INDEX IF NOT EXISTS idx_events_timestamp ON events(timestamp)')
+    cursor.execute('CREATE INDEX IF NOT EXISTS idx_quarantine_active ON quarantine_log(is_active)')
+    cursor.execute('CREATE INDEX IF NOT EXISTS idx_events_protocol ON events(protocol)')
+
     conn.commit()
     conn.close()
     print("Database setup complete.")

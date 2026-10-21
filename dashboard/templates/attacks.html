@@ -1,42 +1,189 @@
 {% extends 'base.html' %}
 {% block title %}Attack Log - MIRAGE Junior{% endblock %}
-{% block header_title %}Full Attack Log{% endblock %}
+{% block header_title %}Full Attack Telemetry Log{% endblock %}
+
 {% block content %}
+<!-- Quick Filter Pills -->
+<div style="display: flex; gap: 10px; margin-bottom: 18px; flex-wrap: wrap; align-items: center;">
+    <span style="font-size: 0.85rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Filter Protocol:</span>
+    <a href="/attacks?protocol=ALL{% if search %}&search={{ search }}{% endif %}" 
+       class="btn {{ 'btn-primary' if not protocol or protocol == 'ALL' else '' }}" 
+       style="padding: 5px 14px; font-size: 0.8rem; border-radius: 20px; text-decoration: none; {{ 'background: var(--card-bg); color: var(--text-muted); border: 1px solid var(--border);' if protocol and protocol != 'ALL' else '' }}">
+       All Attacks ({{ total_all }})
+    </a>
+    <a href="/attacks?protocol=SSH{% if search %}&search={{ search }}{% endif %}" 
+       class="btn {{ 'btn-primary' if protocol == 'SSH' else '' }}" 
+       style="padding: 5px 14px; font-size: 0.8rem; border-radius: 20px; text-decoration: none; {{ 'background: var(--card-bg); color: #00b4d8; border: 1px solid rgba(0,180,216,0.3);' if protocol != 'SSH' else '' }}">
+       <i class="fa-solid fa-terminal"></i> SSH ({{ protocol_counts.get('SSH', 0) }})
+    </a>
+    <a href="/attacks?protocol=HTTP{% if search %}&search={{ search }}{% endif %}" 
+       class="btn {{ 'btn-primary' if protocol == 'HTTP' else '' }}" 
+       style="padding: 5px 14px; font-size: 0.8rem; border-radius: 20px; text-decoration: none; {{ 'background: var(--card-bg); color: var(--neon-green); border: 1px solid rgba(0,255,65,0.3);' if protocol != 'HTTP' else '' }}">
+       <i class="fa-solid fa-globe"></i> HTTP ({{ protocol_counts.get('HTTP', 0) }})
+    </a>
+    <a href="/attacks?protocol=FTP{% if search %}&search={{ search }}{% endif %}" 
+       class="btn {{ 'btn-primary' if protocol == 'FTP' else '' }}" 
+       style="padding: 5px 14px; font-size: 0.8rem; border-radius: 20px; text-decoration: none; {{ 'background: var(--card-bg); color: var(--neon-orange); border: 1px solid rgba(255,140,0,0.3);' if protocol != 'FTP' else '' }}">
+       <i class="fa-solid fa-folder-open"></i> FTP ({{ protocol_counts.get('FTP', 0) }})
+    </a>
+    <a href="/attacks?protocol=HONEYTOKEN{% if search %}&search={{ search }}{% endif %}" 
+       class="btn {{ 'btn-primary' if protocol == 'HONEYTOKEN' else '' }}" 
+       style="padding: 5px 14px; font-size: 0.8rem; border-radius: 20px; text-decoration: none; {{ 'background: var(--card-bg); color: var(--neon-red); border: 1px solid rgba(255,68,68,0.3);' if protocol != 'HONEYTOKEN' else '' }}">
+       <i class="fa-solid fa-biohazard"></i> Honeytokens ({{ protocol_counts.get('HONEYTOKEN', 0) }})
+    </a>
+</div>
+
 <div class="card full-width">
-    <div class="table-controls">
-        <input type="text" id="search-log" placeholder="Search IP or Action...">
-        <button class="btn btn-primary">Export CSV</button>
+    <!-- Search & Actions Bar -->
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; gap: 14px; flex-wrap: wrap;">
+        <form method="GET" action="/attacks" class="search-bar" style="margin-bottom: 0; flex: 1; min-width: 280px; display: flex; gap: 8px;">
+            {% if protocol %}<input type="hidden" name="protocol" value="{{ protocol }}">{% endif %}
+            <input type="text" name="search" placeholder="Search by IP, event, country, or MITRE technique..." value="{{ search or '' }}" style="flex: 1;">
+            <button type="submit" class="btn btn-primary"><i class="fa-solid fa-magnifying-glass"></i> Search</button>
+            {% if search or (protocol and protocol != 'ALL') %}
+            <a href="/attacks" class="btn" style="background: rgba(255,68,68,0.15); color: var(--neon-red); border: 1px solid rgba(255,68,68,0.3); text-decoration: none;">
+                <i class="fa-solid fa-xmark"></i> Clear
+            </a>
+            {% endif %}
+        </form>
+
+        <div style="display: flex; gap: 10px; align-items: center;">
+            <span style="font-size: 0.85rem; color: var(--text-muted);">
+                Showing <strong>{{ ((page - 1) * per_page + 1) if total > 0 else 0 }}-{{ [page * per_page, total] | min }}</strong> of <strong>{{ total }}</strong>
+            </span>
+            <a href="/api/export/csv" class="btn btn-primary" style="text-decoration: none;">
+                <i class="fa-solid fa-download"></i> Export CSV
+            </a>
+        </div>
     </div>
-    <table class="data-table">
-        <thead>
-            <tr>
-                <th>Time</th>
-                <th>IP</th>
-                <th>Country</th>
-                <th>Protocol</th>
-                <th>Event Type</th>
-                <th>Threat Pts</th>
-                <th>MITRE ID</th>
-                <th>Score</th>
-            </tr>
-        </thead>
-        <tbody>
-            <tr>
-                <td>2026-10-03 11:03:52</td>
-                <td><a href="/attacker/45.33.32.156">45.33.32.156</a></td>
-                <td>🇷🇺 RU</td>
-                <td>SSH</td>
-                <td>shell_command</td>
-                <td>+15</td>
-                <td><span class="tag">T1059</span></td>
-                <td><span class="badge badge-critical">94</span></td>
-            </tr>
-        </tbody>
-    </table>
-    <div class="pagination">
-        <button disabled>&laquo; Prev</button>
-        <span>Page 1 of 42</span>
-        <button>Next &raquo;</button>
+
+    <!-- Attacks Table (10 Rows) -->
+    <div style="overflow-x: auto;">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th style="width: 145px;">Timestamp</th>
+                    <th>Attacker IP</th>
+                    <th>Origin</th>
+                    <th>Protocol</th>
+                    <th>Event & Details</th>
+                    <th style="text-align: center;">Threat Pts</th>
+                    <th style="text-align: center;">MITRE ATT&CK</th>
+                    <th style="text-align: right;">Risk Score</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if events %}
+                {% for e in events %}
+                <tr>
+                    <td style="font-size: 0.82rem; color: var(--text-muted); white-space: nowrap;">
+                        <i class="fa-regular fa-clock" style="margin-right: 4px;"></i> {{ e.timestamp }}
+                    </td>
+                    <td>
+                        <a href="/attacker/{{ e.ip_address }}" style="font-family: 'Consolas', monospace; font-weight: 700; color: var(--neon-cyan); text-decoration: none;">
+                            <i class="fa-solid fa-crosshairs" style="font-size: 0.75rem; margin-right: 4px;"></i>{{ e.ip_address }}
+                        </a>
+                    </td>
+                    <td>
+                        <span style="font-size: 0.85rem; color: var(--text-main);">
+                            <i class="fa-solid fa-location-dot" style="color: var(--neon-blue); font-size: 0.75rem; margin-right: 3px;"></i>
+                            {{ e.country or 'Unknown' }}
+                        </span>
+                    </td>
+                    <td>
+                        {% if e.protocol == 'SSH' %}
+                        <span class="badge" style="background: rgba(0, 180, 216, 0.15); color: #00b4d8; border: 1px solid rgba(0, 180, 216, 0.3);">
+                            <i class="fa-solid fa-terminal"></i> SSH
+                        </span>
+                        {% elif e.protocol == 'HTTP' %}
+                        <span class="badge" style="background: rgba(0, 255, 65, 0.15); color: var(--neon-green); border: 1px solid rgba(0, 255, 65, 0.3);">
+                            <i class="fa-solid fa-globe"></i> HTTP
+                        </span>
+                        {% elif e.protocol == 'FTP' %}
+                        <span class="badge" style="background: rgba(255, 140, 0, 0.15); color: var(--neon-orange); border: 1px solid rgba(255, 140, 0, 0.3);">
+                            <i class="fa-solid fa-folder-open"></i> FTP
+                        </span>
+                        {% elif e.protocol == 'HONEYTOKEN' %}
+                        <span class="badge badge-critical">
+                            <i class="fa-solid fa-biohazard"></i> BAIT
+                        </span>
+                        {% else %}
+                        <span class="badge">{{ e.protocol }}</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <div style="font-weight: 600; color: var(--text-bright); font-size: 0.88rem;">
+                            {{ e.event_type }}
+                        </div>
+                        {% if e.details %}
+                        <div style="font-size: 0.78rem; color: var(--text-muted); max-width: 320px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="{{ e.details }}">
+                            {{ e.details }}
+                        </div>
+                        {% endif %}
+                    </td>
+                    <td style="text-align: center;">
+                        <span style="font-weight: 700; color: var(--neon-orange); font-size: 0.88rem;">
+                            +{{ e.threat_pts }}
+                        </span>
+                    </td>
+                    <td style="text-align: center;">
+                        {% if e.mitre_id %}
+                        <span class="tag">{{ e.mitre_id }}</span>
+                        {% else %}
+                        <span style="color: var(--text-muted);">-</span>
+                        {% endif %}
+                    </td>
+                    <td style="text-align: right;">
+                        {% set score = e.threat_score or 0 %}
+                        {% if score >= 76 %}
+                        <span class="badge badge-critical">{{ score }} CRITICAL</span>
+                        {% elif score >= 51 %}
+                        <span class="badge badge-active">{{ score }} ACTIVE</span>
+                        {% elif score >= 21 %}
+                        <span class="badge badge-suspicious">{{ score }} SUSPICIOUS</span>
+                        {% else %}
+                        <span class="badge badge-scanner">{{ score }} SCANNER</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+                {% else %}
+                <tr>
+                    <td colspan="8" style="text-align: center; color: var(--text-muted); padding: 40px 20px;">
+                        <i class="fa-solid fa-shield-virus" style="font-size: 2rem; margin-bottom: 10px; color: var(--border); display: block;"></i>
+                        No attack telemetry events match your criteria.
+                    </td>
+                </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Enhanced Pagination (10 per page) -->
+    <div class="pagination" style="margin-top: 24px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+        <div style="font-size: 0.85rem; color: var(--text-muted);">
+            Page <strong>{{ page }}</strong> of <strong>{{ total_pages }}</strong> ({{ total }} total attacks)
+        </div>
+        
+        <div style="display: flex; gap: 6px;">
+            {% if page > 1 %}
+            <a href="/attacks?page=1{% if search %}&search={{ search }}{% endif %}{% if protocol %}&protocol={{ protocol }}{% endif %}" class="btn" style="text-decoration: none;">« First</a>
+            <a href="/attacks?page={{ page - 1 }}{% if search %}&search={{ search }}{% endif %}{% if protocol %}&protocol={{ protocol }}{% endif %}" class="btn" style="text-decoration: none;">← Prev</a>
+            {% else %}
+            <span class="btn" style="opacity: 0.4; cursor: not-allowed;">← Prev</span>
+            {% endif %}
+
+            <span style="display: inline-flex; align-items: center; padding: 0 12px; font-weight: 600; color: var(--neon-blue); background: rgba(0, 180, 216, 0.1); border-radius: 6px;">
+                {{ page }}
+            </span>
+
+            {% if page < total_pages %}
+            <a href="/attacks?page={{ page + 1 }}{% if search %}&search={{ search }}{% endif %}{% if protocol %}&protocol={{ protocol }}{% endif %}" class="btn" style="text-decoration: none;">Next →</a>
+            <a href="/attacks?page={{ total_pages }}{% if search %}&search={{ search }}{% endif %}{% if protocol %}&protocol={{ protocol }}{% endif %}" class="btn" style="text-decoration: none;">Last »</a>
+            {% else %}
+            <span class="btn" style="opacity: 0.4; cursor: not-allowed;">Next →</span>
+            {% endif %}
+        </div>
     </div>
 </div>
 {% endblock %}

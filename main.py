@@ -51,6 +51,18 @@ def init_database():
     logger.info("Database initialized successfully.")
 
 
+def init_engine():
+    """Initialize shared backend engine singletons."""
+    logger.info("Initializing Backend Engine (Scoring, Quarantine, Alerts, Geo)...")
+    from engine.geo_enricher import GeoEnricher
+    from engine.quarantine import QuarantineManager
+    from engine.scoring_engine import ScoringEngine
+    GeoEnricher()
+    QuarantineManager()
+    ScoringEngine()
+    logger.info("Backend Engine initialized successfully.")
+
+
 def seed_demo_data():
     """Seed the database with realistic demo data."""
     logger.info("🎭 Running in DEMO MODE — Seeding database with fake attack data...")
@@ -135,6 +147,9 @@ if __name__ == "__main__":
 
     # Initialize database
     init_database()
+
+    # Initialize shared engine singletons
+    init_engine()
 
     # Seed demo data if --demo flag is passed
     if "--demo" in sys.argv:

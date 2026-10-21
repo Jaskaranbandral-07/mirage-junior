@@ -6,23 +6,23 @@
 <div class="stats-grid">
     <div class="stat-card" style="border-left-color: var(--neon-blue);">
         <h3>Total Hits</h3>
-        <p id="stat-total-hits">0</p>
+        <p id="stat-total-hits">{{ total_hits }}</p>
     </div>
     <div class="stat-card" style="border-left-color: var(--neon-purple);">
         <h3>Unique IPs</h3>
-        <p id="stat-unique-ips">0</p>
+        <p id="stat-unique-ips">{{ unique_ips }}</p>
     </div>
     <div class="stat-card" style="border-left-color: var(--neon-yellow);">
         <h3>Creds Captured</h3>
-        <p id="stat-creds">0</p>
+        <p id="stat-creds">{{ creds_captured }}</p>
     </div>
     <div class="stat-card" style="border-left-color: var(--neon-orange);">
         <h3>Avg Threat Score</h3>
-        <p id="stat-avg-score">0</p>
+        <p id="stat-avg-score">{{ avg_score }}</p>
     </div>
     <div class="stat-card" style="border-left-color: var(--neon-red);">
         <h3>IPs Quarantined</h3>
-        <p id="stat-quarantined">0</p>
+        <p id="stat-quarantined">{{ quarantined }}</p>
     </div>
 </div>
 
@@ -54,7 +54,17 @@
                     <th>Time</th><th>IP</th><th>Country</th><th>Action</th><th>Score</th>
                 </tr>
             </thead>
-            <tbody></tbody>
+            <tbody>
+                {% for e in recent_events %}
+                <tr>
+                    <td>{{ e.timestamp[11:19] if e.timestamp and e.timestamp|length >= 19 else e.timestamp }}</td>
+                    <td><a href="/attacker/{{ e.ip_address }}" style="color: var(--neon-blue);">{{ e.ip_address }}</a></td>
+                    <td>{{ e.country or 'Unknown' }}</td>
+                    <td>{{ e.event_type }}</td>
+                    <td><span class="badge {{ 'badge-critical' if e.classification == 'CRITICAL' else ('badge-active' if e.classification == 'ACTIVE_THREAT' else ('badge-suspicious' if e.classification == 'SUSPICIOUS' else 'badge-scanner')) }}">{{ e.classification or 'N/A' }}</span></td>
+                </tr>
+                {% endfor %}
+            </tbody>
         </table>
     </div>
     <div class="table-card">
@@ -65,7 +75,19 @@
                     <th>IP</th><th>Blocked At</th><th>Status</th>
                 </tr>
             </thead>
-            <tbody></tbody>
+            <tbody>
+                {% for q in quarantine_log %}
+                <tr>
+                    <td><a href="/attacker/{{ q.ip_address }}" style="color: var(--neon-blue);">{{ q.ip_address }}</a></td>
+                    <td>{{ q.blocked_at }}</td>
+                    <td><span class="badge badge-critical">Quarantined</span></td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="3" class="text-muted" style="text-align: center; padding: 10px;">No quarantined IPs</td>
+                </tr>
+                {% endfor %}
+            </tbody>
         </table>
     </div>
 </div>

@@ -1,31 +1,65 @@
+function getProtocolIcon(protocol) {
+    switch ((protocol || '').toUpperCase()) {
+        case 'HTTP': return '🌐';
+        case 'SSH': return '🖥️';
+        case 'FTP': return '📁';
+        case 'HONEYTOKEN': return '🪤';
+        default: return '⚡';
+    }
+}
+
+function getDotColor(score) {
+    if (score >= 76) return 'red';
+    if (score >= 51) return 'orange';
+    if (score >= 21) return 'yellow';
+    return 'green';
+}
+
+function escapeHtml(text) {
+    if (!text) return '';
+    return String(text)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+
 function renderTimeline(events, container) {
-    // Placeholder demo data since backend is simple
-    const demoEvents = [
-        { time: '11:02:03', action: 'HTTP scan on /robots.txt', pts: '+5', score: '5', icon: '🌐', level: 'low' },
-        { time: '11:02:08', action: 'HTTP login attempt (admin)', pts: '+8', score: '13', icon: '🔑', level: 'med' },
-        { time: '11:02:12', action: 'HTTP GET /.env', pts: '+20', score: '33', icon: '🌐', level: 'high' },
-        { time: '11:03:50', action: 'SHELL ACCESS - ran: whoami', pts: '+20', score: '53', icon: '💻', level: 'critical' },
-        { time: '11:03:52', action: 'AUTO-QUARANTINE TRIGGERED', pts: '', score: '94', icon: '🔴', level: 'critical' }
-    ];
+    if (!container) return;
 
-    let html = '<div style="font-family: monospace; line-height: 1.6;">';
-    html += '<p>━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</p>';
-    
-    demoEvents.forEach(ev => {
-        let color = '#c9d1d9';
-        if(ev.level === 'high') color = 'var(--neon-orange)';
-        if(ev.level === 'critical') color = 'var(--neon-red)';
-        if(ev.level === 'med') color = 'var(--neon-yellow)';
+    if (!events || events.length === 0) {
+        container.innerHTML = '<p style="color: var(--text-muted); padding: 20px 0; text-align: center;">No events recorded for this attacker.</p>';
+        return;
+    }
 
-        html += `<div style="display:flex; justify-content:space-between; color: ${color};">
-            <span>${ev.time} ${ev.icon} ${ev.action}</span>
-            <span>[${ev.pts} → Score: ${ev.score}]</span>
-        </div>`;
+    let html = '<div class="timeline">';
+
+    events.forEach(ev => {
+        const score = ev.running_score !== undefined ? ev.running_score : (ev.threat_pts || 0);
+        const dotColor = getDotColor(score);
+        const icon = getProtocolIcon(ev.protocol);
+        const pts = ev.threat_pts ? (ev.threat_pts > 0 ? `+${ev.threat_pts}` : `${ev.threat_pts}`) : '+0';
+        const mitreTag = ev.mitre_id ? `<span class="tag mitre-tag">${escapeHtml(ev.mitre_id)}</span>` : '';
+        const desc = ev.details || ev.event_type || 'Activity detected';
+
+        html += `
+            <div class="timeline-item">
+                <span class="timeline-dot ${dotColor}"></span>
+                <div class="timeline-content">
+                    <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px;">
+                        <span class="timeline-time">${escapeHtml(ev.timestamp || '')}</span>
+                        <span class="timeline-score" style="color: var(--neon-${dotColor});">${pts} pts &rarr; Score: ${score}</span>
+                    </div>
+                    <div style="font-size: 0.95rem; color: var(--text-bright); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+                        <span>${icon} [${escapeHtml(ev.protocol || 'EVENT')}] <strong>${escapeHtml(ev.event_type || '')}</strong>: ${escapeHtml(desc)}</span>
+                        ${mitreTag}
+                    </div>
+                </div>
+            </div>
+        `;
     });
 
-    html += '<p>━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</p>';
-    html += '<p>Final Score: 94/100 | Class: CRITICAL</p>';
     html += '</div>';
-
     container.innerHTML = html;
 }

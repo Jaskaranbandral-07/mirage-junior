@@ -799,7 +799,53 @@ Use these during your viva/presentation to impress evaluators:
 
 ---
 
-> **Document Version:** 2.0 Enhanced
-> **Last Updated:** September 30, 2026
-> **Author:** Jaskaran Bandral
-> **Status:** Ready for Implementation ✅
+## 16. Implementation & Integration Record (v2.1 Updates)
+
+> **Sprint Integration Status (October 2026):** All core components, pipelines, frontend views, and test suites have been fully integrated and verified end-to-end.
+
+### 16.1 Key Bug Fixes & Architectural Enhancements
+1. **Core Scoring & Auto-Quarantine Pipeline Connected:**
+   - `engine/scoring_engine.py` is now directly linked with `QuarantineManager` and `AlertManager`.
+   - Attacker threat scores crossing `>= 76` trigger automated firewall IP blocking and `CRITICAL` Telegram alert dispatch. Scores `>= 51` and `>= 21` trigger graded `ACTIVE_THREAT` and `SUSPICIOUS` alerts.
+2. **CIDR Subnet Whitelisting:**
+   - `engine/quarantine.py` now leverages Python's native `ipaddress` module to properly parse and match CIDR subnets (`10.0.0.0/8`, `192.168.0.0/16`, `172.16.0.0/12`) alongside localhost loopback addresses.
+3. **Timestamp Standardization & Expiry Safety:**
+   - Handled both ISO 8601 (`T` separator, fractional seconds) and standard SQLite datetime formats in `QuarantineManager.check_expired()` to prevent runtime parsing exceptions.
+   - Non-elevated execution degrades safely without logging false quarantine records.
+4. **GeoIP Enrichment Pipeline:**
+   - `database/db_manager.py` automatically detects newly registered attacker IPs upon interaction and queries `GeoEnricher` to populate country, city, ISP, and geographic coordinates.
+   - Private and loopback IP addresses bypass external lookups instantly to respect rate limits.
+5. **Honeytoken Pipeline Propagation:**
+   - File system touches captured by `HoneytokenMonitor` now log simultaneously to `honeytoken_triggers` and the primary `events` table (protocol `HONEYTOKEN`, technique `T1083`), feeding directly into threat scoring.
+6. **Dynamic Threat Points in Honeypots:**
+   - All protocol handlers (`http_decoy.py`, `ssh_trap.py`, `ftp_trap.py`) dynamically lookup threat weights from `config/scoring_rules.json`, ensuring the attack timeline graph accurately tracks score increments.
+   - Decoy `/phpmyadmin/` route updated with an authentic administrative login portal.
+   - SSH server host key is persisted to `config/ssh_host_key` to avoid client MITM warnings.
+7. **Database Concurrency & Performance:**
+   - Enabled SQLite Write-Ahead Logging (`PRAGMA journal_mode=WAL`) and `PRAGMA busy_timeout=5000` to prevent database lock contention across concurrent honeypot threads.
+   - Added database indexes on `events(ip_address)`, `events(timestamp)`, `events(protocol)`, and `quarantine_log(is_active)`.
+
+### 16.2 Dashboard UI & Usability Upgrades
+1. **Interactive Pagination & Search:**
+   - Set log pagination to **10 records per page** (configured in `dashboard/routes.py` and `dashboard/templates/attacks.html`).
+   - Added search filtering by IP, protocol, and event type with query parameter preservation across pagination links.
+2. **Working File Downloads & Actions:**
+   - Real CSV export button linked directly to `/api/export/csv` streaming `mirage_events.csv`.
+   - Functional asynchronous IP unblock actions via `POST /api/unblock/<ip>` with modal confirmation.
+   - Interactive configuration forms on `/settings` with working POST route and flash notifications.
+3. **Dynamic Template Data:**
+   - All 7 dashboard views (`overview.html`, `attacks.html`, `attacker.html`, `quarantine.html`, `honeytokens.html`, `settings.html`, `base.html`) now dynamically render backend Jinja2 data, eliminating static stubs.
+   - Attack timeline replay (`timeline.js`) renders real event streams with color-coded score nodes and MITRE technique tags.
+
+### 16.3 Testing & Quality Assurance
+- **Scoring Engine Tests (`tests/test_scoring.py`):** Verified real engine scoring rules, 100-point ceiling, classification boundaries, and lateral movement detection using temporary isolated SQLite fixtures.
+- **Honeytoken Tests (`tests/test_honeytokens.py`):** Validated `watchdog` monitoring and database trigger logging.
+- **Attack Simulation (`tests/test_attack.py`):** Structured integration tests with pre-flight socket checks covering HTTP reconnaissance, SSH authentication attempts, and FTP sessions.
+
+---
+
+> **Document Version:** 2.1 (Production Tested & Fully Integrated)  
+> **Last Updated:** October 21, 2026  
+> **Author:** Jaskaran Bandral & Relish Sharma  
+> **Status:** Completed & Evaluator-Ready ✅
+

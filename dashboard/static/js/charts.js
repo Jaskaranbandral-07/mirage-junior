@@ -169,6 +169,23 @@ function fetchStats() {
                 mitreChart.data.datasets[0].data = Object.values(data.mitre_stats);
                 mitreChart.update('none');
             }
+
+            // Update recent quarantines table if data is present
+            if (data.recent_quarantines && data.recent_quarantines.length > 0) {
+                const qTbody = document.querySelector('#quarantine-table tbody');
+                if (qTbody) {
+                    qTbody.innerHTML = '';
+                    data.recent_quarantines.forEach(q => {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td><a href="/attacker/${q.ip_address}" style="color: var(--neon-blue);">${q.ip_address}</a></td>
+                            <td>${q.blocked_at || ''}</td>
+                            <td><span class="badge badge-critical">Quarantined</span></td>
+                        `;
+                        qTbody.appendChild(row);
+                    });
+                }
+            }
         })
         .catch(err => console.error("Stats fetch error:", err));
 }

@@ -15,20 +15,47 @@
             </tr>
         </thead>
         <tbody>
+            {% for t in tokens %}
             <tr>
-                <td>.env file</td>
-                <td>HTTP Decoy</td>
-                <td>/var/www/html/.env</td>
-                <td><span style="color: var(--neon-green)">Active</span></td>
-                <td>14</td>
+                <td><strong>{{ t.token_name }}</strong></td>
+                <td><span class="tag">{{ t.token_type }}</span></td>
+                <td><code>{{ t.path }}</code></td>
+                <td><span style="color: var(--neon-green)">{{ t.status }}</span></td>
+                <td><span class="badge {{ 'badge-danger badge-critical' if t.trigger_count > 0 else 'badge-success badge-scanner' }}">{{ t.trigger_count }} triggers</span></td>
             </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<div class="card full-width" style="margin-top: 24px;">
+    <h3>Trigger History</h3>
+    <table class="data-table">
+        <thead>
             <tr>
-                <td>backup_database.sql</td>
-                <td>Filesystem</td>
-                <td>/opt/mirage/bait/</td>
-                <td><span style="color: var(--neon-green)">Active</span></td>
-                <td>2</td>
+                <th>Timestamp</th>
+                <th>Token Name</th>
+                <th>Type</th>
+                <th>Attacker IP</th>
+                <th>Details</th>
             </tr>
+        </thead>
+        <tbody>
+            {% if triggers %}
+            {% for t in triggers %}
+            <tr>
+                <td>{{ t.timestamp }}</td>
+                <td>{{ t.token_name }}</td>
+                <td><span class="tag">{{ t.token_type }}</span></td>
+                <td><a href="/attacker/{{ t.ip_address }}">{{ t.ip_address }}</a></td>
+                <td>{{ t.details or '' }}</td>
+            </tr>
+            {% endfor %}
+            {% else %}
+            <tr>
+                <td colspan="5" class="text-muted" style="text-align: center; padding: 15px;">No triggers detected yet</td>
+            </tr>
+            {% endif %}
         </tbody>
     </table>
 </div>

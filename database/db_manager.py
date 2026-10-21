@@ -1,6 +1,7 @@
 import sqlite3
 import json
 from config.settings import DATABASE_PATH
+from engine.geo_enricher import GeoEnricher
 
 class DatabaseManager:
     """CRUD operations for MIRAGE Junior database."""
@@ -9,7 +10,10 @@ class DatabaseManager:
         self.db_path = DATABASE_PATH
 
     def get_connection(self):
-        return sqlite3.connect(self.db_path, check_same_thread=False)
+        conn = sqlite3.connect(self.db_path, check_same_thread=False)
+        conn.execute("PRAGMA journal_mode=WAL")
+        conn.execute("PRAGMA busy_timeout=5000")
+        return conn
 
     def log_event(self, ip_address, port, protocol, event_type, details=None, threat_pts=0, mitre_id=None):
         conn = self.get_connection()
@@ -20,13 +24,33 @@ class DatabaseManager:
             VALUES (?, ?, ?, ?, ?, ?, ?)
         ''', (ip_address, port, protocol, event_type, details_json, threat_pts, mitre_id))
         
-        # Update attacker last_seen
-        c.execute('''
-            INSERT INTO attackers (ip_address, first_seen, last_seen, total_events)
-            VALUES (?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 1)
-            ON CONFLICT(ip_address) DO UPDATE SET 
-            last_seen=CURRENT_TIMESTAMP, total_events=total_events+1
-        ''', (ip_address,))
+        # Check if new attacker and enrich with geo data
+        c.execute("SELECT ip_address FROM attackers WHERE ip_address = ?", (ip_address,))
+        row = c.fetchone()
+        if not row:
+            geo = None
+            try:
+                geo = GeoEnricher.lookup(ip_address)
+            except Exception:
+                pass
+            country = geo.get('country') if geo else None
+            city = geo.get('city') if geo else None
+            isp = geo.get('isp') if geo else None
+            lat = geo.get('lat') if geo else None
+            lon = geo.get('lon') if geo else None
+
+            c.execute('''
+                INSERT INTO attackers (ip_address, first_seen, last_seen, total_events, country, city, isp, latitude, longitude)
+                VALUES (?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 1, ?, ?, ?, ?, ?)
+                ON CONFLICT(ip_address) DO UPDATE SET 
+                last_seen=CURRENT_TIMESTAMP, total_events=total_events+1
+            ''', (ip_address, country, city, isp, lat, lon))
+        else:
+            c.execute('''
+                UPDATE attackers SET 
+                last_seen=CURRENT_TIMESTAMP, total_events=total_events+1
+                WHERE ip_address=?
+            ''', (ip_address,))
         
         conn.commit()
         conn.close()

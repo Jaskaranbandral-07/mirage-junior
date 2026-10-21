@@ -12,15 +12,20 @@ from datetime import datetime, timedelta
 
 def seed_data():
     """Seed the database with realistic demo attack data."""
-    db_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-                           'database', 'mirage_junior.db')
+    import config.settings as settings_cfg
+    from database.db_setup import init_db
+    
+    db_path = getattr(settings_cfg, 'DATABASE_PATH', os.path.join(
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+        'database', 'mirage_junior.db'))
 
     # Ensure database directory exists
-    os.makedirs(os.path.dirname(db_path), exist_ok=True)
+    if os.path.dirname(db_path):
+        os.makedirs(os.path.dirname(db_path), exist_ok=True)
 
     # Run db_setup first to ensure tables exist
-    from database.db_setup import init_db
     init_db()
+
 
     conn = sqlite3.connect(db_path)
     c = conn.cursor()
@@ -284,7 +289,7 @@ def seed_data():
 
     conn.commit()
     conn.close()
-    print(f"  ✅ Seeded: {len(attackers)} attackers, {sum(len(e[1]) for e in event_scenarios)} events, "
+    print(f"  [+] Seeded: {len(attackers)} attackers, {sum(len(e[1]) for e in event_scenarios)} events, "
           f"{len(cred_data)} credentials, {len(quarantined_ips)} quarantines, {len(honeytoken_data)} honeytoken triggers")
 
 

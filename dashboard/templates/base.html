@@ -14,11 +14,11 @@
             <h2><i class="fa-solid fa-shield-halved"></i> MIRAGE <span style="color:var(--neon-green)">Jr</span></h2>
         </div>
         <nav>
-            <a href="/"><i class="fa-solid fa-chart-line"></i> Overview</a>
-            <a href="/attacks"><i class="fa-solid fa-bolt"></i> Attack Log</a>
-            <a href="/quarantine"><i class="fa-solid fa-lock"></i> Quarantine</a>
-            <a href="/honeytokens"><i class="fa-solid fa-cheese"></i> Honeytokens</a>
-            <a href="/settings"><i class="fa-solid fa-gear"></i> Settings</a>
+            <a href="/" class="nav-link {{ 'active' if request.path == '/' else '' }}"><i class="fa-solid fa-chart-line"></i> Overview</a>
+            <a href="/attacks" class="nav-link {{ 'active' if request.path == '/attacks' else '' }}"><i class="fa-solid fa-bolt"></i> Attack Log</a>
+            <a href="/quarantine" class="nav-link {{ 'active' if request.path == '/quarantine' else '' }}"><i class="fa-solid fa-lock"></i> Quarantine</a>
+            <a href="/honeytokens" class="nav-link {{ 'active' if request.path == '/honeytokens' else '' }}"><i class="fa-solid fa-cheese"></i> Honeytokens</a>
+            <a href="/settings" class="nav-link {{ 'active' if request.path == '/settings' else '' }}"><i class="fa-solid fa-gear"></i> Settings</a>
         </nav>
     </div>
     <div class="main-content">

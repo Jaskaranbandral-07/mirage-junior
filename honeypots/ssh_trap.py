@@ -1,13 +1,39 @@
 import socket
+import os
+import json
 import paramiko
 import threading
 import time
 from database.db_manager import DatabaseManager
 from engine.scoring_engine import ScoringEngine
-from config.settings import SSH_PORT
+from config.settings import SSH_PORT, SCORING_RULES_FILE
 import logging
 
 logger = logging.getLogger(__name__)
+
+try:
+    with open(SCORING_RULES_FILE, "r") as f:
+        SCORING_RULES = json.load(f)
+except Exception:
+    SCORING_RULES = {}
+
+HOST_KEY_FILE = os.path.join("config", "ssh_host_key")
+
+def get_or_create_host_key():
+    os.makedirs(os.path.dirname(HOST_KEY_FILE), exist_ok=True)
+    if os.path.exists(HOST_KEY_FILE):
+        try:
+            return paramiko.RSAKey(filename=HOST_KEY_FILE)
+        except Exception as e:
+            logger.warning(f"Failed to load host key from {HOST_KEY_FILE}: {e}, generating a new one.")
+    key = paramiko.RSAKey.generate(2048)
+    try:
+        key.write_private_key_file(HOST_KEY_FILE)
+    except Exception as e:
+        logger.error(f"Failed to save host key to {HOST_KEY_FILE}: {e}")
+    return key
+
+HOST_KEY = get_or_create_host_key()
 
 class FakeShell:
     def __init__(self, channel, ip_address):
@@ -27,7 +53,7 @@ class FakeShell:
                 if not cmd:
                     continue
                     
-                self.db.log_event(self.ip_address, SSH_PORT, 'SSH', 'shell_command', {'command': cmd}, mitre_id='T1059')
+                self.db.log_event(self.ip_address, SSH_PORT, 'SSH', 'shell_command', {'command': cmd}, threat_pts=SCORING_RULES.get('shell_command', 5), mitre_id='T1059')
                 self.scorer.calculate_threat_score(self.ip_address)
                 
                 if cmd == 'whoami':
@@ -38,7 +64,7 @@ class FakeShell:
                     self.channel.send(b"Linux prod-server 4.15.0 #1 SMP x86_64 GNU/Linux\r\n")
                 elif 'cat /etc/passwd' in cmd:
                     self.channel.send(b"root:x:0:0:root:/root:/bin/bash\r\nadmin:x:1000:1000:admin,,,:/home/admin:/bin/bash\r\n")
-                    self.db.log_event(self.ip_address, SSH_PORT, 'SSH', 'cat_passwd', {'command': cmd}, mitre_id='T1087.001')
+                    self.db.log_event(self.ip_address, SSH_PORT, 'SSH', 'cat_passwd', {'command': cmd}, threat_pts=SCORING_RULES.get('cat_passwd', 10), mitre_id='T1087.001')
                     self.scorer.calculate_threat_score(self.ip_address)
                 elif cmd == 'ls':
                     self.channel.send(b"backup_db.sql config.php \r\n")
@@ -62,7 +88,7 @@ class SSHServerInterface(paramiko.ServerInterface):
     def check_auth_password(self, username, password):
         self.attempts += 1
         self.db.log_credential(self.ip_address, 'SSH', username, password)
-        self.db.log_event(self.ip_address, SSH_PORT, 'SSH', 'login_attempt', {'user': username}, mitre_id='T1110')
+        self.db.log_event(self.ip_address, SSH_PORT, 'SSH', 'login_attempt', {'user': username}, threat_pts=SCORING_RULES.get('login_attempt', 8), mitre_id='T1110')
         self.scorer.calculate_threat_score(self.ip_address)
         
         if self.attempts >= 3:
@@ -70,7 +96,7 @@ class SSHServerInterface(paramiko.ServerInterface):
             return paramiko.AUTH_FAILED
             
         if username in ['root', 'admin'] and password in ['root', 'admin', 'password', '123456']:
-            self.db.log_event(self.ip_address, SSH_PORT, 'SSH', 'shell_access', {'user': username}, mitre_id='T1033')
+            self.db.log_event(self.ip_address, SSH_PORT, 'SSH', 'shell_access', {'user': username}, threat_pts=SCORING_RULES.get('shell_access', 15), mitre_id='T1033')
             self.scorer.calculate_threat_score(self.ip_address)
             return paramiko.AUTH_SUCCESSFUL
             
@@ -93,9 +119,8 @@ def handle_ssh_connection(client_socket, addr):
         transport = paramiko.Transport(client_socket)
         transport.local_version = "SSH-2.0-OpenSSH_7.6p1 Ubuntu"
         
-        # Need a host key, generating temporary one (in production use saved key)
-        host_key = paramiko.RSAKey.generate(2048)
-        transport.add_server_key(host_key)
+        # Use persistent host key
+        transport.add_server_key(HOST_KEY)
         
         server = SSHServerInterface(addr[0])
         try:
@@ -133,7 +158,7 @@ def run_ssh_trap():
         while True:
             client, addr = server_socket.accept()
             db = DatabaseManager()
-            db.log_event(addr[0], SSH_PORT, 'SSH', 'connection', mitre_id='T1046')
+            db.log_event(addr[0], SSH_PORT, 'SSH', 'connection', threat_pts=SCORING_RULES.get('connection', 5), mitre_id='T1046')
             scorer = ScoringEngine()
             scorer.calculate_threat_score(addr[0])
             

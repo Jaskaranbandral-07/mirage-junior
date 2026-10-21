@@ -7,5 +7,10 @@
     "shell_access": 15,
     "shell_command": 5,
     "honeytoken_trigger": 25,
-    "repeat_visit": 10
+    "repeat_visit": 10,
+    "cat_passwd": 10,
+    "ftp_download": 15,
+    "file_access": 10,
+    "scan": 5,
+    "default_credentials": 8
 }

@@ -2,6 +2,17 @@
 {% block title %}Quarantine - MIRAGE Junior{% endblock %}
 {% block header_title %}Quarantine Management{% endblock %}
 {% block content %}
+<div class="stats-grid" style="grid-template-columns: repeat(2, 1fr); margin-bottom: 24px;">
+    <div class="stat-card" style="border-left-color: var(--neon-red);">
+        <h3>Currently Quarantined</h3>
+        <p>{{ currently_active }}</p>
+    </div>
+    <div class="stat-card" style="border-left-color: var(--neon-blue);">
+        <h3>Total Historical Blocks</h3>
+        <p>{{ total_blocked }}</p>
+    </div>
+</div>
+
 <div class="card full-width">
     <h3>Active Quarantines</h3>
     <table class="data-table">
@@ -10,18 +21,26 @@
                 <th>IP Address</th>
                 <th>Threat Score</th>
                 <th>Blocked At</th>
-                <th>Expires In</th>
+                <th>Reason</th>
                 <th>Actions</th>
             </tr>
         </thead>
         <tbody>
+            {% if active %}
+            {% for q in active %}
             <tr>
-                <td>45.33.32.156</td>
-                <td><span class="badge badge-critical">94</span></td>
-                <td>11:03:52</td>
-                <td><span style="color: var(--neon-orange)">45m 12s</span></td>
-                <td><button class="btn btn-warning" onclick="unblock('45.33.32.156')">Unblock</button></td>
+                <td><a href="/attacker/{{ q.ip_address }}">{{ q.ip_address }}</a></td>
+                <td><span class="badge badge-critical">{{ q.threat_score or 100 }}</span></td>
+                <td>{{ q.blocked_at }}</td>
+                <td>{{ q.reason or 'Threat threshold exceeded' }}</td>
+                <td><button onclick="unblockIP('{{ q.ip_address }}')" class="btn btn-warning">Unblock</button></td>
             </tr>
+            {% endfor %}
+            {% else %}
+            <tr>
+                <td colspan="5" class="text-muted" style="text-align: center; padding: 15px;">No active quarantines</td>
+            </tr>
+            {% endif %}
         </tbody>
     </table>
 </div>
@@ -32,26 +51,44 @@
         <thead>
             <tr>
                 <th>IP Address</th>
-                <th>Date Blocked</th>
-                <th>Duration</th>
+                <th>Blocked At</th>
+                <th>Reason</th>
                 <th>Resolution</th>
             </tr>
         </thead>
         <tbody>
+            {% if history %}
+            {% for q in history %}
             <tr>
-                <td>103.22.4.99</td>
-                <td>2026-10-02 14:22</td>
-                <td>1 hour</td>
-                <td>Auto-expired</td>
+                <td><a href="/attacker/{{ q.ip_address }}">{{ q.ip_address }}</a></td>
+                <td>{{ q.blocked_at }}</td>
+                <td>{{ q.reason or 'Threat threshold exceeded' }}</td>
+                <td>{{ q.unblocked_by or 'Auto-expired' }}</td>
             </tr>
+            {% endfor %}
+            {% else %}
+            <tr>
+                <td colspan="4" class="text-muted" style="text-align: center; padding: 15px;">No quarantine history</td>
+            </tr>
+            {% endif %}
         </tbody>
     </table>
 </div>
 {% endblock %}
 {% block scripts %}
 <script>
-function unblock(ip) {
-    alert('Unblocking ' + ip + '...');
+function unblockIP(ip) {
+    if (!confirm('Unblock ' + ip + '?')) return;
+    fetch('/api/unblock/' + ip, { method: 'POST' })
+        .then(r => r.json())
+        .then(data => {
+            if (data.status === 'success') {
+                location.reload();
+            } else {
+                alert('Error: ' + data.message);
+            }
+        })
+        .catch(err => alert('Error: ' + err));
 }
 </script>
 {% endblock %}

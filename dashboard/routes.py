@@ -3,21 +3,25 @@ MIRAGE Junior — Dashboard Routes
 All route handlers for the analytics dashboard.
 """
 
-from flask import Blueprint, render_template, jsonify, request, redirect, url_for
+from flask import Blueprint, render_template, jsonify, request, redirect, url_for, flash
 import sqlite3
 import json
 import os
+import config.settings as settings_cfg
 
 dashboard_bp = Blueprint('dashboard', __name__)
 
-DB_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'database', 'mirage_junior.db')
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+WHITELIST_PATH = os.path.join(BASE_DIR, 'config', 'whitelist.json')
 
 
 def get_db():
     """Get a database connection with Row factory."""
-    conn = sqlite3.connect(DB_PATH)
+    db_path = getattr(settings_cfg, 'DATABASE_PATH', os.path.join(BASE_DIR, 'database', 'mirage_junior.db'))
+    conn = sqlite3.connect(db_path)
     conn.row_factory = sqlite3.Row
     return conn
+
 
 
 # ─── PAGE ROUTES ────────────────────────────────────────────────────────
@@ -57,38 +61,60 @@ def overview():
 
 @dashboard_bp.route('/attacks')
 def attacks():
-    """Full attack log page with pagination."""
+    """Full attack log page with pagination, search, and protocol filtering."""
     db = get_db()
     page = request.args.get('page', 1, type=int)
-    per_page = 25
+    per_page = 10
     offset = (page - 1) * per_page
-    search = request.args.get('search', '')
+    search = request.args.get('search', '').strip()
+    protocol = request.args.get('protocol', '').strip().upper()
+
+    query_parts = []
+    params = []
 
     if search:
-        events = [dict(r) for r in db.execute(
-            """SELECT e.*, a.country, a.classification FROM events e 
-               LEFT JOIN attackers a ON e.ip_address = a.ip_address 
-               WHERE e.ip_address LIKE ? OR e.protocol LIKE ? OR e.event_type LIKE ?
-               ORDER BY e.timestamp DESC LIMIT ? OFFSET ?""",
-            (f'%{search}%', f'%{search}%', f'%{search}%', per_page, offset)
-        ).fetchall()]
-        total = db.execute(
-            "SELECT COUNT(*) FROM events WHERE ip_address LIKE ? OR protocol LIKE ? OR event_type LIKE ?",
-            (f'%{search}%', f'%{search}%', f'%{search}%')
-        ).fetchone()[0]
-    else:
-        events = [dict(r) for r in db.execute(
-            """SELECT e.*, a.country, a.classification FROM events e 
-               LEFT JOIN attackers a ON e.ip_address = a.ip_address 
-               ORDER BY e.timestamp DESC LIMIT ? OFFSET ?""",
-            (per_page, offset)
-        ).fetchall()]
-        total = db.execute("SELECT COUNT(*) FROM events").fetchone()[0]
+        query_parts.append("(e.ip_address LIKE ? OR e.event_type LIKE ? OR e.mitre_id LIKE ? OR a.country LIKE ? OR e.details LIKE ?)")
+        wildcard = f'%{search}%'
+        params.extend([wildcard, wildcard, wildcard, wildcard, wildcard])
 
-    total_pages = (total + per_page - 1) // per_page
+    if protocol and protocol != 'ALL':
+        query_parts.append("e.protocol = ?")
+        params.append(protocol)
+
+    where_clause = f"WHERE {' AND '.join(query_parts)}" if query_parts else ""
+
+    # Count matching
+    count_sql = f"""SELECT COUNT(*) FROM events e 
+                   LEFT JOIN attackers a ON e.ip_address = a.ip_address 
+                   {where_clause}"""
+    total = db.execute(count_sql, params).fetchone()[0]
+
+    # Fetch 10 records per page
+    fetch_sql = f"""SELECT e.*, a.country, a.city, a.classification, a.threat_score FROM events e 
+                   LEFT JOIN attackers a ON e.ip_address = a.ip_address 
+                   {where_clause}
+                   ORDER BY e.timestamp DESC LIMIT ? OFFSET ?"""
+    events = [dict(r) for r in db.execute(fetch_sql, params + [per_page, offset]).fetchall()]
+
+    total_pages = max(1, (total + per_page - 1) // per_page)
+
+    # Protocol breakdown counts for filter chips
+    counts_raw = db.execute("SELECT protocol, COUNT(*) as c FROM events GROUP BY protocol").fetchall()
+    protocol_counts = {r['protocol']: r['c'] for r in counts_raw if r['protocol']}
+    total_all = db.execute("SELECT COUNT(*) FROM events").fetchone()[0]
+
     db.close()
-    return render_template('attacks.html', events=events, page=page,
-                           total_pages=total_pages, search=search, total=total)
+    return render_template('attacks.html',
+                           events=events,
+                           page=page,
+                           per_page=per_page,
+                           total_pages=total_pages,
+                           search=search,
+                           protocol=protocol,
+                           total=total,
+                           total_all=total_all,
+                           protocol_counts=protocol_counts)
+
 
 
 @dashboard_bp.route('/attacker/<ip>')
@@ -167,14 +193,61 @@ def honeytokens():
             "SELECT COUNT(*) FROM honeytoken_triggers WHERE token_name = ?", (token['name'],)
         ).fetchone()[0]
         token['trigger_count'] = count
+        token['token_name'] = token['name']
+        token['token_type'] = token['type']
     db.close()
     return render_template('honeytokens.html', triggers=triggers, tokens=tokens)
 
 
-@dashboard_bp.route('/settings')
+@dashboard_bp.route('/settings', methods=['GET', 'POST'])
 def settings():
     """Settings configuration page."""
-    return render_template('settings.html')
+    if request.method == 'POST':
+        telegram_bot_token = request.form.get('telegram_bot_token', '').strip()
+        telegram_chat_id = request.form.get('telegram_chat_id', '').strip()
+        whitelist_ips = request.form.get('whitelist_ips', '')
+
+        # Updates config/settings.py values in memory
+        settings_cfg.TELEGRAM_BOT_TOKEN = telegram_bot_token
+        settings_cfg.TELEGRAM_CHAT_ID = telegram_chat_id
+
+        if 'quarantine_threshold' in request.form:
+            try:
+                settings_cfg.QUARANTINE_THRESHOLD = int(request.form.get('quarantine_threshold'))
+            except (ValueError, TypeError):
+                pass
+
+        # Updates config/whitelist.json with the new whitelist IPs (split by newline)
+        whitelist_list = [line.strip() for line in whitelist_ips.splitlines() if line.strip()]
+        try:
+            with open(WHITELIST_PATH, 'w') as f:
+                json.dump(whitelist_list, f, indent=4)
+        except Exception:
+            pass
+
+        flash('Settings updated successfully.')
+        return redirect(url_for('dashboard.settings'))
+
+    # Load current values from config
+    telegram_bot_token = getattr(settings_cfg, 'TELEGRAM_BOT_TOKEN', '')
+    telegram_chat_id = getattr(settings_cfg, 'TELEGRAM_CHAT_ID', '')
+    quarantine_threshold = getattr(settings_cfg, 'QUARANTINE_THRESHOLD', 76)
+
+    whitelist_ips = ""
+    if os.path.exists(WHITELIST_PATH):
+        try:
+            with open(WHITELIST_PATH, 'r') as f:
+                wl = json.load(f)
+                if isinstance(wl, list):
+                    whitelist_ips = "\n".join(wl)
+        except Exception:
+            pass
+
+    return render_template('settings.html',
+                           telegram_bot_token=telegram_bot_token,
+                           telegram_chat_id=telegram_chat_id,
+                           whitelist_ips=whitelist_ips,
+                           quarantine_threshold=quarantine_threshold)
 
 
 # ─── API ROUTES (for AJAX auto-refresh) ────────────────────────────────
@@ -219,6 +292,11 @@ def api_stats():
     ).fetchall():
         hourly.append({'hour': row['hour'], 'count': row['cnt']})
 
+    # Recent quarantines
+    recent_quarantines = [dict(r) for r in db.execute(
+        "SELECT * FROM quarantine_log WHERE is_active = 1 ORDER BY blocked_at DESC LIMIT 5"
+    ).fetchall()]
+
     db.close()
     return jsonify({
         'total_hits': total_hits,
@@ -229,7 +307,8 @@ def api_stats():
         'threat_distribution': {'Scanner': scanner, 'Suspicious': suspicious, 'Active': active_threat, 'Critical': critical},
         'top_countries': countries,
         'mitre_stats': mitre_stats,
-        'hourly_timeline': hourly
+        'hourly_timeline': hourly,
+        'recent_quarantines': recent_quarantines
     })
 
 

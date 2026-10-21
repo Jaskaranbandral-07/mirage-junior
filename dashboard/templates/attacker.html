@@ -2,24 +2,112 @@
 {% block title %}Attacker Profile - MIRAGE Junior{% endblock %}
 {% block header_title %}Attacker Deep-Dive: {{ ip }}{% endblock %}
 {% block content %}
-<div class="profile-header card">
+{% set score = profile.threat_score or 0 %}
+{% if score >= 76 %}
+    {% set score_class = 'critical' %}
+    {% set badge_class = 'badge-critical' %}
+{% elif score >= 51 %}
+    {% set score_class = 'active' %}
+    {% set badge_class = 'badge-active' %}
+{% elif score >= 21 %}
+    {% set score_class = 'suspicious' %}
+    {% set badge_class = 'badge-suspicious' %}
+{% else %}
+    {% set score_class = 'scanner' %}
+    {% set badge_class = 'badge-scanner' %}
+{% endif %}
+
+<div class="profile-header">
+    <div class="profile-score {{ score_class }}">
+        {{ score }}
+    </div>
     <div class="profile-info">
-        <h2>IP: {{ ip }} 🇷🇺</h2>
-        <p><strong>ISP:</strong> DigitalOcean LLC</p>
-        <p><strong>First Seen:</strong> 2026-10-03 11:02:03</p>
-        <p><strong>Last Seen:</strong> 2026-10-03 11:03:52</p>
-        <div class="tags">
-            <span class="tag">T1190</span> <span class="tag">T1078</span> <span class="tag">T1059</span>
+        <h2>IP: {{ profile.ip_address }}</h2>
+        <div class="profile-meta">
+            <span><i class="fa-solid fa-globe"></i> {{ profile.country or 'Unknown' }}{% if profile.city %}, {{ profile.city }}{% endif %}</span>
+            <span><i class="fa-solid fa-network-wired"></i> {{ profile.isp or 'Unknown' }}</span>
+            <span><i class="fa-solid fa-clock"></i> First Seen: {{ profile.first_seen or 'N/A' }}</span>
+            <span><i class="fa-solid fa-bolt"></i> Last Seen: {{ profile.last_seen or 'N/A' }}</span>
+        </div>
+        <div class="tags" style="margin-top: 14px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+            <span class="badge {{ badge_class }}">{{ profile.classification }}</span>
+            {% if profile.is_quarantined %}
+            <span class="badge badge-critical"><i class="fa-solid fa-lock"></i> Quarantined</span>
+            {% endif %}
+            {% set mitre_ids = events | map(attribute='mitre_id') | select('string') | unique | list %}
+            {% for mid in mitre_ids %}
+            <span class="tag mitre-tag">{{ mid }}</span>
+            {% endfor %}
         </div>
     </div>
-    <div class="score-display">
-        <div class="gauge-container">
-            <h1 style="color: var(--neon-red)">94</h1>
-            <p>Threat Score</p>
-        </div>
-        <span class="badge badge-critical">CRITICAL THREAT</span>
-        <button class="btn btn-danger" style="margin-top: 10px;">Quarantined</button>
-    </div>
+</div>
+
+<div class="card full-width" style="margin-bottom: 24px;">
+    <h3>Captured Credentials</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>Timestamp</th>
+                <th>Protocol</th>
+                <th>Username</th>
+                <th>Password</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% if credentials %}
+            {% for c in credentials %}
+            <tr>
+                <td>{{ c.timestamp }}</td>
+                <td><span class="tag">{{ c.protocol }}</span></td>
+                <td><code>{{ c.username }}</code></td>
+                <td><code>{{ c.password }}</code></td>
+            </tr>
+            {% endfor %}
+            {% else %}
+            <tr>
+                <td colspan="4" class="text-muted" style="text-align: center; padding: 15px;">No credentials captured</td>
+            </tr>
+            {% endif %}
+        </tbody>
+    </table>
+</div>
+
+<div class="card full-width" style="margin-bottom: 24px;">
+    <h3>Quarantine History</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>Blocked At</th>
+                <th>Expires At</th>
+                <th>Reason</th>
+                <th>Status</th>
+                <th>Unblocked By</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% if quarantine %}
+            {% for q in quarantine %}
+            <tr>
+                <td>{{ q.blocked_at }}</td>
+                <td>{{ q.expires_at or '-' }}</td>
+                <td>{{ q.reason or 'Threat threshold exceeded' }}</td>
+                <td>
+                    {% if q.is_active %}
+                    <span class="badge badge-critical">Active</span>
+                    {% else %}
+                    <span class="badge badge-scanner">Released</span>
+                    {% endif %}
+                </td>
+                <td>{{ q.unblocked_by or '-' }}</td>
+            </tr>
+            {% endfor %}
+            {% else %}
+            <tr>
+                <td colspan="5" class="text-muted" style="text-align: center; padding: 15px;">No quarantine history</td>
+            </tr>
+            {% endif %}
+        </tbody>
+    </table>
 </div>
 
 <div class="timeline-container card full-width">
@@ -31,9 +119,7 @@
 {% block scripts %}
 <script src="{{ url_for('static', filename='js/timeline.js') }}"></script>
 <script>
-    // Demo timeline init
-    document.addEventListener('DOMContentLoaded', () => {
-        renderTimeline([], document.getElementById('attack-timeline'));
-    });
+    const events = {{ events | tojson }};
+    renderTimeline(events, document.getElementById('attack-timeline'));
 </script>
 {% endblock %}

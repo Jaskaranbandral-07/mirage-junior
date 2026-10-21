@@ -14,13 +14,20 @@ TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID", "")
 GEO_API_URL = "http://ip-api.com/json/{ip}"
 GEO_CACHE_DURATION = 3600  # seconds
 
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
 # === Threat Scoring ===
 QUARANTINE_THRESHOLD = 76
 QUARANTINE_DURATION = 3600  # seconds (1 hour)
-SCORING_RULES_FILE = os.path.join("config", "scoring_rules.json")
+SCORING_RULES_FILE = os.path.join(BASE_DIR, "config", "scoring_rules.json")
 
 # === Database ===
-DATABASE_PATH = os.path.join("database", "mirage_junior.db")
+# On Vercel serverless functions, the root filesystem is read-only. We must use /tmp.
+if os.getenv("VERCEL") or os.getenv("AWS_LAMBDA_FUNCTION_NAME"):
+    DATABASE_PATH = os.getenv("DATABASE_PATH", "/tmp/mirage_junior.db")
+else:
+    DATABASE_PATH = os.getenv("DATABASE_PATH", os.path.join(BASE_DIR, "database", "mirage_junior.db"))
 
 # === Bait Monitor ===
-BAIT_DIRECTORY = "bait"
+BAIT_DIRECTORY = os.path.join(BASE_DIR, "bait")
+
