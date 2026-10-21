@@ -8,6 +8,8 @@ import sqlite3
 import json
 import os
 import config.settings as settings_cfg
+from database.db_manager import DatabaseManager
+from engine.scoring_engine import ScoringEngine
 
 dashboard_bp = Blueprint('dashboard', __name__)
 
@@ -352,3 +354,109 @@ def api_export_csv():
     from flask import Response
     return Response('\n'.join(csv_lines), mimetype='text/csv',
                     headers={'Content-Disposition': 'attachment; filename=mirage_events.csv'})
+
+
+@dashboard_bp.route('/api/simulate-attack', methods=['POST'])
+def api_simulate_attack():
+    """Trigger a live realistic attack capture for demonstration & verification."""
+    data = request.get_json(silent=True) or {}
+    attack_type = data.get('type') or request.args.get('type', 'sqli')
+
+    attack_presets = {
+        'sqli': {
+            'ip': '185.220.101.45',
+            'country': 'Germany',
+            'city': 'Frankfurt',
+            'port': 8080,
+            'protocol': 'HTTP',
+            'event_type': 'sql_injection',
+            'details': {'path': '/phpmyadmin/', 'payload': "admin' OR '1'='1'--", 'method': 'POST'},
+            'threat_pts': 20,
+            'mitre_id': 'T1190'
+        },
+        'ssh': {
+            'ip': '194.26.29.112',
+            'country': 'Russia',
+            'city': 'Moscow',
+            'port': 2222,
+            'protocol': 'SSH',
+            'event_type': 'brute_force',
+            'details': {'service': 'SSH', 'user': 'root', 'pwd_attempts': 14, 'action': 'dictionary_attack'},
+            'threat_pts': 30,
+            'mitre_id': 'T1110.001'
+        },
+        'honeytoken': {
+            'ip': '45.155.205.233',
+            'country': 'Netherlands',
+            'city': 'Amsterdam',
+            'port': 8080,
+            'protocol': 'HONEYTOKEN',
+            'event_type': 'honeytoken_access',
+            'details': {'file': '.env', 'accessed_key': 'AWS_SECRET_ACCESS_KEY', 'action': 'tripwire_tripped'},
+            'threat_pts': 40,
+            'mitre_id': 'T1552.001'
+        },
+        'traversal': {
+            'ip': '103.203.57.18',
+            'country': 'India',
+            'city': 'Mumbai',
+            'port': 8080,
+            'protocol': 'HTTP',
+            'event_type': 'directory_traversal',
+            'details': {'path': '../../../../etc/passwd', 'status': 'blocked'},
+            'threat_pts': 15,
+            'mitre_id': 'T1083'
+        }
+    }
+
+    preset = attack_presets.get(attack_type, attack_presets['sqli'])
+    ip = preset['ip']
+
+    try:
+        db_mgr = DatabaseManager()
+        scorer = ScoringEngine()
+
+        # Log attack event
+        db_mgr.log_event(
+            ip_address=ip,
+            port=preset['port'],
+            protocol=preset['protocol'],
+            event_type=preset['event_type'],
+            details=preset['details'],
+            threat_pts=preset['threat_pts'],
+            mitre_id=preset['mitre_id']
+        )
+
+        # Log credential attempt if applicable
+        if attack_type == 'ssh':
+            db_mgr.log_credential(ip, 'SSH', 'root', 'admin1234', success=False)
+        elif attack_type == 'sqli':
+            db_mgr.log_credential(ip, 'HTTP', "admin' OR 1=1--", "password123", success=False)
+
+        # Recalculate threat score & quarantine if >= 25
+        scorer.calculate_threat_score(ip)
+
+        conn = db_mgr.get_connection()
+        conn.row_factory = sqlite3.Row
+        attacker = conn.execute("SELECT threat_score, classification, is_quarantined FROM attackers WHERE ip_address = ?", (ip,)).fetchone()
+        conn.close()
+
+        threat_score = attacker['threat_score'] if attacker else preset['threat_pts']
+        is_quarantined = bool(attacker['is_quarantined']) if attacker else False
+
+        return jsonify({
+            'status': 'success',
+            'message': f"Threat capture recorded: {preset['event_type']} from {ip}",
+            'event': {
+                'ip': ip,
+                'country': preset['country'],
+                'protocol': preset['protocol'],
+                'event_type': preset['event_type'],
+                'threat_pts': preset['threat_pts'],
+                'threat_score': threat_score,
+                'quarantined': is_quarantined
+            }
+        })
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
