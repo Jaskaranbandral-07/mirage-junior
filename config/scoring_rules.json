@@ -12,5 +12,8 @@
     "ftp_download": 15,
     "file_access": 10,
     "scan": 5,
-    "default_credentials": 8
+    "default_credentials": 8,
+    "sql_injection": 20,
+    "directory_traversal": 15,
+    "honeytoken_access": 30
 }
