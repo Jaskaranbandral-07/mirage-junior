@@ -3,14 +3,14 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>MIRAGE Junior — Official Project Presentation Deck</title>
+  <title>MIRAGE Junior — 8-Slide Official Presentation Deck</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;700&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
     :root {
       --bg-dark: #090d16;
-      --bg-card: rgba(18, 24, 38, 0.85);
+      --bg-card: rgba(18, 24, 38, 0.9);
       --bg-card-border: rgba(0, 212, 255, 0.2);
       --accent-cyan: #00d4ff;
       --accent-green: #00ff88;
@@ -40,7 +40,6 @@
       user-select: none;
     }
 
-    /* Ambient Cyber Background */
     .cyber-bg {
       position: absolute;
       inset: 0;
@@ -55,7 +54,6 @@
       z-index: 0;
     }
 
-    /* Header Nav */
     header {
       position: relative;
       z-index: 10;
@@ -111,7 +109,6 @@
       box-shadow: 0 0 12px rgba(0, 212, 255, 0.4);
     }
 
-    /* Slide Stage */
     .deck-viewport {
       flex: 1;
       position: relative;
@@ -120,26 +117,26 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      padding: 30px 48px;
+      padding: 24px 48px;
     }
 
     .slide {
       position: absolute;
       width: calc(100% - 96px);
       max-width: 1350px;
-      height: calc(100% - 40px);
-      max-height: 740px;
+      height: calc(100% - 30px);
+      max-height: 750px;
       background: var(--bg-card);
       border: 1px solid var(--bg-card-border);
       border-radius: 20px;
-      padding: 48px 56px;
+      padding: 44px 52px;
       box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.1);
       display: flex;
       flex-direction: column;
       opacity: 0;
       transform: translateY(20px) scale(0.98);
       pointer-events: none;
-      transition: all 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+      transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
       overflow-y: auto;
     }
 
@@ -149,7 +146,6 @@
       pointer-events: auto;
     }
 
-    /* Slide Header */
     .slide-category {
       font-size: 0.8rem;
       text-transform: uppercase;
@@ -173,19 +169,18 @@
     }
 
     .slide-title {
-      font-size: 2.3rem;
+      font-size: 2.2rem;
       font-weight: 800;
       color: #fff;
       letter-spacing: -0.5px;
-      margin-bottom: 24px;
+      margin-bottom: 22px;
       line-height: 1.2;
     }
 
-    /* Grid Layouts */
     .grid-2 {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 28px;
+      gap: 26px;
       flex: 1;
     }
 
@@ -196,6 +191,14 @@
       flex: 1;
     }
 
+    .grid-4 {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      grid-template-rows: repeat(2, 1fr);
+      gap: 20px;
+      flex: 1;
+    }
+
     .grid-5 {
       display: grid;
       grid-template-columns: repeat(5, 1fr);
@@ -203,20 +206,13 @@
       flex: 1;
     }
 
-    /* Cards */
     .card {
       background: rgba(255, 255, 255, 0.025);
       border: 1px solid rgba(255, 255, 255, 0.08);
       border-radius: 14px;
-      padding: 24px 26px;
+      padding: 22px 24px;
       display: flex;
       flex-direction: column;
-      transition: transform 0.2s, border-color 0.2s;
-    }
-
-    .card:hover {
-      border-color: rgba(0, 212, 255, 0.4);
-      transform: translateY(-2px);
     }
 
     .card.danger {
@@ -246,7 +242,7 @@
 
     .card-body {
       font-size: 0.95rem;
-      line-height: 1.65;
+      line-height: 1.6;
       color: var(--text-muted);
       flex: 1;
     }
@@ -260,7 +256,6 @@
       display: flex;
       flex-direction: column;
       gap: 10px;
-      margin-top: 10px;
     }
 
     .card-list li {
@@ -278,16 +273,15 @@
       font-weight: bold;
     }
 
-    /* Code & Formulas */
     .code-block {
       background: #06090f;
       border: 1px solid rgba(255, 255, 255, 0.1);
       border-radius: 8px;
-      padding: 12px 16px;
+      padding: 10px 14px;
       font-family: 'Fira Code', monospace;
       font-size: 0.85rem;
       color: var(--accent-green);
-      margin: 12px 0;
+      margin: 10px 0;
       overflow-x: auto;
     }
 
@@ -295,15 +289,14 @@
       background: rgba(0, 212, 255, 0.06);
       border: 1px solid var(--accent-cyan);
       border-radius: 10px;
-      padding: 16px;
+      padding: 14px;
       font-family: 'Fira Code', monospace;
-      font-size: 1.1rem;
+      font-size: 1.15rem;
       text-align: center;
       color: #fff;
       margin: 12px 0;
     }
 
-    /* Badges */
     .badge {
       display: inline-block;
       padding: 3px 8px;
@@ -317,7 +310,6 @@
     .badge-red { background: rgba(255, 51, 102, 0.15); color: var(--accent-red); border: 1px solid var(--accent-red); }
     .badge-green { background: rgba(0, 255, 136, 0.15); color: var(--accent-green); border: 1px solid var(--accent-green); }
 
-    /* Footer Controls */
     footer {
       position: relative;
       z-index: 10;
@@ -358,6 +350,7 @@
       display: inline-flex;
       align-items: center;
       gap: 6px;
+      text-decoration: none;
     }
 
     .btn:hover {
@@ -377,7 +370,6 @@
       color: #000;
     }
 
-    /* Key indicator */
     .key-hint {
       font-size: 0.75rem;
       color: #64748b;
@@ -399,7 +391,7 @@
   <!-- Header -->
   <header>
     <div class="brand">
-      <span class="brand-badge">PRO</span>
+      <span class="brand-badge">8 SLIDES</span>
       <span>MIRAGE JUNIOR</span>
       <span style="font-weight: 400; color: #64748b; font-size: 0.9rem;">| Intelligent Deception Network</span>
     </div>
@@ -415,13 +407,13 @@
 
     <!-- SLIDE 1: Title -->
     <div class="slide active" id="slide-1">
-      <div class="slide-category">B.Tech Capstone Project Defense</div>
+      <div class="slide-category">B.Tech Capstone Project Defense • Slide 1 of 8</div>
       <h1 class="slide-title" style="font-size: 3rem; margin-top: 10px;">
         <span style="background: linear-gradient(135deg, #00d4ff, #00ff88); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">MIRAGE JUNIOR</span><br>
-        Next-Generation Intelligent Deception Grid & Dynamic Quarantine
+        Next-Generation Intelligent Deception Network & Dynamic Quarantine
       </h1>
-      <p style="font-size: 1.15rem; color: var(--text-muted); max-width: 850px; line-height: 1.6; margin-bottom: 30px;">
-        An autonomous, high-fidelity cyber deception architecture combining low-interaction multi-protocol decoy services, real-time exponential threat scoring, zero-delay dynamic firewall quarantine, and instant Telegram push telemetry.
+      <p style="font-size: 1.15rem; color: var(--text-muted); max-width: 900px; line-height: 1.6; margin-bottom: 28px;">
+        An autonomous, high-fidelity cyber deception architecture combining low-interaction multi-protocol decoy services, real-time exponential threat scoring, zero-delay 25-point dynamic firewall containment, and instant Telegram push telemetry.
       </p>
 
       <div class="grid-3" style="flex: none; margin-top: auto;">
@@ -442,11 +434,11 @@
           </div>
         </div>
         <div class="card">
-          <div class="card-title purple">⚡ Live Specs</div>
+          <div class="card-title purple">⚡ Live Production Status</div>
           <div class="card-body">
             Decoys: <strong>5 Protocols Active</strong><br>
-            Quarantine: <strong>Dynamic @ 25 pts</strong><br>
-            Notification: <strong>Live Telegram Alerts</strong>
+            Auto-Quarantine: <strong>Dynamic @ 25 pts</strong><br>
+            Alerts: <strong>Live Telegram Push to Mobile</strong>
           </div>
         </div>
       </div>
@@ -454,18 +446,18 @@
 
     <!-- SLIDE 2: Problem Statement -->
     <div class="slide" id="slide-2">
-      <div class="slide-category">Problem Definition & Motivation</div>
-      <h2 class="slide-title">Slide 2: The Core Problem Statement</h2>
+      <div class="slide-category">Problem Definition & Motivation • Slide 2 of 8</div>
+      <h2 class="slide-title">The Core Problem Statement: Why Traditional Defenses Fail</h2>
 
       <div class="grid-2">
         <div class="card danger">
-          <div class="card-title red">🚨 Why Traditional Defenses Fail</div>
+          <div class="card-title red">🚨 Why Traditional Firewalls & IDS Fail</div>
           <div class="card-body">
             <ul class="card-list">
               <li><strong>Firewalls & Signature IDS are Reactive:</strong> They only match known attack signatures. Novel zero-day payloads pass completely undetected.</li>
               <li><strong>Zero Internal Lateral Movement Visibility:</strong> Once an attacker breaches the perimeter boundary (via phishing or leaked VPN credentials), firewalls provide zero internal visibility.</li>
-              <li><strong>Alert Fatigue:</strong> SOC analysts receive 10,000+ noisy alerts per day, burying real critical intrusions.</li>
-              <li><strong>Attacker Asymmetry:</strong> The defender must protect 100% of the surface area, while the attacker only needs a single misconfiguration to win.</li>
+              <li><strong>Alert Fatigue:</strong> SOC analysts receive 10,000+ noisy alerts per day with high false-positive rates, burying real critical intrusions.</li>
+              <li><strong>Attacker Asymmetry:</strong> The defender must protect 100% of attack surfaces, while an attacker only needs a single misconfiguration to compromise the entire network.</li>
             </ul>
           </div>
         </div>
@@ -484,82 +476,53 @@
       </div>
     </div>
 
-    <!-- SLIDE 3: Proposed Solution & Core Vision -->
+    <!-- SLIDE 3: Proposed Solution & Architecture -->
     <div class="slide" id="slide-3">
-      <div class="slide-category">System Philosophy</div>
-      <h2 class="slide-title">Deception-Driven Active Cyber Defense</h2>
+      <div class="slide-category">Architecture & Solution • Slide 3 of 8</div>
+      <h2 class="slide-title">Proposed Solution: 4-Tier Autonomous Deception Grid</h2>
 
-      <div class="grid-3">
+      <div class="grid-4">
         <div class="card">
-          <div class="card-title cyan">1. Enticement & Decoys</div>
+          <div class="card-title cyan">Tier 1: Deception Decoy Grid</div>
           <div class="card-body">
-            Emulate high-value network services (SSH, Web Admin, FTP, Telnet, MySQL) with believable banners and interactive protocol handshakes to trap adversaries without risking production assets.
+            Multi-protocol low-interaction honeypots (SSH, HTTP, FTP, Telnet, MySQL) emulating authentic server banners while strictly sandboxing commands to prevent host compromise.
           </div>
         </div>
 
         <div class="card">
-          <div class="card-title orange">2. Mathematical Scoring</div>
+          <div class="card-title green">Tier 2: Ingestion & Telemetry Bus</div>
           <div class="card-body">
-            Assign granular threat weights to adversarial behaviors (directory traversal = 15 pts, SQL injection = 20 pts, brute force = 30 pts) with time-decay mathematics.
+            Captures raw socket handshakes, parses HTTP payloads and login attempts, normalizes into JSON envelopes, and enriches with GeoIP location and MITRE ATT&CK TTP mapping.
           </div>
         </div>
 
         <div class="card">
-          <div class="card-title red">3. Autonomous Quarantine</div>
+          <div class="card-title orange">Tier 3: Analytics & Containment Engine</div>
           <div class="card-body">
-            Enforce immediate firewall quarantine (iptables / netsh) the instant an IP's cumulative score hits <strong>25 points</strong>, dispatching forensic snapshots to Telegram.
+            Calculates behavioral threat scores in real-time with exponential threat decay. Triggers cross-platform OS firewall isolation (netsh/iptables) the instant score reaches 25 points.
           </div>
         </div>
-      </div>
 
-      <div class="formula-box" style="margin-top: 24px;">
-        Core Principle: "Any touch on an internal deception sensor constitutes hostile intent with zero false positives."
+        <div class="card">
+          <div class="card-title purple">Tier 4: Real-Time SOC Command Center</div>
+          <div class="card-body">
+            Next.js 14 and Tailwind CSS dashboard with dark cyber glassmorphism, 10-per-page paginated attack feeds, attacker timeline replays, and instant mobile Telegram alerts.
+          </div>
+        </div>
       </div>
     </div>
 
-    <!-- SLIDE 4: High-Level Architecture -->
+    <!-- SLIDE 4: The 5 Honeypot Services -->
     <div class="slide" id="slide-4">
-      <div class="slide-category">System Architecture</div>
-      <h2 class="slide-title">4-Tier Decoupled Cyber Defense Architecture</h2>
-
-      <div class="grid-2">
-        <div class="card">
-          <div class="card-title cyan">🏗️ Architecture Breakdown</div>
-          <div class="card-body">
-            <ul class="card-list">
-              <li><strong>Tier 1 — Deception Decoy Grid:</strong> Lightweight Python daemon emulating 5 distinct attack vectors with safe containment sandboxing.</li>
-              <li><strong>Tier 2 — Ingestion & Telemetry Bus:</strong> Normalizes disparate logs into structured JSON envelopes with GeoIP enrichment and MITRE ATT&CK mapping.</li>
-              <li><strong>Tier 3 — Analytics & Quarantine Engine:</strong> Continuous score calculation, sliding window evaluator, and host firewall executor.</li>
-              <li><strong>Tier 4 — Modern Next.js Command Hub:</strong> Real-time visualization dashboard featuring dark cyber glassmorphism, 10-per-page paginated tables, and live telemetry.</li>
-            </ul>
-          </div>
-        </div>
-
-        <div class="card">
-          <div class="card-title green">⚙️ Technology Stack</div>
-          <div class="card-body">
-            <ul class="card-list">
-              <li><strong>Backend Engine:</strong> Python 3.10+, SQLite (Zero-dependency embedded ACID), Asyncio socket handlers.</li>
-              <li><strong>Frontend Dashboard:</strong> Next.js 14, React, Tailwind CSS, Lucide Icons, Glassmorphism UI.</li>
-              <li><strong>Containment:</strong> Dynamic iptables (Linux) & netsh advfirewall (Windows) rules.</li>
-              <li><strong>Mobile Alerts:</strong> Telegram Bot API via asynchronous webhook HTTPS pipeline.</li>
-            </ul>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- SLIDE 5: The 5 Honeypot Services -->
-    <div class="slide" id="slide-5">
-      <div class="slide-category">Decoy Grid Engineering</div>
-      <h2 class="slide-title">The 5 Multi-Protocol Decoy Engines</h2>
+      <div class="slide-category">Decoy Engineering • Slide 4 of 8</div>
+      <h2 class="slide-title">Multi-Protocol Decoys: Kyu, Kisliye & Kaise</h2>
 
       <div class="grid-5">
         <div class="card">
           <div class="card-title cyan">SSH Decoy</div>
           <div class="card-body">
             <span class="badge badge-cyan">PORT 22 / 2222</span><br><br>
-            Emulates OpenSSH 8.2 banner. Records username/password combinations and terminal command injection attempts.
+            Emulates OpenSSH 8.2 banner. Records usernames, passwords, and terminal command execution attempts in a safe emulated shell.
           </div>
         </div>
 
@@ -567,7 +530,7 @@
           <div class="card-title green">HTTP Decoy</div>
           <div class="card-body">
             <span class="badge badge-green">PORT 80 / 8080</span><br><br>
-            Emulates vulnerable phpMyAdmin & wp-login. Captures SQLi, XSS, and directory traversal (`../../etc/passwd`).
+            Emulates vulnerable phpMyAdmin and wp-login portals. Captures directory traversal (../../etc/passwd), SQLi, and XSS attack vectors.
           </div>
         </div>
 
@@ -575,7 +538,7 @@
           <div class="card-title orange">FTP Decoy</div>
           <div class="card-body">
             <span class="badge badge-cyan">PORT 21 / 2121</span><br><br>
-            Emulates vsFTPd 2.3.4. Traps anonymous logins, file download attempts, and unauthorized directory listings.
+            Emulates vsFTPd 2.3.4. Traps anonymous logins, credential harvesting, and unauthorized directory enumeration attempts.
           </div>
         </div>
 
@@ -583,7 +546,7 @@
           <div class="card-title purple">Telnet Decoy</div>
           <div class="card-body">
             <span class="badge badge-cyan">PORT 23 / 2323</span><br><br>
-            Catches automated IoT botnets (Mirai/Mozi) cycling default router credentials (`admin:admin`).
+            Captures automated IoT botnet swarms (Mirai/Mozi) rapidly cycling default embedded device passwords (admin:admin, root:root).
           </div>
         </div>
 
@@ -591,322 +554,137 @@
           <div class="card-title red">MySQL Decoy</div>
           <div class="card-body">
             <span class="badge badge-red">PORT 3306</span><br><br>
-            Emulates MySQL 8.0 handshake. Traps unauthorized root access and database exfiltration queries.
+            Emulates MySQL 8.0 handshake. Traps unauthorized database exfiltration queries and brute-force root access probes.
           </div>
         </div>
       </div>
     </div>
 
-    <!-- SLIDE 6: Threat Scoring Engine & Exponential Decay -->
-    <div class="slide" id="slide-6">
-      <div class="slide-category">Mathematical Modeling</div>
-      <h2 class="slide-title">Scoring Engine & Exponential Threat Decay</h2>
+    <!-- SLIDE 5: Threat Scoring Engine & Exponential Decay -->
+    <div class="slide" id="slide-5">
+      <div class="slide-category">Mathematical Modeling • Slide 5 of 8</div>
+      <h2 class="slide-title">Behavioral Threat Scoring & Mathematical Decay Model</h2>
 
       <div class="grid-2">
         <div class="card">
-          <div class="card-title cyan">📐 The Mathematical Threat Decay Formula</div>
+          <div class="card-title cyan">📐 The Threat Decay Formula</div>
           <div class="card-body">
             <div class="formula-box">
               Score(t) = Score₀ · e^( -λ · Δt )
             </div>
             <ul class="card-list">
-              <li><strong>Score₀:</strong> Accumulated raw threat points from malicious events.</li>
+              <li><strong>Score₀:</strong> Accumulated raw behavioral threat points from attack events.</li>
               <li><strong>λ (Decay Constant):</strong> ln(2) / Half-Life (configured for 3600s).</li>
-              <li><strong>Δt:</strong> Elapsed time in seconds since the last detected event.</li>
-              <li><strong>Why Decay?</strong> Port scanners probe once and leave; aggressive persistent attackers sustain continuous high scores.</li>
+              <li><strong>Δt:</strong> Elapsed time in seconds since the attacker's last logged interaction.</li>
+              <li><strong>Why Decay?</strong> Transient internet scanners probe once and leave; their scores decay naturally to 0. Persistent attackers sustain rapid actions and reach quarantine.</li>
             </ul>
           </div>
         </div>
 
         <div class="card">
-          <div class="card-title orange">⚡ Behavior Event Point Weights</div>
+          <div class="card-title orange">⚡ Action-Based Threat Weights Matrix</div>
           <div class="card-body">
-            <table style="width: 100%; border-collapse: collapse; font-size: 0.9rem; margin-top: 8px;">
-              <tr style="border-bottom: 1px solid rgba(255,255,255,0.1); color: var(--accent-cyan); text-align: left;">
-                <th style="padding: 6px;">Attack Pattern</th>
-                <th style="padding: 6px;">Points</th>
-                <th style="padding: 6px;">Severity</th>
-              </tr>
-              <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
-                <td style="padding: 6px;">Port Scan / Probe</td>
-                <td style="padding: 6px; color: var(--accent-cyan);">+5 pts</td>
-                <td style="padding: 6px;">Low</td>
-              </tr>
-              <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
-                <td style="padding: 6px;">Directory Traversal / Auth Probe</td>
-                <td style="padding: 6px; color: var(--accent-orange);">+15 pts</td>
-                <td style="padding: 6px;">Medium</td>
-              </tr>
-              <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
-                <td style="padding: 6px;">SQL Injection (SQLi) / RCE</td>
-                <td style="padding: 6px; color: var(--accent-red);">+20 pts</td>
-                <td style="padding: 6px;">High</td>
-              </tr>
-              <tr>
-                <td style="padding: 6px;">Sustained Brute-Force / Exploit</td>
-                <td style="padding: 6px; color: var(--accent-red);">+30 pts</td>
-                <td style="padding: 6px;">Critical</td>
-              </tr>
-            </table>
+            <ul class="card-list">
+              <li><strong>Port Scan / Decoy Probe (+5 pts):</strong> Low Risk (reconnaissance scan).</li>
+              <li><strong>Directory Traversal / Auth Probe (+15 pts):</strong> Medium Risk (path navigation / brute probe).</li>
+              <li><strong>SQL Injection / RCE Exploitation (+20 pts):</strong> High Risk (direct weaponized exploit payload).</li>
+              <li><strong>Sustained Brute Force / Burst (+30 pts):</strong> Critical Risk (automated dictionary attack).</li>
+              <li><strong>Honeytoken File Access (.env / .sql) (+40 pts):</strong> Severe Risk (guaranteed breach tripwire).</li>
+            </ul>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- SLIDE 7: Auto-Quarantine & Dynamic Firewall Isolation -->
-    <div class="slide" id="slide-7">
-      <div class="slide-category">Autonomous Defense Execution</div>
-      <h2 class="slide-title">Zero-Delay Auto-Quarantine at 25 Points</h2>
+    <!-- SLIDE 6: Auto-Quarantine (25 Pts) & Telegram Alerts -->
+    <div class="slide" id="slide-6">
+      <div class="slide-category">Autonomous Response • Slide 6 of 8</div>
+      <h2 class="slide-title">Zero-Delay Auto-Quarantine & Mobile Telegram Alerts</h2>
 
       <div class="grid-2">
         <div class="card danger">
-          <div class="card-title red">🛡️ Why the 25-Point Threshold?</div>
+          <div class="card-title red">🛡️ 25-Point Auto-Quarantine Threshold</div>
           <div class="card-body">
             <ul class="card-list">
-              <li><strong>Configured & Hardened:</strong> Calibrated specifically to eliminate attacker dwelling time while tolerating stray single pings.</li>
-              <li><strong>Trigger Scenarios:</strong>
-                <br>• 2 Directory Traversal hits (15 + 15 = 30 pts ≥ 25) ➔ <strong>QUARANTINED</strong>
-                <br>• 1 SQLi + 1 Port Probe (20 + 5 = 25 pts ≥ 25) ➔ <strong>QUARANTINED</strong>
-                <br>• 1 Brute-force burst (30 pts ≥ 25) ➔ <strong>QUARANTINED</strong>
+              <li><strong>Why 25 Points?</strong> Calibrated to prevent false blocks from single casual port pings (5 pts), while instantly neutralizing deliberate multi-step attacks.</li>
+              <li><strong>Trigger Combinations:</strong>
+                <br>• 2 Directory Traversals: 15 + 15 = 30 pts ≥ 25 ➔ <strong>QUARANTINE</strong>
+                <br>• 1 SQL Injection + 1 Probe: 20 + 5 = 25 pts ≥ 25 ➔ <strong>QUARANTINE</strong>
+                <br>• 1 Brute-Force Burst: 30 pts ≥ 25 ➔ <strong>IMMEDIATE QUARANTINE</strong>
               </li>
-              <li><strong>Zero Human Latency:</strong> Traditional SOC triage takes 15–45 minutes. MIRAGE Junior executes isolation in <strong>under 50 milliseconds</strong>.</li>
-            </ul>
-          </div>
-        </div>
-
-        <div class="card">
-          <div class="card-title cyan">💻 Cross-Platform Firewall Execution</div>
-          <div class="card-body">
-            <p style="margin-bottom: 8px;"><strong>Linux Kernel iptables Rule:</strong></p>
-            <div class="code-block">iptables -I INPUT -s &lt;attacker_ip&gt; -j DROP</div>
-
-            <p style="margin-bottom: 8px; margin-top: 14px;"><strong>Windows Defender netsh Rule:</strong></p>
-            <div class="code-block">netsh advfirewall firewall add rule name="MIRAGE-BLOCK" dir=in action=block remoteip=&lt;attacker_ip&gt;</div>
-
-            <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 8px;">
-              Quarantine events are logged in the ACID database and immediately broadcasted to the live WebSocket feed.
-            </p>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- SLIDE 8: Real-Time Telegram Threat Push Notifications -->
-    <div class="slide" id="slide-8">
-      <div class="slide-category">Mobile Telemetry & Alerting</div>
-      <h2 class="slide-title">Telegram SOC Mobile Alerts</h2>
-
-      <div class="grid-2">
-        <div class="card success">
-          <div class="card-title green">📱 Mobile Incident Notifications</div>
-          <div class="card-body">
-            <ul class="card-list">
-              <li><strong>Why Telegram?</strong> Security admins are rarely sitting at a terminal 24/7. Mobile push ensures immediate situational awareness wherever they are.</li>
-              <li><strong>Payload Contents:</strong>
-                <br>• 🚨 <strong>Severity Banner:</strong> Critical / Quarantine / Warning
-                <br>• 🌐 <strong>Attacker IP:</strong> Full IPv4/IPv6 with GeoIP country
-                <br>• 🎯 <strong>Target Decoy:</strong> Protocol, Port, and Hit Path
-                <br>• 📈 <strong>Calculated Score:</strong> Current Threat Score vs 25 threshold
-                <br>• 🛡️ <strong>Action Executed:</strong> Firewall rule applied confirmation
+              <li><strong>Sub-50ms Reaction Speed:</strong> Executes in &lt; 50ms compared to the 15–45 minute average response time of traditional human SOC teams.</li>
+              <li><strong>Cross-Platform OS Enforcement:</strong>
+                <div class="code-block">Linux: iptables -I INPUT -s &lt;ip&gt; -j DROP<br>Windows: netsh advfirewall firewall add rule name="MIRAGE-BLOCK" dir=in action=block remoteip=&lt;ip&gt;</div>
               </li>
-              <li><strong>Asynchronous Non-Blocking:</strong> Dispatched via background thread queue so network lag cannot degrade decoy responsiveness.</li>
             </ul>
           </div>
         </div>
 
-        <div class="card">
-          <div class="card-title purple">🔔 Live Alert Sample Output</div>
-          <div class="code-block" style="color: #f0f6fc; line-height: 1.6;">
-🚨 <b>MIRAGE ALERT: IP QUARANTINED</b><br>
-━━━━━━━━━━━━━━━━━━━━<br>
-<b>Attacker IP:</b> 192.168.1.185<br>
-<b>Geo Location:</b> 🇨🇳 China (Shenzhen)<br>
-<b>Target Port:</b> 8080 (HTTP Admin Decoy)<br>
-<b>Attack Vector:</b> Directory Traversal (etc/passwd)<br>
-<b>Threat Score:</b> 30 / 100 <span style="color:#ff3366;">[THRESHOLD EXCEEDED]</span><br>
-<b>Defense Action:</b> <span style="color:#00ff88;">DROP rule added to host firewall</span><br>
-<b>Timestamp:</b> 2026-10-21 22:30:15 UTC
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- SLIDE 9: Frontend Architecture & Real-Time Dashboard -->
-    <div class="slide" id="slide-9">
-      <div class="slide-category">Frontend & UI/UX Engineering</div>
-      <h2 class="slide-title">Next.js Command Center & Paginated Feeds</h2>
-
-      <div class="grid-3">
-        <div class="card">
-          <div class="card-title cyan">⚡ Next.js 14 & Tailwind</div>
-          <div class="card-body">
-            Server-side rendering (SSR) combined with lightweight client state management. Dark cyber theme styled with Tailwind CSS, Lucide cybersecurity icons, and backdrop-filter glassmorphism.
-          </div>
-        </div>
-
-        <div class="card">
-          <div class="card-title green">📄 10-Per-Page Pagination</div>
-          <div class="card-body">
-            <strong>Why 10-per-page?</strong> In production, a port sweep can generate 5,000+ entries. Rendering all at once crashes the browser DOM. Clean 10-item pagination guarantees fluid 60 FPS performance.
-          </div>
-        </div>
-
-        <div class="card">
-          <div class="card-title orange">🔄 Resilient Polling Fallback</div>
-          <div class="card-body">
-            Dual-channel streaming: WebSockets for sub-second push updates, backed by an auto-reconnecting HTTP polling engine for unreliable networks.
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- SLIDE 10: Deep Dive: 6 Core Dashboard Views -->
-    <div class="slide" id="slide-10">
-      <div class="slide-category">Dashboard Capabilities</div>
-      <h2 class="slide-title">The 6 Core Command Center Views</h2>
-
-      <div class="grid-3" style="grid-template-columns: repeat(3, 1fr); gap: 18px;">
-        <div class="card">
-          <div class="card-title cyan">1. Live Attack Feed</div>
-          <div class="card-body">
-            Chronological streaming event ticker showing real-time protocol probes, credentials attempted, and payload strings.
-          </div>
-        </div>
-
-        <div class="card">
-          <div class="card-title green">2. Threat Map</div>
-          <div class="card-body">
-            Interactive global GeoIP projection plotting attacker origins, autonomous system numbers (ASNs), and geographic clusters.
-          </div>
-        </div>
-
-        <div class="card">
-          <div class="card-title purple">3. Decoy Services</div>
-          <div class="card-body">
-            Telemetry status indicators showing health, uptime, active listeners, and individual hit tallies across SSH, HTTP, FTP, Telnet, and MySQL.
-          </div>
-        </div>
-
-        <div class="card">
-          <div class="card-title red">4. Quarantine Management</div>
-          <div class="card-body">
-            Firewall containment table with instant manual IP unblock controls, quarantine duration timers, and forensic reason tags.
-          </div>
-        </div>
-
-        <div class="card">
-          <div class="card-title orange">5. Threat Intelligence</div>
-          <div class="card-body">
-            High-level analytical rollups: Top targeted ports, most frequent attack signatures, and MITRE ATT&CK tactic mappings.
-          </div>
-        </div>
-
-        <div class="card">
-          <div class="card-title cyan">6. Virtual Terminal</div>
-          <div class="card-body">
-            Embedded simulated hacker CLI allowing security students to safely test and trigger decoy alarms interactively.
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- SLIDE 11: Security & Compliance Rationale -->
-    <div class="slide" id="slide-11">
-      <div class="slide-category">Defensive Hardening</div>
-      <h2 class="slide-title">Operational Security & Zero-Secret Architecture</h2>
-
-      <div class="grid-2">
         <div class="card success">
-          <div class="card-title green">🔒 Zero-Secrets Repository Policy</div>
+          <div class="card-title green">📱 Instant Telegram SOC Push Notifications</div>
           <div class="card-body">
             <ul class="card-list">
-              <li><strong>Environment Isolation:</strong> All sensitive credentials (Telegram bot tokens, admin keys, database paths) are isolated in local `.env` files.</li>
-              <li><strong>Strict .gitignore & Git Guardian Protection:</strong> Prevents automated secret scanners and public token revocation.</li>
-              <li><strong>Safe Defaults:</strong> If the bot token is omitted, the engine logs warnings cleanly without crashing or interrupting decoy capture.</li>
-            </ul>
-          </div>
-        </div>
-
-        <div class="card">
-          <div class="card-title cyan">🛡️ Decoy Sandboxing & Safety</div>
-          <div class="card-body">
-            <ul class="card-list">
-              <li><strong>Low-Interaction Boundaries:</strong> Decoys never execute attacker shell commands on the host OS. Command inputs are parsed as string telemetry only.</li>
-              <li><strong>Rate-Limiting Protection:</strong> Ingestion queues drop packet floods to defend against denial-of-service against the honeypot listener itself.</li>
-              <li><strong>ACID Reliability:</strong> Embedded SQLite engine with WAL (Write-Ahead Logging) mode to prevent database locks during multi-threaded attack spikes.</li>
+              <li><strong>Mobile SOC Reach:</strong> Security admins are not stationed at a terminal 24/7. Push notifications deliver instant situational awareness to smartphones anywhere.</li>
+              <li><strong>Asynchronous & Non-Blocking:</strong> Dispatched via background worker queue; network latency or bot delays never degrade decoy capture responsiveness.</li>
+              <li><strong>Rich Incident Payload Contents:</strong>
+                <br>• 🚨 Severity Banner: CRITICAL / QUARANTINE
+                <br>• 🌐 Attacker IP & GeoIP Origin Country
+                <br>• 🎯 Targeted Service & Exploit String
+                <br>• 📈 Real-Time Threat Score vs 25 Threshold
+                <br>• 🛡️ Confirmation of Applied Firewall DROP Rule
+              </li>
+              <li><strong>Zero-Secrets Git Security:</strong> Bot tokens & Chat IDs stored strictly in local .env files; never committed to public version control.</li>
             </ul>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- SLIDE 12: Deployment & Live Production -->
-    <div class="slide" id="slide-12">
-      <div class="slide-category">DevOps & Production</div>
-      <h2 class="slide-title">Cloud Deployment & Multi-Repository CI/CD</h2>
+    <!-- SLIDE 7: Command Center & Live Deployment -->
+    <div class="slide" id="slide-7">
+      <div class="slide-category">Operations & Deployment • Slide 7 of 8</div>
+      <h2 class="slide-title">SOC Command Dashboard & Production Deployment</h2>
 
       <div class="grid-2">
         <div class="card">
-          <div class="card-title cyan">🌐 Global Edge Deployment on Vercel</div>
+          <div class="card-title cyan">🖥️ 6 Core Command Center Views</div>
           <div class="card-body">
             <ul class="card-list">
-              <li><strong>Live Production URL:</strong> <a href="https://mirage-junior.vercel.app" target="_blank" style="color: var(--accent-cyan);">https://mirage-junior.vercel.app</a></li>
-              <li><strong>Edge Network Delivery:</strong> Static assets and Next.js frontend deployed on Vercel Edge with zero latency worldwide.</li>
-              <li><strong>Automated Pre-Flight Verification:</strong> Zero build errors, clean TypeScript interfaces, and full responsive mobile compatibility.</li>
+              <li><strong>Overview Command Hub (/):</strong> Executive KPIs, Threat Severity Doughnut & Top Attacking Countries Bar Charts.</li>
+              <li><strong>Full Attack Telemetry (/attacks):</strong> Clean 10-records-per-page pagination with protocol filter chips and 1-click CSV audit export.</li>
+              <li><strong>Attacker Profile & Timeline (/attacker/&lt;ip&gt;):</strong> Chronological narrative replay detailing the adversary's step-by-step kill-chain.</li>
+              <li><strong>Quarantine Hub (/quarantine):</strong> Active isolation management table with instant 1-click manual unblock overrides.</li>
+              <li><strong>Honeytoken Tripwires (/honeytokens):</strong> High-enticement decoy files (.env, credentials.xlsx, backup.sql) with watchdog filesystem traps.</li>
+              <li><strong>System Control Panel (/settings):</strong> Dynamic threshold adjustment (25 pts), Telegram bot toggle, and decoy port configurations.</li>
             </ul>
           </div>
         </div>
 
         <div class="card">
-          <div class="card-title purple">👥 Dual-Team Synchronized GitHub Repositories</div>
+          <div class="card-title purple">🌐 Production Deployment & Git Sync</div>
           <div class="card-body">
             <ul class="card-list">
-              <li><strong>Lead Repository:</strong> <a href="https://github.com/Jaskaranbandral-07/mirage-junior" target="_blank" style="color: var(--accent-cyan);">Jaskaranbandral-07/mirage-junior</a></li>
-              <li><strong>Contributor Repository:</strong> <a href="https://github.com/2024A7R009/mirage-junior" target="_blank" style="color: var(--accent-green);">2024A7R009/mirage-junior</a></li>
-              <li><strong>Peer Collaboration:</strong> Both repositories synchronized with verified commit histories, comprehensive contributor attribution, and professional README documentation.</li>
+              <li><strong>Vercel Edge Global Deployment:</strong> Live frontend deployed globally at <a href="https://mirage-junior.vercel.app" target="_blank" style="color: var(--accent-cyan);">mirage-junior.vercel.app</a> with zero cold-start latency.</li>
+              <li><strong>Zero-Dependency SQLite Backend:</strong> Embedded ACID storage using WAL (Write-Ahead Logging) mode, preventing database lockups during heavy port scans.</li>
+              <li><strong>Dual Synchronized Repositories:</strong>
+                <br>• Lead Repo: <a href="https://github.com/Jaskaranbandral-07/mirage-junior" target="_blank" style="color: var(--accent-cyan);">github.com/Jaskaranbandral-07/mirage-junior</a>
+                <br>• Contributor Repo: <a href="https://github.com/2024A7R009/mirage-junior" target="_blank" style="color: var(--accent-green);">github.com/2024A7R009/mirage-junior</a>
+              </li>
+              <li><strong>Robust Dual-Channel Streaming:</strong> Sub-second WebSockets with automatic fallback to 5-second asynchronous polling for resilient connectivity.</li>
             </ul>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- SLIDE 13: Project Impact & Future Roadmap -->
-    <div class="slide" id="slide-13">
-      <div class="slide-category">Future Horizons</div>
-      <h2 class="slide-title">Engineering Impact & Future Roadmap</h2>
-
-      <div class="grid-3">
-        <div class="card">
-          <div class="card-title cyan">🤖 Generative AI Decoys</div>
-          <div class="card-body">
-            Integrate local LLMs (e.g., Llama 3 / Gemini) to dynamically generate realistic file system trees and synthetic terminal command responses tailored to attacker personality.
-          </div>
-        </div>
-
-        <div class="card">
-          <div class="card-title green">📡 Distributed Decoy Sensors</div>
-          <div class="card-body">
-            Deploy lightweight Go/Rust sensor agents across disparate branch offices reporting to a unified central MIRAGE command hub via gRPC.
-          </div>
-        </div>
-
-        <div class="card">
-          <div class="card-title orange">🔗 Enterprise SIEM Sync</div>
-          <div class="card-body">
-            Native integrations with Splunk, Elastic SIEM, and Microsoft Sentinel via standard CEF/Syslog output streams.
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- SLIDE 14: Thank You -->
-    <div class="slide" id="slide-14" style="text-align: center; justify-content: center; align-items: center;">
-      <div class="slide-category" style="justify-content: center;">Presentation Concluded</div>
+    <!-- SLIDE 8: Thank You -->
+    <div class="slide" id="slide-8" style="text-align: center; justify-content: center; align-items: center;">
+      <div class="slide-category" style="justify-content: center;">Capstone Defense Concluded • Slide 8 of 8</div>
       <h1 class="slide-title" style="font-size: 3.5rem; margin-bottom: 16px;">
         <span style="background: linear-gradient(135deg, #00d4ff, #00ff88); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">Thank You!</span>
       </h1>
-      <p style="font-size: 1.25rem; color: var(--text-muted); max-width: 750px; line-height: 1.6; margin-bottom: 32px;">
-        MIRAGE Junior demonstrates that proactive deception, mathematical threat scoring, and automated containment can fundamentally invert the cybersecurity asymmetry.
+      <p style="font-size: 1.25rem; color: var(--text-muted); max-width: 800px; line-height: 1.6; margin-bottom: 32px;">
+        MIRAGE Junior demonstrates that proactive deception, behavioral threat scoring, and zero-delay containment can fundamentally invert the cybersecurity asymmetry.
       </p>
 
       <div style="display: flex; gap: 20px; justify-content: center; margin-bottom: 36px;">
@@ -921,7 +699,7 @@
       <div style="font-size: 0.95rem; color: #64748b; line-height: 1.8;">
         <strong>Project Lead:</strong> Jaskaran Bandral &nbsp;•&nbsp; <strong>Collaborator:</strong> Relish Sharma<br>
         Department of Computer Science & Engineering • Cybersecurity Specialization<br>
-        <span style="color: var(--accent-cyan); font-family: 'Fira Code', monospace;">We are now open for Questions & Live Viva Defense!</span>
+        <span style="color: var(--accent-cyan); font-family: 'Fira Code', monospace; font-size: 1.1rem; font-weight: bold;">We are now open for Evaluator Questions & Live Defense!</span>
       </div>
     </div>
 
@@ -930,7 +708,7 @@
   <!-- Footer Navigation -->
   <footer>
     <div class="slide-indicator">
-      SLIDE <span id="current-slide">1</span> OF <span id="total-slides">14</span>
+      SLIDE <span id="current-slide">1</span> OF <span id="total-slides">8</span>
     </div>
 
     <div class="key-hint">
@@ -945,7 +723,7 @@
 
   <script>
     let currentSlide = 1;
-    const totalSlides = 14;
+    const totalSlides = 8;
 
     function showSlide(n) {
       if (n < 1) n = 1;
