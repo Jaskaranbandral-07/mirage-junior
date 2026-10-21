@@ -73,14 +73,15 @@ class QuarantineManager:
                 cmd = f'iptables -A INPUT -s {ip_address} -j DROP'
                 subprocess.run(cmd, shell=True, check=True, capture_output=True)
             success = True
-            expires_at = datetime.now() + timedelta(seconds=QUARANTINE_DURATION)
-            self.db.quarantine_ip(ip_address, reason, threat_score, expires_at.strftime('%Y-%m-%d %H:%M:%S'))
         except subprocess.CalledProcessError as e:
-            logger.warning(f"Failed to block IP due to permissions: {e}")
+            logger.warning(f"Failed to add OS firewall rule due to non-elevated permissions (degrading gracefully): {e}")
         except Exception as e:
             logger.warning(f"Error blocking IP: {e}")
 
-        return success
+        # Always record quarantine in DB per PRD Section 15
+        expires_at = datetime.now() + timedelta(seconds=QUARANTINE_DURATION)
+        self.db.quarantine_ip(ip_address, reason, threat_score, expires_at.strftime('%Y-%m-%d %H:%M:%S'))
+        return True
 
     def unblock_ip(self, ip_address, unblocked_by='manual'):
         logger.info(f"Attempting to unblock IP: {ip_address}")

@@ -120,3 +120,17 @@ def test_lateral_scan_bonus(setup_env):
     score = _extract_score(res)
     # Should include lateral_scan bonus (15 pts) plus 2 connections (5+5)
     assert score >= 25
+
+
+def test_quarantine_at_25_pts(setup_env):
+    db, engine, _ = setup_env
+    ip = '198.51.100.99'
+    # A single honeytoken trigger gives 25 points -> reaches threshold
+    db.log_event(ip, 8080, 'HTTP', 'honeytoken_trigger', '', 25, 'T1083')
+    res = engine.calculate_threat_score(ip)
+    score = _extract_score(res)
+    assert score >= 25
+    profile = db.get_attacker_profile(ip)
+    assert profile is not None
+    assert profile['is_quarantined'] == 1
+

@@ -1,6 +1,8 @@
 import json
 import logging
-from config.settings import SCORING_RULES_FILE, TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID
+from config.settings import SCORING_RULES_FILE, TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID, QUARANTINE_THRESHOLD
+import config.settings as settings_cfg
+
 from database.db_manager import DatabaseManager
 from engine.quarantine import QuarantineManager
 from engine.alert_manager import AlertManager
@@ -63,8 +65,14 @@ class ScoringEngine:
         
         # Trigger actions based on thresholds
         summary = f"IP {ip_address} classified as {classification} with threat score {score}/100."
+        
+        # Quarantine attacker if score meets or exceeds threshold (25 pts)
+        threshold = getattr(settings_cfg, 'QUARANTINE_THRESHOLD', 25)
+        if score >= threshold:
+            self.quarantine_manager.block_ip(ip_address, reason=f'Threat score {score} exceeded threshold ({threshold})', threat_score=score)
+
+        # Graded alerts
         if score >= 76:
-            self.quarantine_manager.block_ip(ip_address, reason=f'Threat score {score}', threat_score=score)
             self.alert_manager.send_alert(ip_address, 'CRITICAL', score, summary)
         elif score >= 51:
             self.alert_manager.send_alert(ip_address, 'ACTIVE_THREAT', score, summary)

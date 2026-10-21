@@ -656,7 +656,7 @@ GEO_API_URL = "http://ip-api.com/json/{ip}"
 GEO_CACHE_DURATION = 3600  # seconds
 
 # === Threat Scoring ===
-QUARANTINE_THRESHOLD = 76
+QUARANTINE_THRESHOLD = 25
 QUARANTINE_DURATION = 3600  # seconds (1 hour)
 SCORING_RULES_FILE = "config/scoring_rules.json"
 

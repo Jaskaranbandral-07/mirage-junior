@@ -17,7 +17,7 @@ GEO_CACHE_DURATION = 3600  # seconds
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 # === Threat Scoring ===
-QUARANTINE_THRESHOLD = 76
+QUARANTINE_THRESHOLD = int(os.getenv("QUARANTINE_THRESHOLD", 25))
 QUARANTINE_DURATION = 3600  # seconds (1 hour)
 SCORING_RULES_FILE = os.path.join(BASE_DIR, "config", "scoring_rules.json")
 

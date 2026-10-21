@@ -231,7 +231,7 @@ def settings():
     # Load current values from config
     telegram_bot_token = getattr(settings_cfg, 'TELEGRAM_BOT_TOKEN', '')
     telegram_chat_id = getattr(settings_cfg, 'TELEGRAM_CHAT_ID', '')
-    quarantine_threshold = getattr(settings_cfg, 'QUARANTINE_THRESHOLD', 76)
+    quarantine_threshold = getattr(settings_cfg, 'QUARANTINE_THRESHOLD', 25)
 
     whitelist_ips = ""
     if os.path.exists(WHITELIST_PATH):
