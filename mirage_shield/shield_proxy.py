@@ -244,13 +244,13 @@ class ShieldProxy:
     # ═══════════════════════════════════════════════════
 
     def _get_client_ip(self) -> str:
-        """Extract client IP, supporting reverse proxies / simulation headers."""
-        sim_ip = request.headers.get("X-MIRAGE-Client-IP")
-        if sim_ip:
-            return sim_ip.strip()
-        xff = request.headers.get("X-Forwarded-For")
-        if xff:
-            return xff.split(",")[0].strip()
+        """Extract real client IP across Vercel, Cloudflare, Nginx, or local setups."""
+        for header in ("X-MIRAGE-Client-IP", "X-Vercel-Forwarded-For", "CF-Connecting-IP", "X-Real-IP", "X-Forwarded-For"):
+            val = request.headers.get(header)
+            if val:
+                ip = val.split(",")[0].strip()
+                if ip:
+                    return ip
         return request.remote_addr or "127.0.0.1"
 
     def _handle_request(self, path: str) -> Response:

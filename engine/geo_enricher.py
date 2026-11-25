@@ -18,7 +18,10 @@ class GeoEnricher:
         if getattr(self, '_initialized', False):
             return
         self._initialized = True
-        self.cache_file = "database/geo_cache.json"
+        if os.getenv("VERCEL") or os.getenv("AWS_LAMBDA_FUNCTION_NAME"):
+            self.cache_file = "/tmp/geo_cache.json"
+        else:
+            self.cache_file = os.path.join("database", "geo_cache.json")
         self.cache = self._load_cache()
         self.last_req = 0
         self.api_url = GEO_API_URL

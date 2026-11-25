@@ -134,18 +134,14 @@ document.getElementById("btn-clone").addEventListener("click", async () => {
 });
 
 document.getElementById("btn-sim-attack").addEventListener("click", async () => {
-  const apis = getApiPrefix(backendInput.value.trim());
+  const baseUrl = backendInput.value.trim().replace(/\/+$/, "");
   try {
-    const res = await fetch(apis.simulate, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ scenario: "sqli" }),
-    });
-    const data = await res.json();
-    showFeedback(`⚡ ${data.ip} → ${data.decision} (Score ${data.score}/100)`);
+    // Sends a real HTTP request to /.env from your actual IP & browser
+    const res = await fetch(`${baseUrl}/.env`);
+    showFeedback(`🚨 Real probe captured (HTTP ${res.status}). Check dashboard for your real IP!`);
     refreshStats();
   } catch {
-    showFeedback("❌ Could not reach MIRAGE Shield API.", true);
+    showFeedback("❌ Could not reach MIRAGE Shield server.", true);
   }
 });
 

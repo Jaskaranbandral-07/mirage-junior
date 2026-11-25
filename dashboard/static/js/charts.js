@@ -170,10 +170,10 @@ function fetchStats() {
                 mitreChart.update('none');
             }
 
-            // Update recent quarantines table if data is present
-            if (data.recent_quarantines && data.recent_quarantines.length > 0) {
-                const qTbody = document.querySelector('#quarantine-table tbody');
-                if (qTbody) {
+            // Update recent quarantines table cleanly
+            const qTbody = document.querySelector('#quarantine-table tbody');
+            if (qTbody) {
+                if (data.recent_quarantines && data.recent_quarantines.length > 0) {
                     qTbody.innerHTML = '';
                     data.recent_quarantines.forEach(q => {
                         const row = document.createElement('tr');
@@ -184,6 +184,8 @@ function fetchStats() {
                         `;
                         qTbody.appendChild(row);
                     });
+                } else {
+                    qTbody.innerHTML = '<tr><td colspan="3" class="text-muted" style="text-align: center; padding: 10px;">No quarantined IPs</td></tr>';
                 }
             }
         })
@@ -245,45 +247,20 @@ function animateValue(elementId, endVal) {
     setTimeout(() => { el.style.transform = 'scale(1)'; }, 250);
 }
 
-// ─── LIVE ATTACK SIMULATION TRIGGER ────────────────────────────────
-function simulateLiveAttack(type = 'sqli') {
-    const btnId = 'btnSimulate' + type.charAt(0).toUpperCase() + type.slice(1);
-    const btn = document.getElementById(btnId);
-    const originalText = btn ? btn.innerHTML : '';
-    if (btn) {
-        btn.disabled = true;
-        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Triggering...';
-    }
-
-    fetch('/api/simulate-attack', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ type: type })
-    })
-    .then(res => res.json())
-    .then(data => {
-        if (data.status === 'success') {
-            const ev = data.event;
-            const qMsg = ev.quarantined ? ' • 🛡️ <strong style="color:var(--neon-red)">QUARANTINED @ ' + ev.threat_score + ' PTS</strong>' : ' • Threat Pts: +' + ev.threat_pts;
-            showCyberToast(`🚨 <strong>NEW CAPTURE:</strong> ${ev.ip} (${ev.country}) ➔ [${ev.protocol} ${ev.event_type}]${qMsg}`, ev.quarantined ? 'danger' : 'success');
-            
-            // Immediate real-time refresh (instant DOM update)
-            fetchStats();
-            fetchLiveEvents();
-        } else {
-            showCyberToast(`❌ Error: ${data.message}`, 'danger');
-        }
-    })
-    .catch(err => {
-        console.error("Simulation error:", err);
-        showCyberToast(`❌ Failed to send simulated probe`, 'danger');
-    })
-    .finally(() => {
-        if (btn) {
-            btn.disabled = false;
-            btn.innerHTML = originalText;
-        }
-    });
+function clearAllTelemetry() {
+    if (!confirm('Clear all captured telemetry and reset counters to zero?')) return;
+    fetch('/api/clear-data', { method: 'POST' })
+        .then(res => res.json())
+        .then(data => {
+            if (data.status === 'success') {
+                showCyberToast('🧹 ' + data.message, 'success');
+                fetchStats();
+                fetchLiveEvents();
+            } else {
+                showCyberToast('❌ ' + (data.message || 'Failed to clear'), 'danger');
+            }
+        })
+        .catch(() => showCyberToast('❌ Failed to clear database', 'danger'));
 }
 
 function showCyberToast(htmlMsg, type = 'success') {

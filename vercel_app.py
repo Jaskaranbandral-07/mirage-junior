@@ -1,8 +1,8 @@
 """
-Vercel Deployment Entry Point for MIRAGE Junior Dashboard
-Since Vercel is a serverless HTTP platform, this file launches the 
-Flask Analytics Dashboard (with demo telemetry) for the prototype showcase.
-The SSH, HTTP honeypot ports, and FTP traps run on dedicated hosts/ports.
+Vercel Deployment Entry Point for MIRAGE Junior + MIRAGE Shield
+Runs live HTTP threat capture, GeoIP enrichment, honeytoken traps,
+MITRE ATT&CK tagging, and the real-time SOC analytics dashboard
+without any pre-seeded fake data.
 """
 import os
 import sys
@@ -11,34 +11,13 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 os.environ.setdefault("VERCEL", "1")
 
-# Seed the database for the Vercel prototype if it's empty
+# Initialize clean empty SQLite schema (uses /tmp on Vercel)
 try:
-    import config.settings as settings_cfg
     from database.db_setup import init_db
-    from dashboard.demo_data import seed_data
-    import sqlite3
-    
-    # Initialize the database (automatically uses /tmp on Vercel)
     init_db()
-    
-    db_path = settings_cfg.DATABASE_PATH
-    conn = sqlite3.connect(db_path)
-    count = conn.execute("SELECT COUNT(*) FROM events").fetchone()[0]
-    conn.close()
-    
-    if count == 0:
-        seed_data()
-
-    # Pre-populate MIRAGE Shield demo state on Vercel showcase
-    from mirage_shield.shield_proxy import get_shield_instance
-    shield = get_shield_instance()
-    if shield.stats["total_requests"] == 0:
-        for scenario in ("legitimate", "recon_env", "cred_harvest", "sqli"):
-            shield.run_simulation(scenario)
 except Exception as e:
-    print(f"Error initializing demo database for Vercel: {e}")
+    print(f"Error initializing database: {e}")
 
-# Import and expose the Flask app for Vercel's WSGI server
+# Expose the Flask app for Vercel's WSGI server
 from dashboard.app import create_app
 app = create_app()
-

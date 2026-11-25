@@ -3,20 +3,20 @@
 {% block header_title %}Overview Dashboard{% endblock %}
 
 {% block content %}
-<!-- Live Sensor & Attack Simulator Action Bar -->
+<!-- Live Sensor & Real Trap Controls Bar -->
 <div class="live-action-bar">
     <div class="live-status-pill">
-        <span class="pulse"></span> <strong>Sensors Active:</strong> SSH (:2222), HTTP (:8080), FTP (:2121), Shield (:8443), Bait (.env)
+        <span class="pulse"></span> <strong>Live Real-Capture Mode:</strong> SSH (:2222), HTTP (:8080), FTP (:2121), Shield (:8443), Web Traps (/.env, /wp-login.php)
     </div>
     <div class="live-action-buttons">
-        <button onclick="simulateLiveAttack('sqli')" class="btn btn-warning" id="btnSimulateSqli" title="Simulate SQL Injection on Port 8080">
-            <i class="fa-solid fa-bolt"></i> Simulate SQLi
-        </button>
-        <button onclick="simulateLiveAttack('ssh')" class="btn btn-primary" id="btnSimulateSsh" title="Simulate SSH Dictionary Brute Force on Port 2222">
-            <i class="fa-solid fa-terminal"></i> Simulate SSH
-        </button>
-        <button onclick="simulateLiveAttack('honeytoken')" class="btn btn-danger" id="btnSimulateHoneytoken" title="Simulate Honeytoken .env Tripwire Hit">
-            <i class="fa-solid fa-biohazard"></i> Tripwire Bait
+        <a href="/.env" target="_blank" class="btn btn-warning" style="text-decoration: none;" title="Open live /.env trap to capture your real IP & headers">
+            <i class="fa-solid fa-biohazard"></i> Test Live /.env Trap
+        </a>
+        <a href="/wp-login.php" target="_blank" class="btn btn-primary" style="text-decoration: none;" title="Open live fake WordPress login trap">
+            <i class="fa-solid fa-key"></i> Test Fake Login Trap
+        </a>
+        <button onclick="clearAllTelemetry()" class="btn btn-danger" title="Purge old telemetry records from database">
+            <i class="fa-solid fa-trash-can"></i> Purge Data
         </button>
     </div>
 </div>

@@ -168,10 +168,9 @@
                 </button>
             </div>
             <div style="display:flex; gap:8px; flex-wrap:wrap;">
-                <button class="btn btn-green" onclick="simulateScenario('legitimate')"><i class="fa-solid fa-user-check"></i> Normal User</button>
-                <button class="btn btn-yellow" onclick="simulateScenario('recon_env')"><i class="fa-solid fa-mask"></i> Probe /.env</button>
-                <button class="btn btn-purple" onclick="simulateScenario('cred_harvest')"><i class="fa-solid fa-key"></i> Trap Creds</button>
-                <button class="btn btn-red" onclick="simulateScenario('sqli')"><i class="fa-solid fa-bolt"></i> SQLMap Attack</button>
+                <a href="/.env" target="_blank" class="btn btn-yellow"><i class="fa-solid fa-mask"></i> Test /.env Trap</a>
+                <a href="/wp-login.php" target="_blank" class="btn btn-purple"><i class="fa-solid fa-key"></i> Test Login Trap</a>
+                <a href="/?id=1%27%20OR%20%271%27%3D%271--" target="_blank" class="btn btn-red"><i class="fa-solid fa-bolt"></i> Send SQLi Probe</a>
             </div>
         </div>
         <div id="sim-toast"></div>

@@ -17,8 +17,19 @@ try:
 except Exception:
     SCORING_RULES = {}
 
+def get_client_ip():
+    """Extract the real external client IP even behind Vercel/Nginx/Cloudflare."""
+    for header in ("X-Vercel-Forwarded-For", "CF-Connecting-IP", "X-Real-IP", "X-Forwarded-For"):
+        val = request.headers.get(header)
+        if val:
+            ip = val.split(",")[0].strip()
+            if ip:
+                return ip
+    return request.remote_addr or "127.0.0.1"
+
+
 def log_interaction(event_type, details=None, mitre_id=None):
-    ip = request.remote_addr
+    ip = get_client_ip()
     threat_pts = SCORING_RULES.get(event_type, 0)
     db.log_event(ip, HTTP_PORT, 'HTTP', event_type, details, threat_pts, mitre_id)
     scorer.calculate_threat_score(ip)
@@ -37,8 +48,9 @@ def index():
 
 @app.route('/admin', methods=['GET', 'POST'])
 def admin():
+    ip = get_client_ip()
     if request.method == 'POST':
-        db.log_credential(request.remote_addr, 'HTTP', request.form.get('username'), request.form.get('password'))
+        db.log_credential(ip, 'HTTP', request.form.get('username'), request.form.get('password'))
         log_interaction('login_attempt', {'path': '/admin', 'method': 'POST'}, 'T1110')
         return "Invalid credentials, please try again", 401
     log_interaction('connection', {'path': '/admin'}, 'T1046')
@@ -46,8 +58,9 @@ def admin():
 
 @app.route('/wp-login.php', methods=['GET', 'POST'])
 def wp_login():
+    ip = get_client_ip()
     if request.method == 'POST':
-        db.log_credential(request.remote_addr, 'HTTP', request.form.get('log'), request.form.get('pwd'))
+        db.log_credential(ip, 'HTTP', request.form.get('log'), request.form.get('pwd'))
         log_interaction('login_attempt', {'path': '/wp-login.php', 'method': 'POST'}, 'T1110')
         return "Invalid credentials, please try again", 401
     log_interaction('connection', {'path': '/wp-login.php'}, 'T1046')
@@ -55,11 +68,12 @@ def wp_login():
 
 @app.route('/phpmyadmin/', methods=['GET', 'POST'])
 def phpmyadmin():
+    ip = get_client_ip()
     if request.method == 'POST':
         user = request.form.get('pma_username') or request.form.get('username')
         pwd = request.form.get('pma_password') or request.form.get('password')
         if user or pwd:
-            db.log_credential(request.remote_addr, 'HTTP', user, pwd)
+            db.log_credential(ip, 'HTTP', user, pwd)
         log_interaction('login_attempt', {'path': '/phpmyadmin/', 'method': 'POST'}, 'T1110')
         return "Invalid credentials, please try again", 401
     log_interaction('connection', {'path': '/phpmyadmin/'}, 'T1046')
@@ -109,7 +123,7 @@ def robots():
 @app.route('/.env')
 def env_file():
     log_interaction('honeytoken_trigger', {'path': '/.env'}, 'T1552.001')
-    db.log_honeytoken_trigger('.env', 'http_endpoint', request.remote_addr)
+    db.log_honeytoken_trigger('.env', 'http_endpoint', get_client_ip())
     return render_template('env_file.txt'), 200, {'Content-Type': 'text/plain'}
 
 def run_http_decoy():

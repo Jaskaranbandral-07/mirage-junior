@@ -3,9 +3,12 @@
 *.env
 config/ssh_host_key
 
-# Database
+# Database & runtime caches (never ship old/fake data to GitHub)
 *.db
 *.sqlite3
+database/mirage_junior.db
+database/geo_cache.json
+mirage_shield/cloned_sites/
 
 # Python bytecode
 __pycache__/

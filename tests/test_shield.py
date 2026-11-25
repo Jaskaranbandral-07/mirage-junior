@@ -228,3 +228,47 @@ def test_main_dashboard_shield_integration(isolated_shield):
     assert proxy_preflight.headers.get("Access-Control-Allow-Origin") == "*"
 
 
+def test_real_web_trap_capture_and_purge(isolated_shield):
+    """Verify real HTTP probes on the dashboard app capture real IPs, creds, and purge cleanly."""
+    from dashboard.app import create_app
+    from mirage_shield import shield_proxy
+
+    shield, db = isolated_shield
+    shield_proxy._shared_shield_instance = shield
+
+    app = create_app()
+    client = app.test_client()
+
+    # Ensure clean start via /api/clear-data
+    clear_res = client.post("/api/clear-data")
+    assert clear_res.status_code == 200
+    assert clear_res.get_json()["status"] == "success"
+
+    # Real external IP probe via X-Forwarded-For on /.env
+    env_res = client.get("/.env", headers={
+        "X-Forwarded-For": "198.51.100.88",
+        "User-Agent": "curl/8.4.0",
+    })
+    assert env_res.status_code == 200
+    assert b"AWS_ACCESS_KEY_ID" in env_res.data
+
+    # Real credential capture on /wp-login.php
+    wp_res = client.post("/wp-login.php", data={
+        "log": "real_attacker",
+        "pwd": "RealCapturedPassword!99",
+    }, headers={
+        "X-Forwarded-For": "198.51.100.88",
+        "User-Agent": "Mozilla/5.0 Chrome/122.0.0.0",
+    })
+    assert wp_res.status_code in (200, 401, 403)
+
+    events = db.get_events_by_ip("198.51.100.88")
+    assert len(events) >= 1
+
+    # Verify purge removes all captured telemetry cleanly
+    purge = client.post("/api/clear-data")
+    assert purge.status_code == 200
+    assert db.get_stats()["total_hits"] == 0
+
+
+

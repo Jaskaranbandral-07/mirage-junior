@@ -3,10 +3,11 @@ MIRAGE Junior — Dashboard Routes
 All route handlers for the analytics dashboard.
 """
 
-from flask import Blueprint, render_template, jsonify, request, redirect, url_for, flash
+from flask import Blueprint, render_template, jsonify, request, redirect, url_for, flash, Response
 import sqlite3
 import json
 import os
+import time
 import config.settings as settings_cfg
 from database.db_manager import DatabaseManager
 from engine.scoring_engine import ScoringEngine
@@ -16,6 +17,26 @@ dashboard_bp = Blueprint('dashboard', __name__)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 WHITELIST_PATH = os.path.join(BASE_DIR, 'config', 'whitelist.json')
 
+TRAP_ENDPOINTS = {
+    '/.env', '/.git/config', '/.git', '/wp-login.php', '/wp-admin',
+    '/phpmyadmin', '/phpmyadmin/', '/admin/login', '/api/config', '/api/keys',
+    '/backup.sql', '/database.sql', '/dump.sql', '/debug', '/phpinfo.php',
+    '/robots.txt', '/server-status'
+}
+
+DASHBOARD_UI_ROUTES = {'/', '/attacks', '/quarantine', '/honeytokens', '/shield', '/settings'}
+
+
+def get_real_client_ip():
+    """Extract the real visitor/attacker IP across Vercel, Nginx, or Cloudflare."""
+    for header in ('X-MIRAGE-Client-IP', 'X-Vercel-Forwarded-For', 'CF-Connecting-IP', 'X-Real-IP', 'X-Forwarded-For'):
+        val = request.headers.get(header)
+        if val:
+            ip = val.split(',')[0].strip()
+            if ip:
+                return ip
+    return request.remote_addr or '127.0.0.1'
+
 
 def get_db():
     """Get a database connection with Row factory."""
@@ -23,6 +44,83 @@ def get_db():
     conn = sqlite3.connect(db_path)
     conn.row_factory = sqlite3.Row
     return conn
+
+
+def _record_real_http_attack(ip, path, method, score, decision, breakdown, user_agent, form_data=None):
+    """Persist real captured HTTP attack/probe telemetry into SQLite and ScoringEngine."""
+    from mirage_shield.shield_proxy import get_shield_instance
+    shield = get_shield_instance()
+    shield.stats['total_requests'] += 1
+    if decision == 'BLOCK':
+        shield.stats['blocked'] += 1
+    elif decision == 'REDIRECT':
+        shield.stats['redirected'] += 1
+    else:
+        shield.stats['allowed'] += 1
+
+    # Sync non-benign detections into persistent MIRAGE database
+    if decision in ('REDIRECT', 'BLOCK'):
+        shield._sync_detection_to_db(ip, path, method, score, decision, breakdown, user_agent)
+
+    if form_data:
+        shield.stats['credentials_captured'] += 1
+        shield.injector.capture_form_submission(ip, path, form_data)
+
+
+@dashboard_bp.before_app_request
+def capture_real_web_threats():
+    """
+    Real-time threat inspection on every live request hitting the web app.
+    Ignores static assets and dashboard AJAX polling; captures real probes,
+    SQLi, XSS, path traversal, and scanner traffic automatically.
+    """
+    path = request.path or '/'
+    if path.startswith('/static/') or path.startswith('/api/') or path == '/favicon.ico':
+        return None
+    if request.method == 'OPTIONS':
+        return None
+
+    norm_path = '/' + path.strip('/').lower() if path.strip('/') else '/'
+    # Explicit trap routes handle their own logging + trap response
+    if norm_path in TRAP_ENDPOINTS or path.lower() in TRAP_ENDPOINTS:
+        return None
+
+    from mirage_shield.shield_proxy import get_shield_instance
+    shield = get_shield_instance()
+    ip = get_real_client_ip()
+    user_agent = request.headers.get('User-Agent', '')
+    query_string = request.query_string.decode('utf-8', errors='ignore')
+    body = request.get_data(as_text=True) if request.method in ('POST', 'PUT', 'PATCH') else ''
+
+    # Skip scanning normal clean dashboard navigation unless it carries an attack payload or bad UA
+    if norm_path in DASHBOARD_UI_ROUTES and not query_string and not body:
+        ua_score = shield.analyzer._score_user_agent(user_agent)
+        if ua_score < 20:
+            shield.stats['total_requests'] += 1
+            shield.stats['allowed'] += 1
+            return None
+
+    decision, score, breakdown = shield.analyzer.analyze(
+        ip=ip,
+        path=path,
+        method=request.method,
+        user_agent=user_agent,
+        headers=dict(request.headers),
+        query_string=query_string,
+        body=body,
+    )
+
+    if decision in ('REDIRECT', 'BLOCK'):
+        _record_real_http_attack(ip, path, request.method, score, decision, breakdown, user_agent)
+        # Do not lock out clean dashboard UI pages themselves, only block attack requests or unknown trap paths
+        if decision == 'BLOCK' and norm_path not in DASHBOARD_UI_ROUTES:
+            return shield._serve_block_page(ip, score)
+        if norm_path not in DASHBOARD_UI_ROUTES and not norm_path.startswith('/attacker/'):
+            return shield._serve_honeypot(ip, path, request.method)
+    else:
+        shield.stats['total_requests'] += 1
+        shield.stats['allowed'] += 1
+    return None
 
 
 
@@ -516,7 +614,6 @@ def api_shield_unblock(ip):
 @dashboard_bp.route('/api/shield/preview')
 def api_shield_preview():
     """Safely preview the cloned deception site HTML."""
-    from flask import Response
     from mirage_shield.shield_proxy import get_shield_instance
     shield = get_shield_instance()
     req_target = (request.args.get('target') or '').strip()
@@ -529,5 +626,138 @@ def api_shield_preview():
         with open(index_path, 'r', encoding='utf-8', errors='ignore') as f:
             return Response(f.read(), status=200, content_type='text/html')
     return Response('Clone preview unavailable', status=404)
+
+
+@dashboard_bp.route('/api/clear-data', methods=['POST'])
+def api_clear_data():
+    """Purge all telemetry records from database and reset Shield counters."""
+    from mirage_shield.shield_proxy import get_shield_instance
+    try:
+        db = get_db()
+        for table in ('events', 'attackers', 'credentials', 'quarantine_log', 'honeytoken_triggers'):
+            db.execute(f"DELETE FROM {table}")
+        db.commit()
+        db.close()
+
+        shield = get_shield_instance()
+        shield.stats = {k: 0 for k in shield.stats}
+        shield.analyzer.request_log.clear()
+        shield.analyzer.ip_suspicion.clear()
+        shield.analyzer.ip_paths.clear()
+        shield.analyzer.trapped_ips.clear()
+        shield.analyzer.blocked_ips.clear()
+        shield.analyzer.analysis_history.clear()
+        shield.injector.injected_credentials.clear()
+        shield.injector.beacon_logs.clear()
+
+        return jsonify({'status': 'success', 'message': 'All old/fake data cleared. Capturing real traffic only.'})
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+
+# ─── LIVE REAL-CAPTURE HONEYPOT TRAP ROUTES ─────────────────────────────
+
+def _handle_live_trap(trap_path):
+    """Analyze, log, and serve a live honeypot trap directly on the web app."""
+    from mirage_shield.shield_proxy import get_shield_instance
+    shield = get_shield_instance()
+    ip = get_real_client_ip()
+    user_agent = request.headers.get('User-Agent', '')
+    query_string = request.query_string.decode('utf-8', errors='ignore')
+    body = request.get_data(as_text=True) if request.method == 'POST' else ''
+
+    decision, score, breakdown = shield.analyzer.analyze(
+        ip=ip,
+        path=trap_path,
+        method=request.method,
+        user_agent=user_agent,
+        headers=dict(request.headers),
+        query_string=query_string,
+        body=body,
+    )
+
+    shield.stats['total_requests'] += 1
+    if decision == 'BLOCK':
+        shield.stats['blocked'] += 1
+    else:
+        shield.stats['redirected'] += 1
+    shield.stats['honeytokens_triggered'] += 1
+
+    post_data = None
+    if request.method == 'POST':
+        post_data = request.form.to_dict() or request.get_json(silent=True) or None
+        if post_data:
+            shield.stats['credentials_captured'] += 1
+
+    content, content_type, status = shield.injector.serve_trap(
+        trap_path, ip, request.method, post_data
+    )
+    if decision == 'BLOCK':
+        shield._sync_detection_to_db(ip, trap_path, request.method, score, decision, breakdown, user_agent)
+        return shield._serve_block_page(ip, score)
+    if content is None:
+        return Response('Not Found', status=404)
+    return Response(content, status=status, content_type=content_type)
+
+
+@dashboard_bp.route('/.env')
+def live_trap_env():
+    return _handle_live_trap('/.env')
+
+
+@dashboard_bp.route('/.git/config')
+@dashboard_bp.route('/.git')
+def live_trap_git():
+    return _handle_live_trap('/.git/config')
+
+
+@dashboard_bp.route('/wp-login.php', methods=['GET', 'POST'])
+@dashboard_bp.route('/wp-admin', methods=['GET', 'POST'])
+def live_trap_wp():
+    return _handle_live_trap('/wp-login.php')
+
+
+@dashboard_bp.route('/phpmyadmin/', methods=['GET', 'POST'])
+@dashboard_bp.route('/phpmyadmin', methods=['GET', 'POST'])
+def live_trap_pma():
+    return _handle_live_trap('/phpmyadmin')
+
+
+@dashboard_bp.route('/admin/login', methods=['GET', 'POST'])
+def live_trap_admin():
+    return _handle_live_trap('/admin/login')
+
+
+@dashboard_bp.route('/api/config')
+def live_trap_api_config():
+    return _handle_live_trap('/api/config')
+
+
+@dashboard_bp.route('/api/keys')
+def live_trap_api_keys():
+    return _handle_live_trap('/api/keys')
+
+
+@dashboard_bp.route('/backup.sql')
+@dashboard_bp.route('/database.sql')
+@dashboard_bp.route('/dump.sql')
+def live_trap_sql():
+    return _handle_live_trap('/backup.sql')
+
+
+@dashboard_bp.route('/debug')
+def live_trap_debug():
+    return _handle_live_trap('/debug')
+
+
+@dashboard_bp.route('/phpinfo.php')
+def live_trap_phpinfo():
+    return _handle_live_trap('/phpinfo.php')
+
+
+@dashboard_bp.route('/robots.txt')
+def live_trap_robots():
+    return _handle_live_trap('/robots.txt')
+
 
 

@@ -148,9 +148,6 @@ def start_mirage_shield():
         time.sleep(1.5)
         shield = get_shield_instance(target_url=SHIELD_TARGET_URL)
         shield.shield_port = SHIELD_PORT
-        if "--demo" in sys.argv:
-            for scenario in ("legitimate", "recon_env", "cred_harvest", "sqli"):
-                shield.run_simulation(scenario)
         logger.info(f"🛡️  Starting MIRAGE Shield on port {SHIELD_PORT} (protecting {SHIELD_TARGET_URL})...")
         shield.run(port=SHIELD_PORT)
     except Exception as e:
@@ -165,6 +162,20 @@ if __name__ == "__main__":
 
     # Initialize database
     init_database()
+
+    # Clear previous/demo data if --clean flag is passed
+    if "--clean" in sys.argv:
+        try:
+            from database.db_manager import DatabaseManager
+            db_clean = DatabaseManager()
+            conn = db_clean.get_connection()
+            for tbl in ("events", "attackers", "credentials", "quarantine_log", "honeytoken_triggers"):
+                conn.execute(f"DELETE FROM {tbl}")
+            conn.commit()
+            conn.close()
+            logger.info("🧹 Cleared all previous telemetry rows for clean live capture.")
+        except Exception as e:
+            logger.error(f"Failed cleaning database: {e}")
 
     # Initialize shared engine singletons
     init_engine()

@@ -32,24 +32,24 @@
         </button>
     </div>
 
-    <!-- Current Target Status & Interactive Test Buttons -->
+    <!-- Current Target Status & Live Real-Capture Probes -->
     <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; padding-top: 12px; border-top: 1px solid var(--border);">
         <div style="font-size: 0.85rem; color: var(--text-muted);">
             Active Origin: <strong id="shield-target-label" style="color: var(--neon-green);">{{ shield_stats.target_url }}</strong>
             &nbsp;|&nbsp; Clone Mode: <span class="tag" id="shield-mode-label">{{ shield_stats.clone_status.mode }}</span>
         </div>
         <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-            <button onclick="simulateShieldTraffic('legitimate')" class="btn" style="background: rgba(0,255,65,0.14); color: var(--neon-green); border: 1px solid rgba(0,255,65,0.35);">
-                <i class="fa-solid fa-user-check"></i> Test Normal User
-            </button>
-            <button onclick="simulateShieldTraffic('recon_env')" class="btn btn-warning">
-                <i class="fa-solid fa-mask"></i> Test /.env Probe
-            </button>
-            <button onclick="simulateShieldTraffic('cred_harvest')" class="btn" style="background: rgba(188,140,255,0.16); color: var(--neon-purple); border: 1px solid rgba(188,140,255,0.4);">
-                <i class="fa-solid fa-key"></i> Test Cred Trap
-            </button>
-            <button onclick="simulateShieldTraffic('sqli')" class="btn btn-danger">
-                <i class="fa-solid fa-bolt"></i> Test SQLMap Attack
+            <a href="/.env" target="_blank" class="btn btn-warning" style="text-decoration: none;">
+                <i class="fa-solid fa-mask"></i> Hit /.env Trap (Real IP)
+            </a>
+            <a href="/wp-login.php" target="_blank" class="btn" style="text-decoration: none; background: rgba(188,140,255,0.16); color: var(--neon-purple); border: 1px solid rgba(188,140,255,0.4);">
+                <i class="fa-solid fa-key"></i> Hit Login Trap (Real IP)
+            </a>
+            <a href="/?id=1%27%20OR%20%271%27%3D%271--" target="_blank" class="btn btn-danger" style="text-decoration: none;">
+                <i class="fa-solid fa-bolt"></i> Send SQLi Probe (Real IP)
+            </a>
+            <button onclick="purgeShieldTelemetry()" class="btn" style="background: rgba(255,68,68,0.12); color: var(--neon-red); border: 1px solid rgba(255,68,68,0.35);">
+                <i class="fa-solid fa-trash-can"></i> Purge Data
             </button>
         </div>
     </div>
@@ -197,17 +197,14 @@ function cloneTargetSite() {
     });
 }
 
-function simulateShieldTraffic(scenario) {
-    fetch('/api/shield/simulate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ scenario })
-    })
-    .then(r => r.json())
-    .then(res => {
-        showFeedback(`⚡ ${res.ip} → ${res.decision} (Risk Score: ${res.score}/100) — ${res.description}`);
-        refreshShieldData();
-    });
+function purgeShieldTelemetry() {
+    if (!confirm('Clear all captured telemetry and reset Shield counters?')) return;
+    fetch('/api/clear-data', { method: 'POST' })
+        .then(r => r.json())
+        .then(res => {
+            showFeedback('🧹 ' + (res.message || 'Telemetry cleared.'));
+            refreshShieldData();
+        });
 }
 
 function unblockShieldIP(ip) {
@@ -244,6 +241,8 @@ function refreshShieldData() {
                     const cls = r.decision === 'BLOCK' ? 'badge-critical' : (r.decision === 'REDIRECT' ? 'badge-suspicious' : 'badge-scanner');
                     return `<tr><td>${t}</td><td><a href="/attacker/${r.ip}" style="color:var(--neon-cyan);">${r.ip}</a></td><td><code>${r.path}</code></td><td><strong>${r.score}</strong></td><td><span class="badge ${cls}">${r.decision}</span></td></tr>`;
                 }).join('');
+            } else {
+                recentTbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color: var(--text-muted);">No Shield traffic recorded yet. Waiting for real traffic...</td></tr>';
             }
 
             const credsTbody = document.getElementById('sh-creds-table');
@@ -252,6 +251,8 @@ function refreshShieldData() {
                 credsTbody.innerHTML = creds.slice(0, 10).map(c =>
                     `<tr><td>${c.timestamp}</td><td><code>${c.ip}</code></td><td style="color:var(--neon-purple);">${c.username}</td><td style="color:var(--neon-red);">${c.password}</td></tr>`
                 ).join('');
+            } else {
+                credsTbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color: var(--text-muted);">No credentials captured in clone yet.</td></tr>';
             }
         });
 }
