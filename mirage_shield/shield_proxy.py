@@ -352,10 +352,10 @@ class ShieldProxy:
                 )
                 return Response(content, status=status, content_type=content_type)
 
-        # Resolve cloned HTML page (subpage or index fallback)
-        page_file = self.cloner.resolve_page_path(path)
+        # Resolve cloned HTML page (on-demand subpage clone or index fallback)
+        page_file = self.cloner.get_or_clone_page(path)
         if not page_file:
-            self.cloner.clone(max_pages=3)
+            self.cloner.clone(max_pages=2)
             page_file = self.cloner.resolve_page_path(path)
 
         if page_file and os.path.exists(page_file):

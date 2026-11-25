@@ -124,6 +124,19 @@ def capture_real_web_threats():
         if norm_path not in DASHBOARD_UI_ROUTES and not norm_path.startswith('/attacker/'):
             return shield._serve_honeypot(ip, path, request.method)
     else:
+        # If user clicked a relative link inside /portal/<domain> (e.g. via JS navigation),
+        # keep them seamlessly inside the cloned subpage instead of 404ing
+        referer = request.headers.get('Referer', '')
+        if '/portal/' in referer and norm_path not in DASHBOARD_UI_ROUTES and not norm_path.startswith('/attacker/'):
+            try:
+                from urllib.parse import urlparse
+                ref_path = urlparse(referer).path
+                parts = [p for p in ref_path.split('/') if p]
+                if len(parts) >= 2 and parts[0] == 'portal':
+                    domain = parts[1]
+                    return shield_clean_portal(domain, path.lstrip('/'))
+            except Exception:
+                pass
         shield.stats['total_requests'] += 1
         shield.stats['allowed'] += 1
     return None
@@ -620,20 +633,47 @@ def api_shield_unblock(ip):
     return jsonify({'success': ok, 'ip': ip})
 
 
-@dashboard_bp.route('/portal/<path:domain>')
-def shield_clean_portal(domain):
-    """Serve the pixel-accurate cloned website on a clean domain path."""
+@dashboard_bp.route('/portal/<domain>', defaults={'subpath': ''}, methods=['GET', 'POST', 'PUT', 'DELETE'])
+@dashboard_bp.route('/portal/<domain>/<path:subpath>', methods=['GET', 'POST', 'PUT', 'DELETE'])
+def shield_clean_portal(domain, subpath=''):
+    """Serve cloned target pages and subpages seamlessly without dead 404s."""
     from mirage_shield.shield_proxy import get_shield_instance
     shield = get_shield_instance()
-    clean_domain = domain.split('/')[0].strip()
+    clean_domain = domain.strip()
+    ip = get_real_client_ip()
+    rel_subpath = ('/' + subpath.lstrip('/')) if subpath else '/'
+
+    # Trap sensitive paths or POST form submissions inside the cloned portal
+    if shield.injector.is_trap_endpoint(rel_subpath):
+        return _handle_live_trap(rel_subpath)
+
+    if request.method == 'POST':
+        form_data = request.form.to_dict() or request.get_json(silent=True) or {}
+        if form_data:
+            shield.stats['credentials_captured'] += 1
+            content, content_type, status = shield.injector.capture_form_submission(
+                ip, f"/portal/{clean_domain}{rel_subpath}", form_data
+            )
+            return Response(content, status=status, content_type=content_type)
+
     target = f"https://{clean_domain}" if not clean_domain.startswith(('127.0.0.1', 'localhost')) else f"http://{clean_domain}"
-    if shield.cloner.domain != clean_domain or not os.path.exists(shield.cloner.get_index_path()):
-        shield.switch_and_clone(target, max_pages=1)
-    index_path = shield.cloner.get_index_path()
-    if os.path.exists(index_path):
-        with open(index_path, 'r', encoding='utf-8', errors='ignore') as f:
+    if shield.cloner.domain != clean_domain:
+        shield.target_url = target.rstrip('/')
+        shield.cloner.set_target(target)
+
+    # Preserve query string when cloning search/tutorial URLs on-demand
+    qs = request.query_string.decode('utf-8', errors='ignore')
+    fetch_path = f"{rel_subpath}?{qs}" if qs and rel_subpath != '/' else rel_subpath
+    page_file = shield.cloner.get_or_clone_page(fetch_path)
+    if not page_file or not os.path.exists(page_file):
+        shield.cloner.clone(max_pages=1)
+        page_file = shield.cloner.resolve_page_path(rel_subpath)
+
+    if page_file and os.path.exists(page_file):
+        with open(page_file, 'r', encoding='utf-8', errors='ignore') as f:
             html = f.read()
-        deceptive = shield.injector.inject_deception_layer(html, get_real_client_ip())
+        prefixed = shield.cloner.apply_portal_prefix(html, f"/portal/{clean_domain}")
+        deceptive = shield.injector.inject_deception_layer(prefixed, ip)
         return Response(deceptive, status=200, content_type='text/html')
     return Response('Clone preview unavailable', status=404)
 

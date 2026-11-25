@@ -279,6 +279,8 @@ class SiteCloner:
     def _page_path_to_filepath(self, rel_path: str) -> str:
         """Convert URL path to a safe filename under clone_path."""
         safe = re.sub(r"[^\w\-]", "_", rel_path.strip("/") or "index")
+        if len(safe) > 120:
+            safe = safe[:80] + "_" + hashlib.md5(safe.encode()).hexdigest()[:12]
         if not safe.endswith(".html"):
             safe += ".html"
         return os.path.join(self.clone_path, safe)
@@ -293,6 +295,47 @@ class SiteCloner:
         if os.path.exists(index_path):
             return index_path
         return ""
+
+    def get_or_clone_page(self, url_path: str) -> str:
+        """
+        Return the cached cloned HTML file for url_path, or clone that specific
+        subpage on-demand from the target origin so clicked links never 404.
+        """
+        clean = "/" + url_path.strip("/") if url_path and url_path.strip("/") else "/"
+        rel = clean.strip("/") or "index"
+        candidate = self._page_path_to_filepath(rel)
+        if os.path.exists(candidate):
+            return candidate
+
+        os.makedirs(self.clone_path, exist_ok=True)
+        os.makedirs(os.path.join(self.clone_path, "assets"), exist_ok=True)
+
+        if requests and BeautifulSoup:
+            target_page_url = self.target_url if clean == "/" else f"{self.target_url}{clean}"
+            html, _, _ = self._clone_page(target_page_url)
+            if html and os.path.exists(candidate):
+                return candidate
+
+        return self.resolve_page_path(clean)
+
+    def apply_portal_prefix(self, html: str, prefix: str) -> str:
+        """Rewrite internal <a> links and <form> actions under a clean /portal/<domain> prefix."""
+        clean_prefix = "/" + prefix.strip("/")
+        if not BeautifulSoup or not html:
+            return html
+
+        soup = BeautifulSoup(html, "html.parser")
+        for tag in soup.find_all("a", href=True):
+            href = tag["href"].strip()
+            if href.startswith("/") and not href.startswith("//") and not href.startswith(clean_prefix):
+                tag["href"] = clean_prefix if href == "/" else f"{clean_prefix}{href}"
+
+        for form in soup.find_all("form"):
+            action = (form.get("action") or "/login").strip()
+            if action.startswith("/") and not action.startswith("//") and not action.startswith(clean_prefix):
+                form["action"] = f"{clean_prefix}{action}"
+
+        return str(soup)
 
     def resolve_asset_path(self, filename: str) -> str:
         """Resolve a cloned asset filename safely within the clone assets directory."""

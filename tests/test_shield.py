@@ -310,6 +310,47 @@ def test_site_cloner_preserves_assets_and_traps_forms(tmp_path):
     assert 'href="/tutorials/python"' in cloned
     assert 'action="/auth/login"' in cloned
 
+    # Portal prefixing keeps links/forms inside /portal/<domain> without touching external asset URLs
+    prefixed = cloner.apply_portal_prefix(cloned, "/portal/www.example.com")
+    assert 'href="/portal/www.example.com/tutorials/python"' in prefixed
+    assert 'action="/portal/www.example.com/auth/login"' in prefixed
+    assert 'https://www.example.com/assets/main.css' in prefixed
+
+
+def test_portal_subpage_routing_no_404(isolated_shield, tmp_path):
+    """Clicking any cloned subpage or via Referer inside /portal/<domain> never 404s."""
+    from unittest.mock import patch, MagicMock
+    from dashboard.app import create_app
+    from mirage_shield import shield_proxy
+
+    shield, _ = isolated_shield
+    shield_proxy._shared_shield_instance = shield
+    shield.cloner = SiteCloner("https://www.example.com", clone_dir=str(tmp_path / "portal_clones"))
+
+    subpage_html = "<html><body><h1>Python Programming</h1><a href='/loops'>Loops</a></body></html>"
+    mock_resp = MagicMock()
+    mock_resp.text = subpage_html
+    mock_resp.url = "https://www.example.com/python-programming"
+    mock_resp.headers = {"Content-Type": "text/html"}
+    mock_resp.raise_for_status = MagicMock()
+
+    app = create_app()
+    client = app.test_client()
+
+    with patch.object(shield.cloner.session, "get", return_value=mock_resp):
+        res = client.get("/portal/www.example.com/python-programming")
+        assert res.status_code == 200
+        assert b"Python Programming" in res.data
+        assert b"/portal/www.example.com/loops" in res.data
+
+        # Simulate JS-driven navigation to /loops with Referer from /portal/www.example.com
+        res_ref = client.get("/loops", headers={
+            "Referer": "https://mirage-junior.vercel.app/portal/www.example.com/python-programming"
+        })
+        assert res_ref.status_code == 200
+        assert b"Python Programming" in res_ref.data
+
+
 
 
 
