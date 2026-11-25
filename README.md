@@ -145,7 +145,20 @@ Every recorded event is automatically mapped to enterprise MITRE techniques:
 - **Attacker Profile & Timeline Replay:** Deep-dive into individual attacker IPs with chronological narrative timeline replay.
 - **Quarantine Manager:** Monitor currently jailed IPs, view historical auto-expiries, and unblock with confirmation.
 - **Honeytokens Hub:** Audit trail of every bait interaction and process attribution.
+- **MIRAGE Shield Tab (`/shield`):** Manage the live website-cloning reverse proxy, test attacks in 1 click, and preview the decoy clone.
 - **Settings Panel:** Configure Telegram Bot alerts, quarantine sensitivity, and CIDR whitelist.
+
+---
+
+### 6. 🛡️ MIRAGE Shield — Deception-as-a-Service Middleware (`mirage_shield/`) — *NEW*
+Allows MIRAGE Junior to sit as an **extension / reverse proxy** in front of **any real website**:
+- **Auto Site Cloner (`site_cloner.py`):** Crawls and clones the target website's HTML, CSS, scripts, and images into a local decoy mirror.
+- **Multi-Factor Traffic Analyzer (`traffic_analyzer.py`):** Scores every incoming HTTP request across 6 dimensions (User-Agent, Request Rate, Path Probing, SQLi/XSS/Traversal/RCE Payloads, Header Anomalies, Behavioral History).
+  - `Score 0–39 (ALLOW)` → Transparently forwarded to the **real company website**.
+  - `Score 40–79 (REDIRECT)` → Silently diverted into the **cloned honeypot** with sticky session trapping.
+  - `Score 80–100 (BLOCK)` → **HTTP 403 Block + Auto-Quarantine** via firewall.
+- **Honeypot Injector (`honeypot_injector.py`):** Injects invisible crawler traps, fake `/admin`, `/.env`, `/.git/config`, `/backup.sql` endpoints, credential harvesters, and silent JS browser fingerprinting beacons.
+- **Drop-In Launcher (`run_shield.py`):** Run standalone against any URL (`python run_shield.py --target https://your-site.com`) or alongside all services (`python main.py`).
 
 ---
 
@@ -163,9 +176,15 @@ pip install -r requirements.txt
 # Initialize SQLite database with indexes & WAL mode
 python database/db_setup.py
 
-# Start all honeypot services + watchdog + dashboard
+# Start all honeypot services + watchdog + dashboard + MIRAGE Shield
 python main.py
 ```
+
+> **Run MIRAGE Shield for Any Custom Website:**
+> ```bash
+> python run_shield.py --target https://example.com --port 8443
+> ```
+> Then open **`http://localhost:8443/mirage-shield/dashboard`** or **`http://localhost:5000/shield`**.
 
 > **Demo Showcase Mode:**  
 > To seed realistic multi-stage attacks and launch the dashboard immediately:
@@ -217,19 +236,35 @@ mirage-junior/
 │   ├── app.py                # Flask application factory
 │   ├── routes.py             # Route handlers & pagination (10 per page)
 │   ├── demo_data.py          # Realistic attack telemetry generator
-│   ├── templates/            # 7 dark-themed cyber UI views
+│   ├── templates/            # 8 dark-themed cyber UI views (including MIRAGE Shield)
 │   └── static/               # Neon dark-mode stylesheet & Chart.js scripts
+│
+├── mirage_shield/            # NEW: Deception-as-a-Service Website Middleware
+│   ├── config.py             # Shield proxy ports, thresholds, & attack signatures
+│   ├── site_cloner.py        # Clones target HTML/CSS/JS/images locally
+│   ├── traffic_analyzer.py   # 6-factor scoring (ALLOW / REDIRECT / BLOCK)
+│   ├── honeypot_injector.py  # Injects decoy admin, .env traps & JS beacons
+│   ├── shield_proxy.py       # Reverse proxy server & Shield APIs
+│   └── templates/            # Standalone Shield Command Center UI
+│
+├── chrome_extension/         # NEW: Chrome Extension ("Protect This Website" popup)
+│   ├── manifest.json         # Manifest V3 Chrome extension config
+│   ├── popup.html            # Dark-theme extension UI
+│   ├── popup.css             # Extension styles
+│   └── popup.js              # Clones active browser tab URL via Shield APIs
 │
 ├── database/
 │   ├── db_setup.py           # Schema DDL, indexes, and WAL configuration
 │   └── db_manager.py         # Concurrency-safe CRUD operations
 │
 ├── bait/                     # Planted honeytoken files (.sql, .txt, id_rsa)
-├── tests/                    # Pytest test suite & attack simulator
+├── tests/                    # Pytest test suite, Shield tests & attack simulator
 ├── main.py                   # Multi-threaded master orchestrator
+├── run_shield.py             # Standalone CLI launcher for MIRAGE Shield
+├── sync_and_deploy.bat       # One-click GitHub sync & Vercel deploy helper
 ├── vercel_app.py             # Serverless WSGI entry point for Vercel
 ├── vercel.json               # Vercel deployment specification
-├── College_PRD.md            # Complete Product Requirements Document (v2.1)
+├── College_PRD.md            # Complete Product Requirements Document (v3.0)
 └── CONTRIBUTORS.md           # Team roles & work division
 ```
 

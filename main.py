@@ -139,6 +139,24 @@ def start_dashboard():
         logger.error(f"Dashboard failed to start: {e}")
 
 
+def start_mirage_shield():
+    """Start the MIRAGE Shield deception reverse proxy."""
+    try:
+        from config.settings import SHIELD_PORT, SHIELD_TARGET_URL
+        from mirage_shield.shield_proxy import get_shield_instance
+        # Wait briefly so HTTP Decoy (:8080) is online before pre-cloning
+        time.sleep(1.5)
+        shield = get_shield_instance(target_url=SHIELD_TARGET_URL)
+        shield.shield_port = SHIELD_PORT
+        if "--demo" in sys.argv:
+            for scenario in ("legitimate", "recon_env", "cred_harvest", "sqli"):
+                shield.run_simulation(scenario)
+        logger.info(f"🛡️  Starting MIRAGE Shield on port {SHIELD_PORT} (protecting {SHIELD_TARGET_URL})...")
+        shield.run(port=SHIELD_PORT)
+    except Exception as e:
+        logger.error(f"MIRAGE Shield failed to start: {e}")
+
+
 if __name__ == "__main__":
     print_banner()
 
@@ -164,6 +182,8 @@ if __name__ == "__main__":
         ("Quarantine Checker",  start_quarantine_checker),
         ("Dashboard",           start_dashboard),
     ]
+    if "--no-shield" not in sys.argv:
+        services.append(("MIRAGE Shield", start_mirage_shield))
 
     threads = []
     for name, target in services:
@@ -176,10 +196,11 @@ if __name__ == "__main__":
     logger.info("=" * 60)
     logger.info("🚀 ALL SYSTEMS ONLINE — MIRAGE Junior is running!")
     logger.info("=" * 60)
-    logger.info("📊 Dashboard:   http://localhost:5000")
-    logger.info("🌐 HTTP Decoy:  http://localhost:8080")
-    logger.info("🖥️  SSH Trap:    ssh localhost -p 2222")
-    logger.info("📁 FTP Trap:    ftp localhost 2121")
+    logger.info("📊 Dashboard:     http://localhost:5000")
+    logger.info("🛡️  MIRAGE Shield: http://localhost:8443/mirage-shield/dashboard")
+    logger.info("🌐 HTTP Decoy:    http://localhost:8080")
+    logger.info("🖥️  SSH Trap:      ssh localhost -p 2222")
+    logger.info("📁 FTP Trap:      ftp localhost 2121")
     logger.info("=" * 60)
     logger.info("Press Ctrl+C to shut down all services.")
     print()

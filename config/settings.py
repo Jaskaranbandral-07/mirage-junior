@@ -20,6 +20,8 @@ HTTP_PORT = int(os.getenv("MIRAGE_HTTP_PORT", 8080))
 SSH_PORT = int(os.getenv("MIRAGE_SSH_PORT", 2222))
 FTP_PORT = int(os.getenv("MIRAGE_FTP_PORT", 2121))
 DASHBOARD_PORT = int(os.getenv("MIRAGE_DASHBOARD_PORT", 5000))
+SHIELD_PORT = int(os.getenv("MIRAGE_SHIELD_PORT", 8443))
+SHIELD_TARGET_URL = os.getenv("SHIELD_TARGET_URL", f"http://127.0.0.1:{HTTP_PORT}")
 
 # === Telegram Configuration ===
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "")

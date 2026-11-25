@@ -38,8 +38,9 @@
 | **GeoIP Enrichment** | `engine/geo_enricher.py` | IP geolocation lookup, local/private IP bypass, and rate-limited JSON caching. |
 | **Database Architecture** | `database/db_setup.py`<br>`database/db_manager.py` | SQLite schema design (5 relational tables), indexing for performance, WAL mode, and concurrency-safe CRUD operations. |
 | **Honeytoken Monitor** | `engine/honeytoken_monitor.py` | Python `watchdog` daemon actively monitoring `/bait/` filesystem triggers. |
-| **Orchestration** | `main.py` | Master multi-threaded service runner orchestrating 6 concurrent background threads. |
-| **Documentation** | `College_PRD.md` (v2.1)<br>`README.md` | Author of the complete 800+ line Product Requirements Document and technical architecture specifications. |
+| **Orchestration** | `main.py`<br>`run_shield.py` | Master multi-threaded service runner orchestrating 7 concurrent background threads plus standalone Shield CLI. |
+| **MIRAGE Shield Proxy** | `mirage_shield/traffic_analyzer.py`<br>`mirage_shield/site_cloner.py`<br>`mirage_shield/honeypot_injector.py`<br>`mirage_shield/shield_proxy.py` | Deception-as-a-Service reverse proxy that clones any website, scores HTTP traffic, diverts attackers into a cloned decoy, and blocks threats. |
+| **Documentation** | `College_PRD.md` (v3.0)<br>`README.md` | Author of the complete Product Requirements Document and technical architecture specifications. |
 
 ---
 
@@ -51,7 +52,7 @@
 | Module | Primary Files | Description |
 | :--- | :--- | :--- |
 | **Dashboard Backend** | `dashboard/app.py`<br>`dashboard/routes.py` | Flask application factory, pagination engine (10 records/page), protocol filters, CSV export streaming, and REST API endpoints. |
-| **Dashboard UI Views** | `dashboard/templates/*.html`<br>(7 views) | Engineered 7 dark-themed cyber UI pages: Overview command center, Full Attack Log, Attacker Profile deep-dive, Quarantine Manager, Honeytoken Hub, and Settings. |
+| **Dashboard UI Views** | `dashboard/templates/*.html`<br>(8 views) | Engineered 8 dark-themed cyber UI pages: Overview command center, Full Attack Log, Attacker Profile deep-dive, Quarantine Manager, Honeytoken Hub, MIRAGE Shield Console, and Settings. |
 | **Frontend Styling** | `dashboard/static/css/style.css` | 600+ lines of custom dark-mode CSS with neon accents, responsive grid layouts, stat cards, and status badges. |
 | **Data Visualizations** | `dashboard/static/js/charts.js`<br>`dashboard/static/js/timeline.js` | Chart.js integration (Threat Distribution, Top Countries, 24h Timeline), auto-refresh AJAX polling (5s), and chronological attack timeline replay. |
 | **Alerting System** | `engine/alert_manager.py` | Graded Telegram Bot API push alerting (`CRITICAL`, `ACTIVE_THREAT`, `SUSPICIOUS`) with formatted Markdown notifications. |

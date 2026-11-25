@@ -28,6 +28,13 @@ try:
     
     if count == 0:
         seed_data()
+
+    # Pre-populate MIRAGE Shield demo state on Vercel showcase
+    from mirage_shield.shield_proxy import get_shield_instance
+    shield = get_shield_instance()
+    if shield.stats["total_requests"] == 0:
+        for scenario in ("legitimate", "recon_env", "cred_harvest", "sqli"):
+            shield.run_simulation(scenario)
 except Exception as e:
     print(f"Error initializing demo database for Vercel: {e}")
 

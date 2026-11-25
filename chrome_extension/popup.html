@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MIRAGE Shield Extension</title>
+  <link rel="stylesheet" href="popup.css" />
+</head>
+<body>
+  <div class="container">
+    <header class="header">
+      <div class="brand">
+        <span class="shield-icon">🛡️</span>
+        <div>
+          <h1>MIRAGE <span>Shield</span></h1>
+          <p class="subtitle">Deception-as-a-Service</p>
+        </div>
+      </div>
+      <span class="status-pill" id="conn-status">READY</span>
+    </header>
+
+    <!-- Backend Selector -->
+    <section class="card">
+      <label class="label">MIRAGE Server URL</label>
+      <div class="preset-row">
+        <button class="chip active" data-url="https://mirage-junior.vercel.app">Live Vercel</button>
+        <button class="chip" data-url="http://localhost:5000">Local (:5000)</button>
+        <button class="chip" data-url="http://localhost:8443">Proxy (:8443)</button>
+      </div>
+      <input type="text" id="backend-url" value="https://mirage-junior.vercel.app" placeholder="https://mirage-junior.vercel.app" />
+    </section>
+
+    <!-- Active Website Cloner -->
+    <section class="card">
+      <label class="label">Website to Protect (Current Tab)</label>
+      <input type="text" id="target-url" placeholder="https://example.com" />
+      <button id="btn-clone" class="btn btn-primary">
+        🪞 Create Honeypot Clone &amp; Protect
+      </button>
+      <div id="feedback" class="feedback hidden"></div>
+    </section>
+
+    <!-- Live Shield Stats -->
+    <section class="stats-grid">
+      <div class="stat allowed">
+        <span class="stat-val" id="stat-allowed">0</span>
+        <span class="stat-lbl">Real Site</span>
+      </div>
+      <div class="stat diverted">
+        <span class="stat-val" id="stat-diverted">0</span>
+        <span class="stat-lbl">In Clone</span>
+      </div>
+      <div class="stat blocked">
+        <span class="stat-val" id="stat-blocked">0</span>
+        <span class="stat-lbl">Blocked</span>
+      </div>
+      <div class="stat creds">
+        <span class="stat-val" id="stat-creds">0</span>
+        <span class="stat-lbl">Creds</span>
+      </div>
+    </section>
+
+    <!-- Quick Test & Open Actions -->
+    <section class="actions-grid">
+      <button id="btn-sim-attack" class="btn btn-danger">⚡ Simulate Attack</button>
+      <button id="btn-preview" class="btn btn-secondary">👁️ Preview Clone</button>
+    </section>
+
+    <button id="btn-dashboard" class="btn btn-outline">
+      📊 Open Full MIRAGE Shield Dashboard
+    </button>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

@@ -844,8 +844,30 @@ Use these during your viva/presentation to impress evaluators:
 
 ---
 
-> **Document Version:** 2.1 (Production Tested & Fully Integrated)  
-> **Last Updated:** October 21, 2026  
+## 17. Advanced Enhancement — MIRAGE Shield (v3.0 Deception-as-a-Service)
+
+> **Evaluation Upgrade:** Evolves MIRAGE Junior from a standalone honeypot into a deployable **Deception Reverse-Proxy Extension** that protects any real company website.
+
+### 17.1 Concept & Value Proposition
+- **Problem:** Deploying isolated honeypots captures generic internet noise, but attackers targeting a company's *actual website* still hit the real production backend.
+- **Solution (`mirage_shield/`):** Place MIRAGE Shield directly in front of any website (like Cloudflare/Nginx). Legitimate users are proxied untouched to the real website, while malicious actors are silently diverted into a pixel-accurate **cloned honeypot** containing decoy admin panels, `.env` secrets, and browser fingerprinting beacons — capturing their IP, payloads, and credentials before auto-blocking them.
+
+### 17.2 Architecture & Modules Added
+| File | Responsibility |
+| :--- | :--- |
+| `mirage_shield/config.py` | Proxy port (`8443`), thresholds (`40` divert / `80` block), SQLi/XSS/Traversal/RCE & attack-tool signatures. |
+| `mirage_shield/site_cloner.py` | BeautifulSoup4 website cloner that mirrors target HTML/CSS/JS/images locally (with fallback corporate portal). |
+| `mirage_shield/traffic_analyzer.py` | 6-dimension real-time behavioral scoring engine with sticky honeypot sessions (`ALLOW` / `REDIRECT` / `BLOCK`). |
+| `mirage_shield/honeypot_injector.py` | Injects fake `/admin`, `/.env`, `/.git/config`, `/backup.sql`, hidden crawler bait, and JS beacons, synced to SQLite DB. |
+| `mirage_shield/shield_proxy.py` | Reverse proxy server + standalone `/mirage-shield/dashboard` + dynamic target switching APIs. |
+| `dashboard/templates/shield.html` | Integrated MIRAGE Shield SOC tab (`/shield`) inside main dashboard (compatible with Vercel demo). |
+| `run_shield.py` | Standalone CLI launcher (`python run_shield.py --target <url> --port 8443`). |
+| `tests/test_shield.py` | Pytest unit & integration tests covering scoring, sticky diversion, credential harvesting, and fallback cloning. |
+
+---
+
+> **Document Version:** 3.0 (MIRAGE Shield Deception-as-a-Service Integrated)  
+> **Last Updated:** November 25, 2026  
 > **Author:** Jaskaran Bandral & Relish Sharma  
-> **Status:** Completed & Evaluator-Ready ✅
+> **Status:** Enhanced & Final Evaluation Ready ✅
 

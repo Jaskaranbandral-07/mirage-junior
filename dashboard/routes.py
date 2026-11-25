@@ -252,6 +252,15 @@ def settings():
                            quarantine_threshold=quarantine_threshold)
 
 
+@dashboard_bp.route('/shield')
+def shield_page():
+    """MIRAGE Shield Deception-as-a-Service control panel."""
+    from mirage_shield.shield_proxy import get_shield_instance
+    shield = get_shield_instance()
+    return render_template('shield.html', shield_stats=shield.get_full_stats())
+
+
+
 # ─── API ROUTES (for AJAX auto-refresh) ────────────────────────────────
 
 @dashboard_bp.route('/api/stats')
@@ -459,4 +468,66 @@ def api_simulate_attack():
         })
     except Exception as e:
         return jsonify({'status': 'error', 'message': str(e)}), 500
+
+
+# ─── MIRAGE SHIELD API ROUTES ──────────────────────────────────────────
+
+@dashboard_bp.route('/api/shield/stats')
+def api_shield_stats():
+    """Combined JSON telemetry for the integrated MIRAGE Shield view."""
+    from mirage_shield.shield_proxy import get_shield_instance
+    shield = get_shield_instance()
+    data = shield.get_full_stats()
+    data['recent'] = shield.analyzer.get_recent_analysis(limit=25)
+    data['credentials'] = shield.injector.get_captured_credentials()
+    return jsonify(data)
+
+
+@dashboard_bp.route('/api/shield/clone', methods=['POST'])
+def api_shield_clone():
+    """Clone a new website URL into MIRAGE Shield's honeypot cache."""
+    from mirage_shield.shield_proxy import get_shield_instance
+    payload = request.get_json(silent=True) or {}
+    target_url = (payload.get('target_url') or '').strip()
+    shield = get_shield_instance()
+    res = shield.switch_and_clone(target_url, max_pages=3)
+    return jsonify(res), (200 if res.get('success') else 400)
+
+
+@dashboard_bp.route('/api/shield/simulate', methods=['POST'])
+def api_shield_simulate():
+    """Simulate legitimate vs hostile traffic through MIRAGE Shield."""
+    from mirage_shield.shield_proxy import get_shield_instance
+    payload = request.get_json(silent=True) or {}
+    scenario = payload.get('scenario', 'sqli')
+    shield = get_shield_instance()
+    return jsonify(shield.run_simulation(scenario))
+
+
+@dashboard_bp.route('/api/shield/unblock/<ip>', methods=['POST'])
+def api_shield_unblock(ip):
+    """Unblock an IP quarantined by MIRAGE Shield."""
+    from mirage_shield.shield_proxy import get_shield_instance
+    shield = get_shield_instance()
+    ok = shield.unblock_ip(ip)
+    return jsonify({'success': ok, 'ip': ip})
+
+
+@dashboard_bp.route('/api/shield/preview')
+def api_shield_preview():
+    """Safely preview the cloned deception site HTML."""
+    from flask import Response
+    from mirage_shield.shield_proxy import get_shield_instance
+    shield = get_shield_instance()
+    req_target = (request.args.get('target') or '').strip()
+    if req_target and req_target.rstrip('/') != shield.target_url.rstrip('/'):
+        shield.switch_and_clone(req_target, max_pages=2)
+    index_path = shield.cloner.get_index_path()
+    if not os.path.exists(index_path):
+        shield.cloner.clone(max_pages=2)
+    if os.path.exists(index_path):
+        with open(index_path, 'r', encoding='utf-8', errors='ignore') as f:
+            return Response(f.read(), status=200, content_type='text/html')
+    return Response('Clone preview unavailable', status=404)
+
 

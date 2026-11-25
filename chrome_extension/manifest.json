@@ -1,0 +1,18 @@
+{
+  "manifest_version": 3,
+  "name": "MIRAGE Shield — Deception Honeypot Extension",
+  "version": "1.0.0",
+  "description": "Clone any live website into a MIRAGE deception honeypot in 1 click, trap attackers, capture credentials & IPs, and block threats.",
+  "permissions": [
+    "activeTab",
+    "storage"
+  ],
+  "host_permissions": [
+    "http://*/*",
+    "https://*/*"
+  ],
+  "action": {
+    "default_title": "MIRAGE Shield — Protect This Website",
+    "default_popup": "popup.html"
+  }
+}

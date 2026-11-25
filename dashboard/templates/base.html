@@ -42,6 +42,9 @@
             <a href="/honeytokens" class="nav-link {{ 'active' if request.path == '/honeytokens' else '' }}">
                 <i class="fa-solid fa-cheese"></i> <span>Honeytokens</span>
             </a>
+            <a href="/shield" class="nav-link {{ 'active' if request.path == '/shield' else '' }}">
+                <i class="fa-solid fa-shield-halved"></i> <span>MIRAGE Shield</span>
+            </a>
             <a href="/settings" class="nav-link {{ 'active' if request.path == '/settings' else '' }}">
                 <i class="fa-solid fa-gear"></i> <span>Settings</span>
             </a>
@@ -115,6 +118,14 @@
                 </div>
                 <i class="fa-solid fa-chevron-right arrow-icon"></i>
             </a>
+            <a href="/shield" class="drawer-nav-item {{ 'active' if request.path == '/shield' else '' }}">
+                <div class="nav-icon-box"><i class="fa-solid fa-shield-halved"></i></div>
+                <div class="nav-text-box">
+                    <strong>MIRAGE Shield</strong>
+                    <small>Website cloner &amp; deception proxy</small>
+                </div>
+                <i class="fa-solid fa-chevron-right arrow-icon"></i>
+            </a>
             <a href="/settings" class="drawer-nav-item {{ 'active' if request.path == '/settings' else '' }}">
                 <div class="nav-icon-box"><i class="fa-solid fa-gear"></i></div>
                 <div class="nav-text-box">
@@ -176,6 +187,11 @@
             <div class="bottom-icon"><i class="fa-solid fa-biohazard"></i></div>
             <span>Bait</span>
             {% if request.path == '/honeytokens' %}<span class="active-dot"></span>{% endif %}
+        </a>
+        <a href="/shield" class="bottom-nav-item {{ 'active' if request.path == '/shield' else '' }}">
+            <div class="bottom-icon"><i class="fa-solid fa-mask"></i></div>
+            <span>Shield</span>
+            {% if request.path == '/shield' %}<span class="active-dot"></span>{% endif %}
         </a>
         <a href="/settings" class="bottom-nav-item {{ 'active' if request.path == '/settings' else '' }}">
             <div class="bottom-icon"><i class="fa-solid fa-sliders"></i></div>
