@@ -1,7 +1,8 @@
 """
 MIRAGE Shield — Website Cloner
-Downloads and replicates any target website into a local honeypot clone.
-Preserves visual appearance while rewriting asset URLs and preparing deception layers.
+Clones any target website's HTML with pixel-perfect visual fidelity by resolving
+CSS, fonts, scripts, SVG, and responsive images cleanly against the live origin
+while keeping internal links and login forms trapped inside MIRAGE Shield.
 """
 
 import os
@@ -29,9 +30,9 @@ logger = logging.getLogger("MIRAGE.Shield.Cloner")
 
 class SiteCloner:
     """
-    Clones a target website's HTML, CSS, images, and JS into a local directory.
-    The clone is visually identical to the protected site while being served
-    under full deception monitoring.
+    Clones a target website into a local honeypot directory.
+    Preserves CSS, fonts, images, and responsive srcsets so the decoy
+    is visually indistinguishable from the protected origin.
     """
 
     def __init__(self, target_url: str, clone_dir: str = None):
@@ -59,7 +60,7 @@ class SiteCloner:
                     "AppleWebKit/537.36 (KHTML, like Gecko) "
                     "Chrome/122.0.0.0 Safari/537.36"
                 ),
-                "Accept": "text/html,application/xhtml+xml,*/*",
+                "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
                 "Accept-Language": "en-US,en;q=0.9",
             })
 
@@ -76,11 +77,10 @@ class SiteCloner:
         self.cloned_pages = {}
         self.cloned_assets = {}
 
-    def clone(self, max_pages: int = 8) -> str:
+    def clone(self, max_pages: int = 3) -> str:
         """
-        Clone the target website up to max_pages internal HTML pages.
-        Falls back gracefully to a realistic corporate clone template if the
-        target is unreachable or BeautifulSoup/requests are unavailable.
+        Clone the target website (index + key internal pages).
+        Falls back cleanly to a corporate portal decoy if offline/unreachable.
         """
         if not requests or not BeautifulSoup:
             logger.warning("requests/beautifulsoup4 unavailable. Creating fallback corporate clone.")
@@ -93,6 +93,7 @@ class SiteCloner:
 
         pages_to_clone = [self.target_url]
         pages_cloned = set()
+        resolved_assets_count = 0
 
         while pages_to_clone and len(pages_cloned) < max_pages:
             url = pages_to_clone.pop(0)
@@ -100,9 +101,10 @@ class SiteCloner:
                 continue
 
             try:
-                html, new_links = self._clone_page(url)
+                html, new_links, asset_cnt = self._clone_page(url)
                 if html:
                     pages_cloned.add(url)
+                    resolved_assets_count += asset_cnt
                     for link in new_links:
                         if link not in pages_cloned and link not in pages_to_clone:
                             pages_to_clone.append(link)
@@ -117,84 +119,162 @@ class SiteCloner:
             "target_url": self.target_url,
             "domain": self.domain,
             "pages_count": len(pages_cloned),
-            "assets_count": len(self.cloned_assets),
+            "assets_count": resolved_assets_count,
             "mode": "live_clone",
             "clone_path": self.clone_path,
         }
-        logger.info(f"✅ Cloned {len(pages_cloned)} pages and {len(self.cloned_assets)} assets")
+        logger.info(f"✅ Cloned {len(pages_cloned)} pages ({resolved_assets_count} assets resolved)")
         return self.clone_path
 
+    def _abs_url(self, base_url: str, raw: str) -> str:
+        """Resolve relative asset paths against the live origin URL."""
+        if not raw:
+            return raw
+        val = raw.strip()
+        if val.startswith(("#", "data:", "blob:", "mailto:", "tel:", "javascript:")):
+            return raw
+        return urljoin(base_url, val)
+
+    def _rewrite_srcset(self, base_url: str, srcset_val: str) -> str:
+        """Resolve responsive srcset entries against the live origin URL."""
+        if not srcset_val:
+            return srcset_val
+        parts = []
+        for item in srcset_val.split(","):
+            tokens = item.strip().split()
+            if not tokens:
+                continue
+            tokens[0] = self._abs_url(base_url, tokens[0])
+            parts.append(" ".join(tokens))
+        return ", ".join(parts)
+
+    def _rewrite_css_urls(self, base_url: str, css_text: str) -> str:
+        """Resolve relative url(...) references inside inline CSS."""
+        if not css_text:
+            return css_text
+
+        def _repl(match):
+            quote = match.group(1) or ""
+            raw_path = match.group(2).strip()
+            if raw_path.startswith(("data:", "http://", "https://", "//", "#")):
+                return match.group(0)
+            return f"url({quote}{urljoin(base_url, raw_path)}{quote})"
+
+        return re.sub(r"url\((['\"]?)([^)'\"]+)\1\)", _repl, css_text)
+
     def _clone_page(self, url: str) -> tuple:
-        """Clone a single page and rewrite its local asset & navigation links."""
+        """Fetch page, resolve all visual assets cleanly, and trap links/forms."""
         try:
-            resp = self.session.get(url, timeout=8, verify=False)
+            resp = self.session.get(url, timeout=8, verify=False, allow_redirects=True)
             resp.raise_for_status()
         except Exception as e:
             logger.debug(f"Could not fetch {url}: {e}")
-            return None, []
+            return None, [], 0
 
         content_type = resp.headers.get("Content-Type", "")
         if "text/html" not in content_type and "<html" not in resp.text[:500].lower():
-            return None, []
+            return None, [], 0
 
+        # Use final URL post-redirect (e.g. programiz.com -> https://www.programiz.com/)
+        base_url = resp.url or url
+        actual_domain = urlparse(base_url).netloc or self.domain
         soup = BeautifulSoup(resp.text, "html.parser")
         internal_links = []
+        asset_count = 0
 
-        # Download & rewrite CSS stylesheets
-        for tag in soup.find_all("link", rel=True):
+        # Remove strict CSP meta tags so injected beacon/interceptors work cleanly
+        for meta in soup.find_all("meta", attrs={"http-equiv": True}):
+            if str(meta.get("http-equiv", "")).lower() == "content-security-policy":
+                meta.decompose()
+
+        # Remove <base> tags that would hijack trapped form actions/links away from our proxy
+        for base_tag in soup.find_all("base"):
+            base_tag.decompose()
+
+        # Resolve <link> tags (CSS, preload, icons, fonts) to absolute origin URLs
+        for tag in soup.find_all("link", href=True):
             rels = [r.lower() for r in (tag.get("rel") or [])]
-            if "stylesheet" in rels or "icon" in rels:
-                href = tag.get("href")
-                if href and not href.startswith("data:"):
-                    local_path = self._download_asset(urljoin(url, href))
-                    if local_path:
-                        tag["href"] = f"/mirage-shield/assets/{os.path.basename(local_path)}"
+            if "canonical" in rels or "alternate" in rels:
+                continue
+            tag["href"] = self._abs_url(base_url, tag["href"])
+            asset_count += 1
 
-        # Download & rewrite external JS scripts
+        # Resolve <script src> and remove nonce blocking if needed
         for tag in soup.find_all("script", src=True):
-            src = tag.get("src")
-            if src and not src.startswith("data:"):
-                local_path = self._download_asset(urljoin(url, src))
-                if local_path:
-                    tag["src"] = f"/mirage-shield/assets/{os.path.basename(local_path)}"
+            tag["src"] = self._abs_url(base_url, tag["src"])
+            asset_count += 1
 
-        # Download & rewrite images
-        for tag in soup.find_all("img", src=True):
-            src = tag.get("src")
-            if src and not src.startswith("data:"):
-                local_path = self._download_asset(urljoin(url, src))
-                if local_path:
-                    tag["src"] = f"/mirage-shield/assets/{os.path.basename(local_path)}"
+        # Resolve <img> (src, data-src, srcset)
+        for tag in soup.find_all("img"):
+            if tag.get("src"):
+                tag["src"] = self._abs_url(base_url, tag["src"])
+                asset_count += 1
+            if tag.get("data-src"):
+                abs_data = self._abs_url(base_url, tag["data-src"])
+                tag["data-src"] = abs_data
+                if not tag.get("src") or tag.get("src", "").startswith("data:"):
+                    tag["src"] = abs_data
+            if tag.get("srcset"):
+                tag["srcset"] = self._rewrite_srcset(base_url, tag["srcset"])
 
-        # Collect and rewrite internal links (skip trap endpoints so they stay clean)
+        # Resolve <source>, <video>, <audio>, <use>
+        for tag in soup.find_all(["source", "video", "audio", "iframe"]):
+            if tag.get("src"):
+                tag["src"] = self._abs_url(base_url, tag["src"])
+                asset_count += 1
+            if tag.get("srcset"):
+                tag["srcset"] = self._rewrite_srcset(base_url, tag["srcset"])
+            if tag.get("poster"):
+                tag["poster"] = self._abs_url(base_url, tag["poster"])
+
+        for tag in soup.find_all("use"):
+            if tag.get("href"):
+                tag["href"] = self._abs_url(base_url, tag["href"])
+            if tag.get("xlink:href"):
+                tag["xlink:href"] = self._abs_url(base_url, tag["xlink:href"])
+
+        # Rewrite inline <style> blocks and style="..." attributes
+        for style_tag in soup.find_all("style"):
+            if style_tag.string:
+                style_tag.string.replace_with(self._rewrite_css_urls(base_url, style_tag.string))
+        for styled in soup.find_all(style=True):
+            styled["style"] = self._rewrite_css_urls(base_url, styled["style"])
+
+        # Keep internal navigation links pointing inside MIRAGE Shield
         for tag in soup.find_all("a", href=True):
             href = tag["href"]
             if href.startswith(("#", "mailto:", "tel:", "javascript:")):
                 continue
-            full_url = urljoin(url, href)
+            full_url = urljoin(base_url, href)
             parsed = urlparse(full_url)
-            if parsed.netloc == self.domain:
+            if parsed.netloc in (self.domain, actual_domain):
                 clean_url = f"{parsed.scheme}://{parsed.netloc}{parsed.path or '/'}"
                 internal_links.append(clean_url)
-                tag["href"] = parsed.path or "/"
+                rel = parsed.path or "/"
+                if parsed.query:
+                    rel = f"{rel}?{parsed.query}"
+                tag["href"] = rel
 
-        # Ensure <form> actions post back inside our proxy cleanly
+        # Ensure all <form> submissions stay trapped inside MIRAGE Shield
         for form in soup.find_all("form"):
             action = form.get("action") or "/login"
-            parsed_action = urlparse(urljoin(url, action))
+            parsed_action = urlparse(urljoin(base_url, action))
             form["action"] = parsed_action.path or "/login"
+            if not form.get("method"):
+                form["method"] = "POST"
 
-        # Save HTML page locally
+        # Save cloned HTML page locally
         rel_path = urlparse(url).path.strip("/") or "index"
         filepath = self._page_path_to_filepath(rel_path)
         os.makedirs(os.path.dirname(filepath), exist_ok=True)
 
+        html_out = str(soup)
         with open(filepath, "w", encoding="utf-8") as f:
-            f.write(str(soup))
+            f.write(html_out)
 
         route_key = "/" + urlparse(url).path.strip("/")
         self.cloned_pages[route_key] = filepath
-        return str(soup), internal_links
+        return html_out, internal_links, asset_count
 
     def _page_path_to_filepath(self, rel_path: str) -> str:
         """Convert URL path to a safe filename under clone_path."""
@@ -223,24 +303,20 @@ class SiteCloner:
         return ""
 
     def _download_asset(self, url: str) -> str:
-        """Download a CSS/JS/image asset and store locally."""
+        """Optional helper to download a CSS/JS/image asset locally."""
         if url in self.cloned_assets:
             return self.cloned_assets[url]
-
         try:
             resp = self.session.get(url, timeout=8, verify=False)
             resp.raise_for_status()
-
             ext = os.path.splitext(urlparse(url).path)[1] or ".bin"
             if len(ext) > 10:
                 ext = ".bin"
             name_hash = hashlib.md5(url.encode()).hexdigest()[:12]
             filename = f"{name_hash}{ext}"
             filepath = os.path.join(self.clone_path, "assets", filename)
-
             with open(filepath, "wb") as f:
                 f.write(resp.content)
-
             self.cloned_assets[url] = filepath
             return filepath
         except Exception as e:
@@ -277,9 +353,7 @@ class SiteCloner:
             transition: color 0.3s; font-size: 14px;
         }}
         .nav a:hover {{ color: #00d4ff; }}
-        .hero {{
-            text-align: center; padding: 70px 20px; max-width: 780px;
-        }}
+        .hero {{ text-align: center; padding: 70px 20px; max-width: 780px; }}
         .hero h1 {{ font-size: 42px; margin-bottom: 16px; color: #fff; }}
         .hero p {{ font-size: 17px; color: #a0aec0; line-height: 1.6; }}
         .login-box {{
@@ -300,9 +374,7 @@ class SiteCloner:
             font-size: 15px; font-weight: bold; cursor: pointer;
         }}
         .login-box button:hover {{ background: #00b8d9; }}
-        .footer {{
-            margin-top: auto; padding: 20px; color: #556; font-size: 12px;
-        }}
+        .footer {{ margin-top: auto; padding: 20px; color: #556; font-size: 12px; }}
     </style>
 </head>
 <body>
@@ -330,9 +402,7 @@ class SiteCloner:
             </p>
         </div>
     </div>
-    <div class="footer">
-        &copy; 2026 {self.domain} — Internal Corporate Gateway
-    </div>
+    <div class="footer">&copy; 2026 {self.domain} — Internal Corporate Gateway</div>
 </body>
 </html>"""
 

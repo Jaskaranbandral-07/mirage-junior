@@ -271,4 +271,45 @@ def test_real_web_trap_capture_and_purge(isolated_shield):
     assert db.get_stats()["total_hits"] == 0
 
 
+def test_site_cloner_preserves_assets_and_traps_forms(tmp_path):
+    """Verify SiteCloner resolves CSS/img/srcset cleanly while trapping forms & internal links."""
+    from unittest.mock import patch, MagicMock
+    sample_html = """
+    <html>
+      <head>
+        <link rel="stylesheet" href="/assets/main.css">
+        <style>.hero { background-image: url('/images/hero.png'); }</style>
+      </head>
+      <body>
+        <img src="/logo.svg" srcset="/logo-1x.png 1x, /logo-2x.png 2x">
+        <a href="/tutorials/python">Python</a>
+        <form action="https://www.example.com/auth/login" method="POST">
+          <input name="username"><input name="password">
+        </form>
+      </body>
+    </html>
+    """
+    mock_resp = MagicMock()
+    mock_resp.text = sample_html
+    mock_resp.url = "https://www.example.com/"
+    mock_resp.headers = {"Content-Type": "text/html; charset=utf-8"}
+    mock_resp.raise_for_status = MagicMock()
+
+    cloner = SiteCloner("https://www.example.com", clone_dir=str(tmp_path))
+    with patch.object(cloner.session, "get", return_value=mock_resp):
+        cloner.clone(max_pages=1)
+
+    with open(cloner.get_index_path(), "r", encoding="utf-8") as f:
+        cloned = f.read()
+
+    assert "https://www.example.com/assets/main.css" in cloned
+    assert "https://www.example.com/images/hero.png" in cloned
+    assert "https://www.example.com/logo.svg" in cloned
+    assert "https://www.example.com/logo-2x.png 2x" in cloned
+    # Internal links and forms remain relative so traffic stays inside MIRAGE Shield
+    assert 'href="/tutorials/python"' in cloned
+    assert 'action="/auth/login"' in cloned
+
+
+
 

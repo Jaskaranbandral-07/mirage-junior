@@ -15,7 +15,7 @@
             </p>
         </div>
         <div style="display: flex; gap: 10px; align-items: center;">
-            <a id="preview-clone-link" href="/api/shield/preview" target="_blank" class="btn btn-primary" style="text-decoration: none;">
+            <a id="preview-clone-link" href="/portal/{{ shield_stats.clone_status.domain }}" target="_blank" class="btn btn-primary" style="text-decoration: none;">
                 <i class="fa-solid fa-eye"></i> Preview Fake Clone
             </a>
         </div>
@@ -185,8 +185,8 @@ function cloneTargetSite() {
             document.getElementById('shield-target-label').textContent = res.target_url;
             document.getElementById('shield-mode-label').textContent = res.clone_status?.mode || 'cloned';
             const previewLink = document.getElementById('preview-clone-link');
-            if (previewLink) previewLink.href = '/api/shield/preview?target=' + encodeURIComponent(res.target_url);
-            showFeedback('✅ Website cloned into deception honeypot! Protecting: ' + res.target_url);
+            if (previewLink) previewLink.href = res.preview_url || ('/portal/' + encodeURIComponent(res.clone_status?.domain || ''));
+            showFeedback('✅ Pixel-accurate honeypot clone ready for: ' + res.target_url);
         } else {
             showFeedback('❌ Error: ' + (res.error || 'Could not clone URL'));
         }

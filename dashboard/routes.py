@@ -75,7 +75,13 @@ def capture_real_web_threats():
     SQLi, XSS, path traversal, and scanner traffic automatically.
     """
     path = request.path or '/'
-    if path.startswith('/static/') or path.startswith('/api/') or path == '/favicon.ico':
+    if (
+        path.startswith('/static/')
+        or path.startswith('/api/')
+        or path.startswith('/portal/')
+        or path.startswith('/mirage-shield/')
+        or path == '/favicon.ico'
+    ):
         return None
     if request.method == 'OPTIONS':
         return None
@@ -588,7 +594,10 @@ def api_shield_clone():
     payload = request.get_json(silent=True) or {}
     target_url = (payload.get('target_url') or '').strip()
     shield = get_shield_instance()
-    res = shield.switch_and_clone(target_url, max_pages=3)
+    pages_limit = 1 if os.getenv('VERCEL') else 2
+    res = shield.switch_and_clone(target_url, max_pages=pages_limit)
+    if res.get('success'):
+        res['preview_url'] = f"/portal/{shield.cloner.domain}"
     return jsonify(res), (200 if res.get('success') else 400)
 
 
@@ -611,6 +620,54 @@ def api_shield_unblock(ip):
     return jsonify({'success': ok, 'ip': ip})
 
 
+@dashboard_bp.route('/portal/<path:domain>')
+def shield_clean_portal(domain):
+    """Serve the pixel-accurate cloned website on a clean domain path."""
+    from mirage_shield.shield_proxy import get_shield_instance
+    shield = get_shield_instance()
+    clean_domain = domain.split('/')[0].strip()
+    target = f"https://{clean_domain}" if not clean_domain.startswith(('127.0.0.1', 'localhost')) else f"http://{clean_domain}"
+    if shield.cloner.domain != clean_domain or not os.path.exists(shield.cloner.get_index_path()):
+        shield.switch_and_clone(target, max_pages=1)
+    index_path = shield.cloner.get_index_path()
+    if os.path.exists(index_path):
+        with open(index_path, 'r', encoding='utf-8', errors='ignore') as f:
+            html = f.read()
+        deceptive = shield.injector.inject_deception_layer(html, get_real_client_ip())
+        return Response(deceptive, status=200, content_type='text/html')
+    return Response('Clone preview unavailable', status=404)
+
+
+@dashboard_bp.route('/mirage-shield/api/beacon', methods=['POST'])
+def dashboard_beacon_collect():
+    """Collect silent behavioral JS telemetry from cloned decoy pages."""
+    from mirage_shield.shield_proxy import get_shield_instance
+    shield = get_shield_instance()
+    data = request.get_json(silent=True)
+    if not data:
+        try:
+            data = json.loads(request.get_data(as_text=True) or '{}')
+        except Exception:
+            data = {}
+    shield.injector.record_beacon(data, fallback_ip=get_real_client_ip())
+    return jsonify({'status': 'recorded'})
+
+
+@dashboard_bp.route('/login', methods=['GET', 'POST'])
+def cloned_form_trap():
+    """Capture credentials submitted from any cloned website login form."""
+    from mirage_shield.shield_proxy import get_shield_instance
+    shield = get_shield_instance()
+    ip = get_real_client_ip()
+    if request.method == 'POST':
+        form_data = request.form.to_dict() or request.get_json(silent=True) or {}
+        if form_data:
+            shield.stats['credentials_captured'] += 1
+            content, content_type, status = shield.injector.capture_form_submission(ip, '/login', form_data)
+            return Response(content, status=status, content_type=content_type)
+    return _handle_live_trap('/admin/login')
+
+
 @dashboard_bp.route('/api/shield/preview')
 def api_shield_preview():
     """Safely preview the cloned deception site HTML."""
@@ -618,13 +675,14 @@ def api_shield_preview():
     shield = get_shield_instance()
     req_target = (request.args.get('target') or '').strip()
     if req_target and req_target.rstrip('/') != shield.target_url.rstrip('/'):
-        shield.switch_and_clone(req_target, max_pages=2)
+        shield.switch_and_clone(req_target, max_pages=1)
     index_path = shield.cloner.get_index_path()
     if not os.path.exists(index_path):
-        shield.cloner.clone(max_pages=2)
+        shield.cloner.clone(max_pages=1)
     if os.path.exists(index_path):
         with open(index_path, 'r', encoding='utf-8', errors='ignore') as f:
-            return Response(f.read(), status=200, content_type='text/html')
+            html = f.read()
+        return Response(shield.injector.inject_deception_layer(html, get_real_client_ip()), status=200, content_type='text/html')
     return Response('Clone preview unavailable', status=404)
 
 

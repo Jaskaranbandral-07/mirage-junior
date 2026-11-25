@@ -146,12 +146,17 @@ document.getElementById("btn-sim-attack").addEventListener("click", async () => 
 });
 
 document.getElementById("btn-preview").addEventListener("click", () => {
-  const apis = getApiPrefix(backendInput.value.trim());
+  const baseUrl = backendInput.value.trim().replace(/\/+$/, "");
+  const apis = getApiPrefix(baseUrl);
   const targetUrl = targetInput.value.trim();
-  const previewUrl = targetUrl && !apis.preview.includes(":8443")
-    ? `${apis.preview}?target=${encodeURIComponent(targetUrl)}`
-    : apis.preview;
-  chrome.tabs.create({ url: previewUrl });
+  if (!apis.preview.includes(":8443") && targetUrl) {
+    try {
+      const host = new URL(targetUrl.startsWith("http") ? targetUrl : `https://${targetUrl}`).host;
+      chrome.tabs.create({ url: `${baseUrl}/portal/${host}` });
+      return;
+    } catch {}
+  }
+  chrome.tabs.create({ url: apis.preview });
 });
 
 document.getElementById("btn-dashboard").addEventListener("click", () => {
