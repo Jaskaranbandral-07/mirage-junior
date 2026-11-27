@@ -194,6 +194,9 @@ function cloneTargetSite() {
             const previewLink = document.getElementById('preview-clone-link');
             if (previewLink) previewLink.href = res.preview_url || ('/portal/' + encodeURIComponent(res.clone_status?.domain || ''));
             if (res.dashboard_url) {
+                if (window.MirageSiteSync && res.site) {
+                    window.MirageSiteSync.saveSite(res.site);
+                }
                 showFeedback('✅ Protected workspace created! Opening dedicated site dashboard...');
                 setTimeout(() => { window.location.href = res.dashboard_url; }, 700);
             } else {

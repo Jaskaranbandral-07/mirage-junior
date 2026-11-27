@@ -307,6 +307,16 @@ function refreshSiteDashboard() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+    if (window.MirageSiteSync) {
+        window.MirageSiteSync.saveSite({
+            site_id: SITE_ID,
+            domain: SITE_DOMAIN,
+            target_url: "{{ site.target_url }}",
+            owner_name: "{{ site.owner_name }}",
+            api_key: SITE_API_KEY,
+            dashboard_key: "{{ site.dashboard_key }}",
+        });
+    }
     const tCtx = document.getElementById('siteThreatChart');
     if (tCtx) {
         threatChart = new Chart(tCtx, {

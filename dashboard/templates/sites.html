@@ -101,6 +101,70 @@
 
 {% block scripts %}
 <script>
+const SERVER_SITES = {{ sites | tojson }};
+
+function renderSitesGrid(sites) {
+    const grid = document.getElementById('sites-grid');
+    if (!grid) return;
+    if (!sites || !sites.length) {
+        grid.innerHTML = `<div class="card full-width" style="grid-column: 1 / -1; text-align: center; padding: 36px;">
+            <p style="color: var(--text-muted); font-size: 0.95rem;">
+                No customer websites registered yet. Enter a domain above or click <strong>Protect Website</strong> in the MIRAGE Shield Chrome Extension!
+            </p>
+        </div>`;
+        return;
+    }
+    const esc = window.MirageSiteSync ? window.MirageSiteSync.escapeHtml : (v) => String(v || '');
+    grid.innerHTML = sites.map((s) => {
+        const sid = encodeURIComponent(s.site_id);
+        const dom = esc(s.domain);
+        const owner = esc(s.owner_name || 'Customer');
+        const keyPrefix = esc((s.api_key || 'ms_live_').slice(0, 14));
+        const absorbed = Number(s.total_absorbed || s.event_count || 0);
+        const fake = Number(s.fake_records_served || 0);
+        const creds = Number(s.cred_count || 0);
+        return `
+        <div class="card" style="display: flex; flex-direction: column; gap: 12px; border-top: 3px solid var(--neon-cyan);">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 10px;">
+                <div>
+                    <h3 style="color: var(--text-bright); font-size: 1.05rem; margin-bottom: 3px;">
+                        <i class="fa-solid fa-globe" style="color: var(--neon-cyan);"></i> ${dom}
+                    </h3>
+                    <div style="font-size: 0.78rem; color: var(--text-muted);">
+                        Owner: <strong style="color: var(--text-main);">${owner}</strong> &bull; ID: <code>${esc(s.site_id)}</code>
+                    </div>
+                </div>
+                <span class="badge badge-scanner" style="white-space: nowrap;">SHIELD ACTIVE</span>
+            </div>
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; background: var(--bg-dark); border: 1px solid var(--border); border-radius: 8px; padding: 10px; text-align: center;">
+                <div><div style="font-size: 1.15rem; font-weight: 700; color: var(--neon-yellow);">${absorbed}</div><div style="font-size: 0.7rem; color: var(--text-muted);">Absorbed</div></div>
+                <div><div style="font-size: 1.15rem; font-weight: 700; color: var(--neon-green);">${fake}</div><div style="font-size: 0.7rem; color: var(--text-muted);">Fake Records</div></div>
+                <div><div style="font-size: 1.15rem; font-weight: 700; color: var(--neon-purple);">${creds}</div><div style="font-size: 0.7rem; color: var(--text-muted);">Creds Caught</div></div>
+            </div>
+            <div style="font-size: 0.76rem; color: var(--text-muted); font-family: monospace; background: var(--bg-darker); padding: 7px 10px; border-radius: 6px; border: 1px solid var(--border); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                Key: ${keyPrefix}••••••••••••
+            </div>
+            <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: auto;">
+                <a href="/site/${sid}" class="btn btn-primary" style="flex: 1; text-align: center; text-decoration: none;">
+                    <i class="fa-solid fa-gauge-high"></i> Open Personal Dashboard
+                </a>
+                <a href="/portal/${encodeURIComponent(s.domain)}" target="_blank" class="btn" style="text-decoration: none; background: rgba(0,212,255,0.12); color: var(--neon-cyan); border: 1px solid rgba(0,212,255,0.35);">
+                    <i class="fa-solid fa-mask"></i> Clone
+                </a>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+document.addEventListener('DOMContentLoaded', async () => {
+    if (window.MirageSiteSync) {
+        const synced = await window.MirageSiteSync.restoreMissingSites(SERVER_SITES);
+        if (synced && synced.length !== SERVER_SITES.length) {
+            renderSitesGrid(synced);
+        }
+    }
+});
+
 function registerCustomerSite() {
     const targetUrl = document.getElementById('new-site-url').value.trim();
     const ownerName = document.getElementById('new-site-owner').value.trim() || 'Customer';
@@ -122,6 +186,9 @@ function registerCustomerSite() {
     .then(r => r.json())
     .then(res => {
         if (res.success) {
+            if (window.MirageSiteSync && res.site) {
+                window.MirageSiteSync.saveSite(res.site);
+            }
             window.location.href = res.dashboard_url;
         } else {
             fb.style.display = 'block';

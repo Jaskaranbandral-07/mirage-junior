@@ -585,6 +585,38 @@ def test_sdk_download_endpoints_python_and_node(isolated_shield):
     assert node_dl.status_code == 200 and b"mirageShieldMiddleware" in node_dl.data
 
 
+def test_cross_container_site_recovery_and_restore(isolated_shield):
+    """Verify /site/<id>?target=... auto-recovers and /api/sites/restore preserves keys."""
+    from dashboard.app import create_app
+    from mirage_shield import shield_proxy
+
+    shield, db = isolated_shield
+    shield_proxy._shared_shield_instance = shield
+    client = create_app().test_client()
+
+    # 1. Simulate landing directly on /site/<id>?target=... on a cold container
+    dash = client.get("/site/cloud-vendor-io?target=https://cloud-vendor.io")
+    assert dash.status_code == 200
+    assert b"cloud-vendor.io" in dash.data
+
+    # 2. Simulate restoring saved browser sites into an empty container DB while keeping exact keys
+    restore = client.post("/api/sites/restore", json={
+        "sites": [{
+            "target_url": "https://restored-client.dev",
+            "owner_name": "Restored Co",
+            "api_key": "ms_live_00112233445566778899aabbccddeeff",
+            "dashboard_key": "dash_00112233445566778899aabb",
+        }]
+    })
+    assert restore.status_code == 200
+    rdata = restore.get_json()
+    assert rdata["success"] is True and rdata["restored"] == 1
+    saved = db.get_site("restored-client-dev")
+    assert saved is not None
+    assert saved["api_key"] == "ms_live_00112233445566778899aabbccddeeff"
+    assert saved["dashboard_key"] == "dash_00112233445566778899aabb"
+
+
 
 
 

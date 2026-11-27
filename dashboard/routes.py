@@ -424,6 +424,27 @@ def site_dashboard(site_id):
     """Dedicated Personal Customer Dashboard strictly isolated to one protected website."""
     db_mgr = DatabaseManager()
     site = db_mgr.get_site(site_id)
+
+    # Auto-recover site workspace if routed to a fresh serverless container
+    if not site:
+        candidate_target = (request.args.get('target') or request.args.get('domain') or '').strip()
+        if candidate_target:
+            try:
+                norm_id, _, norm_url = db_mgr.normalize_site_target(candidate_target)
+                if norm_id == site_id:
+                    site = db_mgr.register_or_get_site(norm_url)
+            except ValueError:
+                site = None
+        if not site:
+            demo_target_url = getattr(settings_cfg, 'DEMO_TARGET_URL', '').strip()
+            if demo_target_url:
+                try:
+                    demo_id, _, _ = db_mgr.normalize_site_target(demo_target_url)
+                    if demo_id == site_id:
+                        site = db_mgr.register_or_get_site(demo_target_url, owner_name="NovaPay Cloud Payroll")
+                except ValueError:
+                    pass
+
     if not site:
         return Response("Protected site workspace not found.", status=404)
 
@@ -588,6 +609,38 @@ def api_sites_list():
     """List all registered customer websites with live per-site counters."""
     db_mgr = DatabaseManager()
     return jsonify({'sites': db_mgr.list_sites()})
+
+
+@dashboard_bp.route('/api/sites/restore', methods=['POST'])
+def api_sites_restore():
+    """Restore customer site workspaces synced from browser storage across serverless containers."""
+    payload = request.get_json(silent=True) or {}
+    items = payload.get('sites') or []
+    if not isinstance(items, list):
+        return jsonify({'success': False, 'error': 'sites must be a list'}), 400
+
+    db_mgr = DatabaseManager()
+    restored = 0
+    for item in items[:50]:
+        if not isinstance(item, dict):
+            continue
+        target = (item.get('target_url') or item.get('domain') or '').strip()
+        if not target:
+            continue
+        try:
+            site_id, _, _ = db_mgr.normalize_site_target(target)
+            if not db_mgr.get_site(site_id):
+                db_mgr.register_or_get_site(
+                    target,
+                    owner_name=(item.get('owner_name') or 'Customer').strip(),
+                    preferred_api_key=item.get('api_key'),
+                    preferred_dashboard_key=item.get('dashboard_key'),
+                )
+                restored += 1
+        except Exception:
+            continue
+
+    return jsonify({'success': True, 'restored': restored, 'sites': db_mgr.list_sites()})
 
 
 @dashboard_bp.route('/api/sites/register', methods=['POST'])

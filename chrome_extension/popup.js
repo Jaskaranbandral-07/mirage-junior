@@ -38,6 +38,11 @@ function getDomainSlug(rawUrl) {
   }
 }
 
+function buildSiteDashboardUrl(baseUrl, slug, targetUrl) {
+  const qs = targetUrl ? `?target=${encodeURIComponent(targetUrl)}` : "";
+  return `${baseUrl}/site/${slug}${qs}`;
+}
+
 function showFeedback(message, isError = false) {
   feedbackBox.textContent = message;
   feedbackBox.classList.remove("hidden", "error");
@@ -152,7 +157,7 @@ document.getElementById("btn-clone").addEventListener("click", async () => {
     if (res.ok && data.success) {
       if (data.site_id) {
         currentSiteId = data.site_id;
-        currentDashboardUrl = `${baseUrl}${data.dashboard_url || `/site/${data.site_id}`}`;
+        currentDashboardUrl = buildSiteDashboardUrl(baseUrl, data.site_id, data.target_url || targetUrl);
       }
       showFeedback(`✅ Isolated Shield active for ${data.target_url}`);
       await refreshStats();
@@ -198,7 +203,7 @@ document.getElementById("btn-sim-attack").addEventListener("click", async () => 
       const reg = await regRes.json();
       const activeSlug = reg.site_id || slug;
       currentSiteId = activeSlug;
-      currentDashboardUrl = `${baseUrl}/site/${activeSlug}`;
+      currentDashboardUrl = buildSiteDashboardUrl(baseUrl, activeSlug, targetInput.value.trim());
       const testRes = await fetch(`${baseUrl}/api/site/${activeSlug}/test-absorb`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -238,7 +243,7 @@ document.getElementById("btn-dashboard").addEventListener("click", () => {
   }
   const slug = getDomainSlug(targetInput.value.trim());
   if (!baseUrl.includes(":8443") && slug) {
-    chrome.tabs.create({ url: `${baseUrl}/site/${slug}` });
+    chrome.tabs.create({ url: buildSiteDashboardUrl(baseUrl, slug, targetInput.value.trim()) });
     return;
   }
   chrome.tabs.create({ url: apis.dashboard });

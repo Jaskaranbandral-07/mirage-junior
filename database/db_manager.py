@@ -41,7 +41,9 @@ class DatabaseManager:
         slug = re.sub(r"[^a-z0-9]+", "-", domain).strip("-")[:48] or "site"
         return slug, domain, target_url
 
-    def register_or_get_site(self, domain_or_url: str, owner_name: str = "Customer") -> dict:
+    def register_or_get_site(self, domain_or_url: str, owner_name: str = "Customer",
+                             preferred_api_key: str = None,
+                             preferred_dashboard_key: str = None) -> dict:
         """Create or fetch an isolated customer workspace for a website."""
         site_id, domain, target_url = self.normalize_site_target(domain_or_url)
         conn = self.get_connection()
@@ -68,8 +70,8 @@ class DatabaseManager:
             conn.close()
             return res
 
-        api_key = f"ms_live_{secrets.token_hex(16)}"
-        dashboard_key = f"dash_{secrets.token_hex(12)}"
+        api_key = (preferred_api_key or "").strip() if (preferred_api_key or "").strip().startswith("ms_live_") else f"ms_live_{secrets.token_hex(16)}"
+        dashboard_key = (preferred_dashboard_key or "").strip() if (preferred_dashboard_key or "").strip().startswith("dash_") else f"dash_{secrets.token_hex(12)}"
         clean_owner = (owner_name or "Customer").strip()[:80] or "Customer"
 
         c.execute(
