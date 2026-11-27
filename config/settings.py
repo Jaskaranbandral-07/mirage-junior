@@ -22,7 +22,7 @@ DEMO_TARGET_PORT = int(os.getenv("DEMO_TARGET_PORT", 5050))
 SHIELD_TARGET_URL = os.getenv("SHIELD_TARGET_URL", "https://example.com")
 DEMO_TARGET_URL = os.getenv(
     "DEMO_TARGET_URL",
-    "" if os.getenv("VERCEL") else f"http://localhost:{DEMO_TARGET_PORT}",
+    "https://demotarget.vercel.app" if os.getenv("VERCEL") else f"http://localhost:{DEMO_TARGET_PORT}",
 )
 
 # === Telegram Configuration ===
