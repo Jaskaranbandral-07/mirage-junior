@@ -227,6 +227,8 @@ class NovaPayShieldMiddleware:
         qs = environ.get("QUERY_STRING", "")
         ip = (
             environ.get("HTTP_X_MIRAGE_CLIENT_IP", "").strip()
+            or environ.get("HTTP_X_VERCEL_FORWARDED_FOR", "").split(",")[0].strip()
+            or environ.get("HTTP_X_REAL_IP", "").strip()
             or environ.get("HTTP_X_FORWARDED_FOR", "").split(",")[0].strip()
             or environ.get("REMOTE_ADDR", "127.0.0.1")
         )
@@ -250,7 +252,10 @@ class NovaPayShieldMiddleware:
         if decision == "ALLOW" or path in ("/api/shield-status", "/api/shield-config"):
             return self.wsgi_app(environ, start_response)
 
-        scheme = environ.get("wsgi.url_scheme", "http")
+        scheme = (
+            environ.get("HTTP_X_FORWARDED_PROTO", "").split(",")[0].strip()
+            or environ.get("wsgi.url_scheme", "http")
+        )
         host = environ.get("HTTP_HOST", self.domain)
         target_origin = os.getenv("NOVAPAY_PUBLIC_URL") or f"{scheme}://{host}"
 

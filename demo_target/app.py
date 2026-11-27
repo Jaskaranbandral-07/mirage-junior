@@ -27,6 +27,16 @@ PUBLIC_MERCHANT_CATALOG = [
 ]
 
 
+def _resolve_origin():
+    env_url = os.getenv("NOVAPAY_PUBLIC_URL", "").strip().rstrip("/")
+    if env_url:
+        return env_url
+    proto = request.headers.get("X-Forwarded-Proto", "").split(",")[0].strip()
+    if proto and request.host:
+        return f"{proto}://{request.host}"
+    return request.host_url.rstrip("/")
+
+
 def create_demo_app(shield_url: str = None, site_key: str = None):
     app = Flask(__name__, template_folder=os.path.join(CURRENT_DIR, "templates"))
     default_shield = (
@@ -90,7 +100,7 @@ def create_demo_app(shield_url: str = None, site_key: str = None):
 
     @app.route("/api/shield-status")
     def api_shield_status():
-        origin = os.getenv("NOVAPAY_PUBLIC_URL") or request.host_url.rstrip("/")
+        origin = _resolve_origin()
         if request.args.get("register") == "1" and shield.shield_url:
             shield.ensure_registered(origin)
         dash_url = f"{shield.shield_url}/site/{shield.site_id}" if (shield.shield_url and shield.site_id) else f"{shield.shield_url}/sites"
@@ -115,7 +125,7 @@ def create_demo_app(shield_url: str = None, site_key: str = None):
             shield.shield_url = new_url
         elif new_key:
             shield.site_key = new_key
-        origin = os.getenv("NOVAPAY_PUBLIC_URL") or request.host_url.rstrip("/")
+        origin = _resolve_origin()
         if shield.shield_url and not shield.site_key:
             shield.ensure_registered(origin)
         dash_url = f"{shield.shield_url}/site/{shield.site_id}" if (shield.shield_url and shield.site_id) else f"{shield.shield_url}/sites"
