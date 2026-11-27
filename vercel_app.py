@@ -15,10 +15,6 @@ os.environ.setdefault("VERCEL", "1")
 try:
     from database.db_setup import init_db
     init_db()
-    from config.settings import DEMO_TARGET_URL
-    if DEMO_TARGET_URL:
-        from database.db_manager import DatabaseManager
-        DatabaseManager().register_or_get_site(DEMO_TARGET_URL, owner_name="NovaPay Cloud Payroll")
 except Exception as e:
     print(f"Error initializing database: {e}")
 

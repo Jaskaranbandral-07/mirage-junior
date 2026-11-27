@@ -654,6 +654,40 @@ def test_root_is_sites_hub_and_single_probe_quarantines_and_traps_creds(isolated
 
     sd_page = client.get(f"/site/{sid}")
     assert sd_page.status_code == 200 and b"inspectSiteEvent" in sd_page.data and b"cred_trap" in sd_page.data
+    assert b"sd-blocked-list" in sd_page.data and b"198.51.100.145" in sd_page.data
+
+
+def test_sites_no_demo_button_and_shield_gated_controls(isolated_shield):
+    """Verify /sites has no Demo Website button, /shield disables actions until cloned, and redundant panels stay moved to /site/<id>."""
+    from dashboard.app import create_app
+    from mirage_shield import shield_proxy
+
+    shield, _ = isolated_shield
+    shield.cloner.last_status = {"mode": "uninitialized", "domain": "example.com"}
+    shield_proxy._shared_shield_instance = shield
+    client = create_app().test_client()
+
+    sites_page = client.get("/sites")
+    assert sites_page.status_code == 200
+    assert b"Download Extension" in sites_page.data
+    assert b"Open Demo Website" not in sites_page.data
+    assert b"Demo Website Setup" not in sites_page.data
+
+    shield_page = client.get("/shield")
+    assert shield_page.status_code == 200
+    assert b'aria-disabled="true"' in shield_page.data
+    assert b"Test Clone /.env Trap" not in shield_page.data
+    assert b"Test Clone Login Trap" not in shield_page.data
+    assert b"Traffic Routing Decisions" not in shield_page.data
+    assert b"Drop-In Website Integration" not in shield_page.data
+    assert b"Live Proxy Traffic Decisions" not in shield_page.data
+    assert b"Clone-Captured Credentials" not in shield_page.data
+
+    # After cloning, Preview Fake Clone becomes active
+    shield.cloner._create_fallback_clone()
+    shield_ready = client.get("/shield")
+    assert shield_ready.status_code == 200
+    assert b'aria-disabled="false"' in shield_ready.data
 
 
 

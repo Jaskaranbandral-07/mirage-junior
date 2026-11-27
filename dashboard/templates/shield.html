@@ -1,9 +1,10 @@
 {% extends 'base.html' %}
 {% block title %}MIRAGE Shield - Deception Proxy{% endblock %}
-{% block header_title %}MIRAGE Shield — Website Deception Proxy{% endblock %}
+{% block header_title %}MIRAGE Shield — Website Cloner &amp; Proxy{% endblock %}
 
 {% block content %}
-<!-- Top Target Control & Simulator Bar -->
+{% set is_cloned = shield_stats.clone_status and shield_stats.clone_status.mode and shield_stats.clone_status.mode != 'uninitialized' %}
+<!-- Top Target Control & Website Cloner -->
 <div class="card full-width" style="margin-bottom: 20px;">
     <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 16px;">
         <div style="display: flex; align-items: center; gap: 14px;">
@@ -11,15 +12,21 @@
                  style="width: 52px; height: 52px; border-radius: 12px; border: 1px solid rgba(0, 212, 255, 0.4); box-shadow: 0 0 14px rgba(0, 212, 255, 0.22); object-fit: cover;">
             <div>
                 <h3 style="margin-bottom: 4px; color: var(--neon-cyan);">
-                    Deception-as-a-Service Middleware (Port :8443)
+                    Deception-as-a-Service Cloner (Port :8443)
                 </h3>
                 <p style="font-size: 0.85rem; color: var(--text-muted);">
-                    Point MIRAGE Shield at any website: legitimate users pass safely to the real site, while attackers are silently diverted into a cloned honeypot &amp; blocked.
+                    Clone &amp; register any customer website here (or via the Chrome Extension) to launch its isolated personal dashboard, deception portal, and backend SDK.
                 </p>
             </div>
         </div>
         <div style="display: flex; gap: 10px; align-items: center;">
-            <a id="preview-clone-link" href="/portal/{{ shield_stats.clone_status.domain }}" target="_blank" class="btn btn-primary" style="text-decoration: none;">
+            <a id="preview-clone-link"
+               href="{{ '/portal/' ~ shield_stats.clone_status.domain if is_cloned else '#' }}"
+               {% if is_cloned %}target="_blank"{% endif %}
+               aria-disabled="{{ 'false' if is_cloned else 'true' }}"
+               class="btn btn-primary"
+               style="text-decoration: none; {{ '' if is_cloned else 'pointer-events: none; opacity: 0.4; cursor: not-allowed;' }}"
+               title="{{ 'Open cloned deception portal' if is_cloned else 'Clone a website first to enable preview' }}">
                 <i class="fa-solid fa-eye"></i> Preview Fake Clone
             </a>
         </div>
@@ -29,30 +36,32 @@
     <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 14px;">
         <input type="text" id="shield-target-input"
                value="{{ shield_stats.target_url }}"
-               placeholder="https://example.com or http://localhost:8080"
+               placeholder="https://example.com or https://your-startup.com"
                style="flex: 1; min-width: 260px; padding: 10px 14px; background: var(--bg-dark); border: 1px solid var(--border); border-radius: 6px; color: var(--text-bright);">
         <button onclick="cloneTargetSite()" class="btn btn-primary" id="btnCloneSite">
             <i class="fa-solid fa-clone"></i> Clone &amp; Protect Website
         </button>
     </div>
 
-    <!-- Current Target Status & Live Real-Capture Probes -->
+    <!-- Active Cloner Status Bar -->
     <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; padding-top: 12px; border-top: 1px solid var(--border);">
         <div style="font-size: 0.85rem; color: var(--text-muted);">
             Active Origin: <strong id="shield-target-label" style="color: var(--neon-green);">{{ shield_stats.target_url }}</strong>
             &nbsp;|&nbsp; Clone Mode: <span class="tag" id="shield-mode-label">{{ shield_stats.clone_status.mode }}</span>
         </div>
         <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-            <a href="/sites" class="btn btn-primary" style="text-decoration: none;">
+            <a id="btn-shield-site-dash"
+               href="/sites"
+               class="btn btn-primary"
+               style="text-decoration: none;">
                 <i class="fa-solid fa-layer-group"></i> Protected Sites
             </a>
-            <a href="/portal/{{ shield_stats.clone_status.domain }}/.env" target="_blank" class="btn btn-warning" style="text-decoration: none;">
-                <i class="fa-solid fa-mask"></i> Test Clone /.env Trap
-            </a>
-            <a href="/portal/{{ shield_stats.clone_status.domain }}/wp-login.php" target="_blank" class="btn" style="text-decoration: none; background: rgba(188,140,255,0.16); color: var(--neon-purple); border: 1px solid rgba(188,140,255,0.4);">
-                <i class="fa-solid fa-key"></i> Test Clone Login Trap
-            </a>
-            <button onclick="purgeShieldTelemetry()" class="btn" style="background: rgba(255,68,68,0.12); color: var(--neon-red); border: 1px solid rgba(255,68,68,0.35);">
+            <button id="btn-shield-purge"
+                    onclick="purgeShieldTelemetry()"
+                    {% if not is_cloned %}disabled aria-disabled="true"{% endif %}
+                    class="btn"
+                    style="background: rgba(255,68,68,0.12); color: var(--neon-red); border: 1px solid rgba(255,68,68,0.35); {{ '' if is_cloned else 'opacity: 0.4; cursor: not-allowed;' }}"
+                    title="{{ 'Clear proxy telemetry' if is_cloned else 'Clone a website first before purging' }}">
                 <i class="fa-solid fa-trash-can"></i> Purge Data
             </button>
         </div>
@@ -60,7 +69,7 @@
     <div id="shield-feedback" style="display:none; margin-top: 12px; padding: 10px 14px; border-radius: 6px; background: rgba(0, 212, 255, 0.1); border: 1px solid rgba(0, 212, 255, 0.3); color: var(--neon-cyan); font-size: 0.85rem;"></div>
 </div>
 
-<!-- Stats Row -->
+<!-- Compact Proxy Telemetry Counters -->
 <div class="stats-grid">
     <div class="stat-card" style="border-left-color: var(--neon-cyan);">
         <h3>Traffic Analyzed</h3>
@@ -83,96 +92,44 @@
         <p id="sh-creds">{{ shield_stats.credentials_captured }}</p>
     </div>
 </div>
-
-<!-- Architecture Flow & Quick Integration Extension Card -->
-<div class="tables-grid" style="margin-bottom: 20px;">
-    <div class="table-card">
-        <h3><i class="fa-solid fa-code-branch"></i> Traffic Routing Decisions</h3>
-        <div class="chart-wrapper">
-            <canvas id="shieldDecisionChart"></canvas>
-        </div>
-    </div>
-    <div class="table-card">
-        <h3><i class="fa-solid fa-plug"></i> Drop-In Website Integration (Extension Snippet)</h3>
-        <p style="font-size: 0.82rem; color: var(--text-muted); margin-bottom: 10px;">
-            Attach any company web server (Nginx / Node / Flask) behind MIRAGE Shield in 2 lines:
-        </p>
-        <pre style="background: var(--bg-darker); border: 1px solid var(--border); border-radius: 6px; padding: 12px; font-size: 0.78rem; color: var(--neon-green); overflow-x: auto;"># Nginx Reverse Proxy Extension
-location / {
-    proxy_pass http://127.0.0.1:8443;
-    proxy_set_header X-Forwarded-For $remote_addr;
-}</pre>
-        <p style="font-size: 0.78rem; color: var(--text-muted); margin-top: 10px;">
-            Or launch directly via CLI: <code style="color: var(--neon-cyan);">python run_shield.py --target https://your-site.com</code>
-        </p>
-    </div>
-</div>
-
-<!-- Blocked IPs Bar -->
-<div class="card full-width" style="margin-bottom: 20px;">
-    <h3 style="margin-bottom: 10px;"><i class="fa-solid fa-ban"></i> Shield Active IP Blocks</h3>
-    <div id="sh-blocked-list" style="display: flex; gap: 8px; flex-wrap: wrap;">
-        <span style="color: var(--text-muted); font-size: 0.85rem;">No IPs currently blocked by Shield.</span>
-    </div>
-</div>
-
-<!-- Live Decisions & Captured Credentials Tables -->
-<div class="tables-grid">
-    <div class="table-card">
-        <h3><i class="fa-solid fa-radar"></i> Live Proxy Traffic Decisions</h3>
-        <table>
-            <thead>
-                <tr><th>Time</th><th>Client IP</th><th>Path</th><th>Score</th><th>Decision</th></tr>
-            </thead>
-            <tbody id="sh-recent-table">
-                <tr><td colspan="5" style="text-align:center; color: var(--text-muted);">No Shield traffic recorded yet. Click a Test button above or browse port :8443!</td></tr>
-            </tbody>
-        </table>
-    </div>
-    <div class="table-card">
-        <h3><i class="fa-solid fa-user-secret"></i> Clone-Captured Credentials</h3>
-        <table>
-            <thead>
-                <tr><th>Time</th><th>IP</th><th>Username</th><th>Password</th></tr>
-            </thead>
-            <tbody id="sh-creds-table">
-                <tr><td colspan="4" style="text-align:center; color: var(--text-muted);">No credentials captured in clone yet.</td></tr>
-            </tbody>
-        </table>
-    </div>
-</div>
 {% endblock %}
 
 {% block scripts %}
 <script>
-let shieldChart = null;
-
-function initShieldChart() {
-    const ctx = document.getElementById('shieldDecisionChart');
-    if (!ctx) return;
-    shieldChart = new Chart(ctx, {
-        type: 'doughnut',
-        data: {
-            labels: ['Allowed (Real Site)', 'Diverted (Honeypot Clone)', 'Blocked (403)'],
-            datasets: [{
-                data: [0, 0, 0],
-                backgroundColor: ['#00ff41', '#ffcc00', '#ff4444'],
-                borderColor: '#161b22',
-                borderWidth: 2
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: { legend: { position: 'bottom', labels: { color: '#c9d1d9' } } }
-        }
-    });
-}
-
 function showFeedback(text) {
     const box = document.getElementById('shield-feedback');
     box.textContent = text;
     box.style.display = 'block';
+}
+
+function setCloneActionsEnabled(enabled, previewHref, dashboardUrl) {
+    const previewLink = document.getElementById('preview-clone-link');
+    const purgeBtn = document.getElementById('btn-shield-purge');
+    const dashBtn = document.getElementById('btn-shield-site-dash');
+
+    if (previewLink) {
+        previewLink.href = enabled && previewHref ? previewHref : '#';
+        previewLink.setAttribute('aria-disabled', enabled ? 'false' : 'true');
+        previewLink.style.pointerEvents = enabled ? 'auto' : 'none';
+        previewLink.style.opacity = enabled ? '1' : '0.4';
+        previewLink.style.cursor = enabled ? 'pointer' : 'not-allowed';
+        if (enabled) {
+            previewLink.setAttribute('target', '_blank');
+            previewLink.title = 'Open cloned deception portal';
+        } else {
+            previewLink.removeAttribute('target');
+            previewLink.title = 'Clone a website first to enable preview';
+        }
+    }
+    if (purgeBtn) {
+        purgeBtn.disabled = !enabled;
+        purgeBtn.setAttribute('aria-disabled', enabled ? 'false' : 'true');
+        purgeBtn.style.opacity = enabled ? '1' : '0.4';
+        purgeBtn.style.cursor = enabled ? 'pointer' : 'not-allowed';
+    }
+    if (dashBtn && dashboardUrl) {
+        dashBtn.href = dashboardUrl;
+    }
 }
 
 function cloneTargetSite() {
@@ -190,9 +147,11 @@ function cloneTargetSite() {
     .then(res => {
         if (res.success) {
             document.getElementById('shield-target-label').textContent = res.target_url;
-            document.getElementById('shield-mode-label').textContent = res.clone_status?.mode || 'cloned';
-            const previewLink = document.getElementById('preview-clone-link');
-            if (previewLink) previewLink.href = res.preview_url || ('/portal/' + encodeURIComponent(res.clone_status?.domain || ''));
+            const mode = res.clone_status?.mode || 'cloned';
+            document.getElementById('shield-mode-label').textContent = mode;
+            const previewUrl = res.preview_url || ('/portal/' + encodeURIComponent(res.clone_status?.domain || ''));
+            setCloneActionsEnabled(true, previewUrl, res.dashboard_url || '/sites');
+
             if (res.dashboard_url) {
                 if (window.MirageSiteSync && res.site) {
                     window.MirageSiteSync.saveSite(res.site);
@@ -222,11 +181,6 @@ function purgeShieldTelemetry() {
         });
 }
 
-function unblockShieldIP(ip) {
-    fetch('/api/shield/unblock/' + encodeURIComponent(ip), { method: 'POST' })
-        .then(() => refreshShieldData());
-}
-
 function refreshShieldData() {
     fetch('/api/shield/stats')
         .then(r => r.json())
@@ -237,43 +191,15 @@ function refreshShieldData() {
             document.getElementById('sh-blocked').textContent = data.blocked;
             document.getElementById('sh-creds').textContent = data.credentials_captured;
 
-            if (shieldChart) {
-                shieldChart.data.datasets[0].data = [data.allowed, data.redirected, data.blocked];
-                shieldChart.update();
-            }
-
-            const blockedDiv = document.getElementById('sh-blocked-list');
-            const ips = data.analyzer?.blocked_ip_list || [];
-            blockedDiv.innerHTML = ips.length
-                ? ips.map(ip => `<span class="badge badge-critical" style="display:inline-flex;align-items:center;gap:8px;padding:6px 12px;">${ip} <button onclick="unblockShieldIP('${ip}')" style="background:none;border:none;color:#fff;cursor:pointer;font-weight:bold;">✕</button></span>`).join('')
-                : '<span style="color: var(--text-muted); font-size: 0.85rem;">No IPs currently blocked by Shield.</span>';
-
-            const recentTbody = document.getElementById('sh-recent-table');
-            const recent = data.recent || [];
-            if (recent.length) {
-                recentTbody.innerHTML = recent.slice(0, 12).map(r => {
-                    const t = new Date(r.timestamp * 1000).toLocaleTimeString();
-                    const cls = r.decision === 'BLOCK' ? 'badge-critical' : (r.decision === 'REDIRECT' ? 'badge-suspicious' : 'badge-scanner');
-                    return `<tr><td>${t}</td><td><a href="/attacker/${r.ip}" style="color:var(--neon-cyan);">${r.ip}</a></td><td><code>${r.path}</code></td><td><strong>${r.score}</strong></td><td><span class="badge ${cls}">${r.decision}</span></td></tr>`;
-                }).join('');
-            } else {
-                recentTbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color: var(--text-muted);">No Shield traffic recorded yet. Waiting for real traffic...</td></tr>';
-            }
-
-            const credsTbody = document.getElementById('sh-creds-table');
-            const creds = data.credentials || [];
-            if (creds.length) {
-                credsTbody.innerHTML = creds.slice(0, 10).map(c =>
-                    `<tr><td>${c.timestamp}</td><td><code>${c.ip}</code></td><td style="color:var(--neon-purple);">${c.username}</td><td style="color:var(--neon-red);">${c.password}</td></tr>`
-                ).join('');
-            } else {
-                credsTbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color: var(--text-muted);">No credentials captured in clone yet.</td></tr>';
-            }
+            const mode = data.clone_status?.mode || 'uninitialized';
+            document.getElementById('shield-mode-label').textContent = mode;
+            const isCloned = Boolean(mode && mode !== 'uninitialized');
+            const previewHref = data.clone_status?.domain ? ('/portal/' + encodeURIComponent(data.clone_status.domain)) : '';
+            setCloneActionsEnabled(isCloned, previewHref);
         });
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-    initShieldChart();
     refreshShieldData();
     setInterval(refreshShieldData, 4000);
 });

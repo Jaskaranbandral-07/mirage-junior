@@ -138,6 +138,23 @@ protect_flask_app(
     </div>
 </div>
 
+<!-- Site Active IP Blocks (Per-Website Quarantine) -->
+<div class="card full-width" style="margin-bottom: 20px;">
+    <h3 style="margin-bottom: 10px;"><i class="fa-solid fa-ban" style="color: var(--neon-red);"></i> Active IP Blocks for {{ site.domain }}</h3>
+    <div id="sd-blocked-list" style="display: flex; gap: 8px; flex-wrap: wrap;">
+        {% if site_data.active_quarantines %}
+            {% for q in site_data.active_quarantines %}
+            <span class="badge badge-critical" style="display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px;">
+                {{ q.ip_address }} ({{ q.threat_score or 100 }} pts)
+                <button onclick="unblockSiteIP('{{ q.ip_address }}')" style="background: none; border: none; color: #fff; cursor: pointer; font-weight: bold;" title="Unblock IP">&times;</button>
+            </span>
+            {% endfor %}
+        {% else %}
+        <span style="color: var(--text-muted); font-size: 0.85rem;">No IPs currently quarantined for {{ site.domain }}.</span>
+        {% endif %}
+    </div>
+</div>
+
 <!-- Isolated Events & Credentials Tables -->
 <div class="tables-grid">
     <div class="table-card">
@@ -275,6 +292,14 @@ function clearSiteData() {
         });
 }
 
+function unblockSiteIP(ip) {
+    fetch('/api/unblock/' + encodeURIComponent(ip), { method: 'POST' })
+        .then(() => {
+            showSiteToast(`Unblocked IP ${ip}.`);
+            refreshSiteDashboard();
+        });
+}
+
 function refreshSiteDashboard() {
     fetch(`/api/site/${SITE_ID}/stats`)
         .then(r => r.json())
@@ -318,6 +343,14 @@ function refreshSiteDashboard() {
                 }).join('');
             } else {
                 crBody.innerHTML = '<tr><td colspan="4" class="text-muted" style="text-align:center;">No credentials trapped on this site yet.</td></tr>';
+            }
+
+            const blkDiv = document.getElementById('sd-blocked-list');
+            if (blkDiv) {
+                const blks = data.active_quarantines || [];
+                blkDiv.innerHTML = blks.length
+                    ? blks.map(q => `<span class="badge badge-critical" style="display:inline-flex;align-items:center;gap:8px;padding:6px 12px;">${q.ip_address} (${q.threat_score || 100} pts) <button onclick="unblockSiteIP('${q.ip_address}')" style="background:none;border:none;color:#fff;cursor:pointer;font-weight:bold;" title="Unblock IP">&times;</button></span>`).join('')
+                    : `<span style="color: var(--text-muted); font-size: 0.85rem;">No IPs currently quarantined for ${SITE_DOMAIN}.</span>`;
             }
         });
 }
