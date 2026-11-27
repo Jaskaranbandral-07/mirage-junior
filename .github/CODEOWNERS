@@ -1,0 +1,49 @@
+# =====================================================================
+# MIRAGE Junior — GitHub Code Ownership & 2-Developer Division
+# =====================================================================
+# Automatically displays module ownership on GitHub & routes PR reviews.
+
+# Default project leads
+* @Jaskaranbandral-07 @2024A7R009
+
+# ---------------------------------------------------------------------
+# 1. Jaskaran Bandral (@Jaskaranbandral-07) — Team Lead (Advanced Core)
+#    Deception Engines, Threat Scoring, Firewall Quarantine, SSH/FTP/HTTP
+#    Traps, Watchdog, MIRAGE Shield Proxy, Chrome Extension & Middleware
+# ---------------------------------------------------------------------
+/honeypots/                         @Jaskaranbandral-07
+/engine/                            @Jaskaranbandral-07
+/database/                          @Jaskaranbandral-07
+/config/                            @Jaskaranbandral-07
+/mirage_shield/                     @Jaskaranbandral-07
+/chrome_extension/                  @Jaskaranbandral-07
+/main.py                            @Jaskaranbandral-07
+/run_shield.py                      @Jaskaranbandral-07
+/requirements.txt                   @Jaskaranbandral-07
+/sync_and_deploy.bat                @Jaskaranbandral-07
+/College_PRD.md                     @Jaskaranbandral-07
+
+# ---------------------------------------------------------------------
+# 2. Relish Sharma (@2024A7R009) — UI, Alerts, Bait & Deployment (Easy)
+#    HTML/CSS Views, Chart.js, Demo Seeder, Telegram Alert Helper,
+#    Static Bait Decoys, Core Unit Tests, Presentations & Vercel Config
+# ---------------------------------------------------------------------
+/dashboard/                         @2024A7R009
+/engine/alert_manager.py            @2024A7R009
+/bait/                              @2024A7R009
+/ftp_root/                          @2024A7R009
+/tests/                             @2024A7R009
+/vercel_app.py                      @2024A7R009
+/vercel.json                        @2024A7R009
+/presentation.html                  @2024A7R009
+/progress_tracker.html              @2024A7R009
+/MASTER_PROJECT_EXPLANATION.md      @2024A7R009
+/MIRAGE_Junior_Project_Explanation.pdf   @2024A7R009
+/MIRAGE_Junior_Project_Presentation.pptx @2024A7R009
+
+# Backend-heavy dashboard routes & Shield integration (Lead: Jaskaran)
+/tests/test_shield.py               @Jaskaranbandral-07
+/dashboard/templates/shield.html    @Jaskaranbandral-07
+/dashboard/routes.py                @Jaskaranbandral-07 @2024A7R009
+/README.md                          @Jaskaranbandral-07 @2024A7R009
+/CONTRIBUTORS.md                    @Jaskaranbandral-07 @2024A7R009

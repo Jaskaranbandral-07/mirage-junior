@@ -4,7 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>{% block title %}MIRAGE Junior Dashboard{% endblock %}</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='img/mirage-junior-favicon.png') }}?v=2">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=2">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
@@ -12,7 +13,7 @@
     <!-- Mobile Cyber Top App-Bar (Visible on phones) -->
     <div class="mobile-top-bar">
         <div class="mobile-brand">
-            <i class="fa-solid fa-shield-halved"></i>
+            <img src="{{ url_for('static', filename='img/mirage-junior-logo.png') }}?v=2" alt="MIRAGE Jr" class="brand-logo-sm">
             <span>MIRAGE <span class="neon-text">Jr</span></span>
         </div>
         <div class="mobile-top-right">
@@ -26,7 +27,8 @@
     <!-- Desktop Sidebar (Hidden on mobile) -->
     <aside class="sidebar">
         <div class="logo">
-            <h2><i class="fa-solid fa-shield-halved"></i> MIRAGE <span style="color:var(--neon-green)">Jr</span></h2>
+            <img src="{{ url_for('static', filename='img/mirage-junior-logo.png') }}?v=2" alt="MIRAGE Junior Logo" class="sidebar-logo-img">
+            <h2>MIRAGE <span style="color:var(--neon-green)">Jr</span></h2>
             <div class="sys-badge"><span class="badge-dot"></span> DECEPTION ACTIVE</div>
         </div>
         <nav>
@@ -61,7 +63,7 @@
     <div class="mobile-drawer" id="mobileDrawer">
         <div class="mobile-drawer-header">
             <div class="mobile-brand">
-                <i class="fa-solid fa-shield-halved"></i>
+                <img src="{{ url_for('static', filename='img/mirage-junior-logo.png') }}?v=2" alt="MIRAGE Jr" class="brand-logo-sm">
                 <span>MIRAGE <span class="neon-text">Jr</span></span>
             </div>
             <button class="mobile-drawer-close" id="mobileDrawerCloseBtn" aria-label="Close Navigation Menu">
@@ -153,7 +155,10 @@
     <!-- Main Content Area -->
     <div class="main-content">
         <header class="desktop-header">
-            <h1>{% block header_title %}Dashboard{% endblock %}</h1>
+            <div class="desktop-header-brand">
+                <img src="{{ url_for('static', filename='img/mirage-junior-logo.png') }}?v=2" alt="MIRAGE Jr Crest" class="header-crest-img">
+                <h1>{% block header_title %}Dashboard{% endblock %}</h1>
+            </div>
             <div class="live-indicator"><span class="pulse"></span> LIVE MONITORING</div>
         </header>
 

@@ -39,13 +39,17 @@ cd /d "%SYNC_DIR%"
 git config user.name "Jaskaran Bandral"
 git config user.email "144834411+Jaskaranbandral-07@users.noreply.github.com"
 
-echo [4/5] Removing any old tracked fake DB from GitHub & committing...
+echo [4/5] Removing any old tracked fake DB / pycache from GitHub & committing...
 git rm -f --cached --ignore-unmatch database/mirage_junior.db database/geo_cache.json >nul 2>&1
+for /f "delims=" %%F in ('git ls-files "*__pycache__*"') do git rm -f --cached --ignore-unmatch "%%F" >nul 2>&1
 if exist "%SYNC_DIR%\database\mirage_junior.db" del /f /q "%SYNC_DIR%\database\mirage_junior.db"
+set "COMMIT_MSG=%~1"
+if "%COMMIT_MSG%"=="" set "COMMIT_MSG=chore: sync MIRAGE Junior updates"
+
 git add -A
 git diff --cached --quiet
 if errorlevel 1 (
-    git commit -m "feat: disable fake demo seeding and enable real-time web trap capture"
+    git commit -m "%COMMIT_MSG%"
 ) else (
     echo Nothing new to commit - already up to date.
 )

@@ -1,5 +1,11 @@
 <div align="center">
 
+<p align="center">
+  <img src="dashboard/static/img/mirage-junior-logo.png" alt="MIRAGE Junior Logo" width="128" style="border-radius:16px;" />
+  &nbsp;&nbsp;&nbsp;&nbsp;
+  <img src="dashboard/static/img/mirage-shield-logo.png" alt="MIRAGE Shield Extension Logo" width="128" style="border-radius:16px;" />
+</p>
+
 # 🛡️ MIRAGE Junior — Intelligent Deception Network
 ### *Next-Generation Lightweight Honeypot with Behavioral Threat Scoring & Auto-Quarantine*
 
@@ -237,7 +243,7 @@ mirage-junior/
 │   ├── routes.py             # Route handlers & pagination (10 per page)
 │   ├── demo_data.py          # Realistic attack telemetry generator
 │   ├── templates/            # 8 dark-themed cyber UI views (including MIRAGE Shield)
-│   └── static/               # Neon dark-mode stylesheet & Chart.js scripts
+│   └── static/               # Neon dark-mode stylesheet, Chart.js scripts & sci-fi logos
 │
 ├── mirage_shield/            # NEW: Deception-as-a-Service Website Middleware
 │   ├── config.py             # Shield proxy ports, thresholds, & attack signatures
@@ -248,10 +254,14 @@ mirage-junior/
 │   └── templates/            # Standalone Shield Command Center UI
 │
 ├── chrome_extension/         # NEW: Chrome Extension ("Protect This Website" popup)
+│   ├── icons/                # Sci-fi extension icons (16x16, 48x48, 128x128)
 │   ├── manifest.json         # Manifest V3 Chrome extension config
 │   ├── popup.html            # Dark-theme extension UI
 │   ├── popup.css             # Extension styles
 │   └── popup.js              # Clones active browser tab URL via Shield APIs
+│
+├── .github/
+│   └── CODEOWNERS            # GitHub native 2-developer ownership rules
 │
 ├── database/
 │   ├── db_setup.py           # Schema DDL, indexes, and WAL configuration
@@ -270,12 +280,15 @@ mirage-junior/
 
 ---
 
-## 👥 Contributors & Team Division
+## 👥 Contributors & GitHub Build Division
 
-| Contributor | Role | Core Modules |
+Ownership is tracked in [`.github/CODEOWNERS`](.github/CODEOWNERS) and [`CONTRIBUTORS.md`](CONTRIBUTORS.md) across two dedicated workstreams:
+
+| Contributor | GitHub & Branch | Owned Modules & Files |
 | :--- | :--- | :--- |
-| **[Jaskaran Bandral](https://github.com/Jaskaranbandral-07)** | **Team Leader** (Backend & Core Engine) | Honeypot Traps (SSH/HTTP/FTP), Scoring Engine, Quarantine, GeoIP, DB Schema, PRD |
-| **[Relish Sharma](https://github.com/2024A7R009)** | **Teammate** (Dashboard, UI & Deploy) | Analytics Dashboard, Dynamic Templates, Chart.js, Alerts, Vercel Deployment |
+| **[Jaskaran Bandral](https://github.com/Jaskaranbandral-07)** *(Team Leader — Advanced Core)* | `@Jaskaranbandral-07`<br>`feature/backend-core` | **Advanced Security Systems & Middleware:** `honeypots/` (HTTP/SSH/FTP), `engine/` (`scoring_engine.py`, `quarantine.py`, `geo_enricher.py`, `mitre_tagger.py`, `honeytoken_monitor.py`), `database/`, `config/`, `mirage_shield/`, `chrome_extension/`, `main.py`, `run_shield.py`, `dashboard/routes.py` (live threat capture & proxy routing), `dashboard/templates/shield.html`, `tests/test_shield.py`, `College_PRD.md` |
+| **[Relish Sharma](https://github.com/2024A7R009)** *(Teammate — UI, Alerts & Deploy)* | `@2024A7R009`<br>`feature/dashboard-ui` | **Frontend UI, Helpers & Presentation:** `dashboard/` (`app.py`, HTML templates, CSS, `charts.js`, `timeline.js`, `demo_data.py`), `engine/alert_manager.py`, `bait/`, `ftp_root/`, `tests/test_{scoring,honeytokens,attack}.py`, `vercel_app.py`, `vercel.json`, `presentation.html`, `progress_tracker.html`, `MASTER_PROJECT_EXPLANATION.md`, `*.pdf`, `*.pptx` |
+| **Shared Docs** | `main` | `README.md`, `CONTRIBUTORS.md`, `.github/CODEOWNERS` |
 
 ---
 

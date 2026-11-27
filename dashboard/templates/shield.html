@@ -6,13 +6,17 @@
 <!-- Top Target Control & Simulator Bar -->
 <div class="card full-width" style="margin-bottom: 20px;">
     <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 16px;">
-        <div>
-            <h3 style="margin-bottom: 4px; color: var(--neon-cyan);">
-                <i class="fa-solid fa-shield-halved"></i> Deception-as-a-Service Middleware (Port :8443)
-            </h3>
-            <p style="font-size: 0.85rem; color: var(--text-muted);">
-                Point MIRAGE Shield at any website: legitimate users pass safely to the real site, while attackers are silently diverted into a cloned honeypot &amp; blocked.
-            </p>
+        <div style="display: flex; align-items: center; gap: 14px;">
+            <img src="{{ url_for('static', filename='img/mirage-shield-logo.png') }}?v=2" alt="MIRAGE Shield"
+                 style="width: 52px; height: 52px; border-radius: 12px; border: 1px solid rgba(0, 212, 255, 0.4); box-shadow: 0 0 14px rgba(0, 212, 255, 0.22); object-fit: cover;">
+            <div>
+                <h3 style="margin-bottom: 4px; color: var(--neon-cyan);">
+                    Deception-as-a-Service Middleware (Port :8443)
+                </h3>
+                <p style="font-size: 0.85rem; color: var(--text-muted);">
+                    Point MIRAGE Shield at any website: legitimate users pass safely to the real site, while attackers are silently diverted into a cloned honeypot &amp; blocked.
+                </p>
+            </div>
         </div>
         <div style="display: flex; gap: 10px; align-items: center;">
             <a id="preview-clone-link" href="/portal/{{ shield_stats.clone_status.domain }}" target="_blank" class="btn btn-primary" style="text-decoration: none;">

@@ -42,11 +42,17 @@ body {
 .brand {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
 }
 
-.shield-icon {
-  font-size: 22px;
+.shield-logo {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  border: 1px solid rgba(0, 212, 255, 0.45);
+  box-shadow: 0 0 12px rgba(0, 212, 255, 0.25), 0 0 8px rgba(0, 255, 65, 0.15);
+  object-fit: cover;
+  flex-shrink: 0;
 }
 
 .header h1 {

@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MIRAGE Shield — Deception-as-a-Service Proxy</title>
+    <link rel="icon" type="image/png" href="/mirage-shield/brand/logo.png?v=2">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
@@ -143,11 +144,15 @@
 </head>
 <body>
     <div class="header">
-        <div>
-            <h1><i class="fa-solid fa-shield-halved"></i> MIRAGE <span>Shield</span> — Deception Middleware</h1>
-            <div class="sub-meta">
-                Protected Website: <strong id="target-display" style="color:#fff;">{{ target }}</strong>
-                &nbsp;|&nbsp; Mode: <span id="clone-mode-badge">{{ clone_status.mode }}</span>
+        <div style="display:flex; align-items:center; gap:14px;">
+            <img src="/mirage-shield/brand/logo.png?v=2" alt="MIRAGE Shield Logo"
+                 style="width:46px; height:46px; border-radius:10px; border:1px solid rgba(0,212,255,0.45); box-shadow:0 0 14px rgba(0,212,255,0.25); object-fit:cover;">
+            <div>
+                <h1>MIRAGE <span>Shield</span> — Deception Middleware</h1>
+                <div class="sub-meta">
+                    Protected Website: <strong id="target-display" style="color:#fff;">{{ target }}</strong>
+                    &nbsp;|&nbsp; Mode: <span id="clone-mode-badge">{{ clone_status.mode }}</span>
+                </div>
             </div>
         </div>
         <div style="display:flex; gap:10px; align-items:center;">

@@ -151,6 +151,18 @@ class ShieldProxy:
                 inspect_localhost=self.analyzer.inspect_localhost,
             )
 
+        @app.route("/mirage-shield/brand/logo.png")
+        def shield_brand_logo():
+            root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            for rel in (
+                os.path.join("dashboard", "static", "img", "mirage-shield-logo.png"),
+                os.path.join("chrome_extension", "icons", "icon128.png"),
+            ):
+                p = os.path.join(root_dir, rel)
+                if os.path.exists(p):
+                    return send_file(p, mimetype="image/png")
+            return Response("Logo not found", status=404)
+
         @app.route("/mirage-shield/assets/<path:filename>")
         def shield_asset(filename):
             asset_path = self.cloner.resolve_asset_path(filename)

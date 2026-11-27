@@ -54,9 +54,44 @@ body {
 }
 
 .logo {
-    padding: 24px 20px;
+    padding: 20px 20px 18px;
     border-bottom: 1px solid var(--border);
     text-align: center;
+}
+
+.sidebar-logo-img {
+    width: 68px;
+    height: 68px;
+    border-radius: 14px;
+    border: 1px solid rgba(0, 212, 255, 0.35);
+    box-shadow: 0 0 18px rgba(0, 255, 65, 0.16), 0 0 14px rgba(0, 212, 255, 0.18);
+    object-fit: cover;
+    margin-bottom: 10px;
+}
+
+.brand-logo-sm {
+    width: 28px;
+    height: 28px;
+    border-radius: 7px;
+    border: 1px solid rgba(0, 212, 255, 0.4);
+    box-shadow: 0 0 10px rgba(0, 255, 65, 0.2);
+    object-fit: cover;
+}
+
+.desktop-header-brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.header-crest-img {
+    width: 38px;
+    height: 38px;
+    border-radius: 9px;
+    border: 1px solid rgba(0, 212, 255, 0.4);
+    box-shadow: 0 0 12px rgba(0, 255, 65, 0.18), 0 0 10px rgba(0, 212, 255, 0.18);
+    object-fit: cover;
+    flex-shrink: 0;
 }
 
 .logo h2 {
@@ -709,6 +744,9 @@ footer {
 
 @media (max-width: 900px) {
     .sidebar { width: 72px; min-width: 72px; }
+    .logo { padding: 14px 8px; }
+    .sidebar-logo-img { width: 42px; height: 42px; border-radius: 10px; margin-bottom: 6px; }
+    .logo h2 { font-size: 0.78rem; }
     .logo h2 span, .sys-badge, .sidebar-footer, nav a span { display: none; }
     nav a { justify-content: center; padding: 14px 0; }
     .stats-grid { grid-template-columns: repeat(2, 1fr); }
