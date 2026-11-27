@@ -3,9 +3,9 @@
     "login_attempt": 8,
     "brute_force": 10,
     "lateral_scan": 15,
-    "targeted_recon": 20,
+    "targeted_recon": 25,
     "shell_access": 15,
-    "shell_command": 5,
+    "shell_command": 25,
     "honeytoken_trigger": 25,
     "repeat_visit": 10,
     "cat_passwd": 10,
@@ -13,7 +13,8 @@
     "file_access": 10,
     "scan": 5,
     "default_credentials": 8,
-    "sql_injection": 20,
-    "directory_traversal": 15,
+    "sql_injection": 25,
+    "directory_traversal": 25,
+    "credential_harvest": 25,
     "honeytoken_access": 30
 }

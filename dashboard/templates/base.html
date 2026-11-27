@@ -32,10 +32,7 @@
             <div class="sys-badge"><span class="badge-dot"></span> DECEPTION WAF ACTIVE</div>
         </div>
         <nav>
-            <a href="/" class="nav-link {{ 'active' if request.path == '/' else '' }}">
-                <i class="fa-solid fa-chart-line"></i> <span>Overview</span>
-            </a>
-            <a href="/sites" class="nav-link {{ 'active' if request.path == '/sites' or request.path.startswith('/site/') else '' }}">
+            <a href="/sites" class="nav-link {{ 'active' if request.path in ('/', '/sites') or request.path.startswith('/site/') else '' }}">
                 <i class="fa-solid fa-layer-group"></i> <span>Protected Sites</span>
             </a>
             <a href="/shield" class="nav-link {{ 'active' if request.path == '/shield' else '' }}">
@@ -91,15 +88,7 @@
 
         <div class="mobile-drawer-section-title">Navigation Options</div>
         <nav class="mobile-drawer-nav">
-            <a href="/" class="drawer-nav-item {{ 'active' if request.path == '/' else '' }}">
-                <div class="nav-icon-box"><i class="fa-solid fa-chart-line"></i></div>
-                <div class="nav-text-box">
-                    <strong>Overview</strong>
-                    <small>Global deception metrics & visual charts</small>
-                </div>
-                <i class="fa-solid fa-chevron-right arrow-icon"></i>
-            </a>
-            <a href="/sites" class="drawer-nav-item {{ 'active' if request.path == '/sites' or request.path.startswith('/site/') else '' }}">
+            <a href="/sites" class="drawer-nav-item {{ 'active' if request.path in ('/', '/sites') or request.path.startswith('/site/') else '' }}">
                 <div class="nav-icon-box"><i class="fa-solid fa-layer-group"></i></div>
                 <div class="nav-text-box">
                     <strong>Protected Sites</strong>
@@ -184,10 +173,15 @@
 
     <!-- Futuristic Cyber Floating Bottom Navigation Dock (Phones Only) -->
     <nav class="mobile-bottom-nav">
-        <a href="/" class="bottom-nav-item {{ 'active' if request.path == '/' else '' }}">
-            <div class="bottom-icon"><i class="fa-solid fa-chart-line"></i></div>
-            <span>Overview</span>
-            {% if request.path == '/' %}<span class="active-dot"></span>{% endif %}
+        <a href="/sites" class="bottom-nav-item {{ 'active' if request.path in ('/', '/sites') or request.path.startswith('/site/') else '' }}">
+            <div class="bottom-icon"><i class="fa-solid fa-layer-group"></i></div>
+            <span>Sites</span>
+            {% if request.path in ('/', '/sites') or request.path.startswith('/site/') %}<span class="active-dot"></span>{% endif %}
+        </a>
+        <a href="/shield" class="bottom-nav-item {{ 'active' if request.path == '/shield' else '' }}">
+            <div class="bottom-icon"><i class="fa-solid fa-mask"></i></div>
+            <span>Shield</span>
+            {% if request.path == '/shield' %}<span class="active-dot"></span>{% endif %}
         </a>
         <a href="/attacks" class="bottom-nav-item {{ 'active' if request.path == '/attacks' else '' }}">
             <div class="bottom-icon"><i class="fa-solid fa-bolt"></i></div>
@@ -198,16 +192,6 @@
             <div class="bottom-icon"><i class="fa-solid fa-shield-halved"></i></div>
             <span>Quarantine</span>
             {% if request.path == '/quarantine' %}<span class="active-dot"></span>{% endif %}
-        </a>
-        <a href="/sites" class="bottom-nav-item {{ 'active' if request.path == '/sites' or request.path.startswith('/site/') else '' }}">
-            <div class="bottom-icon"><i class="fa-solid fa-layer-group"></i></div>
-            <span>Sites</span>
-            {% if request.path == '/sites' or request.path.startswith('/site/') %}<span class="active-dot"></span>{% endif %}
-        </a>
-        <a href="/shield" class="bottom-nav-item {{ 'active' if request.path == '/shield' else '' }}">
-            <div class="bottom-icon"><i class="fa-solid fa-mask"></i></div>
-            <span>Shield</span>
-            {% if request.path == '/shield' %}<span class="active-dot"></span>{% endif %}
         </a>
         <a href="/settings" class="bottom-nav-item {{ 'active' if request.path == '/settings' else '' }}">
             <div class="bottom-icon"><i class="fa-solid fa-sliders"></i></div>
@@ -247,6 +231,7 @@
         });
     </script>
     <script src="{{ url_for('static', filename='js/site_sync.js') }}?v=1"></script>
+    <script src="{{ url_for('static', filename='js/attack_inspector.js') }}?v=1"></script>
     {% block scripts %}{% endblock %}
 </body>
 </html>

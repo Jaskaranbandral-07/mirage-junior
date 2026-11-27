@@ -116,6 +116,7 @@ protect_flask_app(
             <button onclick="testAbsorb('api_scrape')" class="btn btn-warning" style="font-size: 0.78rem;"><i class="fa-solid fa-spider"></i> API Scrape Bait</button>
             <button onclick="testAbsorb('rce')" class="btn" style="font-size: 0.78rem; background: rgba(188,140,255,0.16); color: var(--neon-purple); border: 1px solid rgba(188,140,255,0.4);"><i class="fa-solid fa-terminal"></i> RCE Shell Trap</button>
             <button onclick="testAbsorb('traversal')" class="btn btn-primary" style="font-size: 0.78rem;"><i class="fa-solid fa-folder-tree"></i> Traversal Bait</button>
+            <button onclick="testAbsorb('cred_trap')" class="btn" style="font-size: 0.78rem; background: rgba(0,255,65,0.14); color: var(--neon-green); border: 1px solid rgba(0,255,65,0.35);"><i class="fa-solid fa-key"></i> Cred Login Trap</button>
         </div>
         <pre id="fake-preview-box" style="background: var(--bg-darker); border: 1px solid var(--border); border-radius: 6px; padding: 10px; font-size: 0.74rem; color: var(--neon-cyan); max-height: 150px; overflow: auto;">Click any probe button above to inspect the useless synthetic data fed to attackers...</pre>
     </div>
@@ -143,7 +144,7 @@ protect_flask_app(
         <h3><i class="fa-solid fa-shield-virus"></i> Attacks Absorbed on {{ site.domain }}</h3>
         <table>
             <thead>
-                <tr><th>Time</th><th>IP</th><th>Event</th><th>MITRE</th><th>Score</th></tr>
+                <tr><th>Time</th><th>IP</th><th>Event</th><th>MITRE</th><th>Score</th><th>Method &amp; Code</th></tr>
             </thead>
             <tbody id="sd-events-body">
                 {% for e in site_data.recent_events %}
@@ -153,9 +154,14 @@ protect_flask_app(
                     <td>{{ e.event_type }}</td>
                     <td><code>{{ e.mitre_id or '-' }}</code></td>
                     <td><span class="badge {{ 'badge-critical' if e.classification == 'CRITICAL' else 'badge-suspicious' }}">{{ e.threat_score or e.threat_pts }}</span></td>
+                    <td>
+                        <button onclick="inspectSiteEvent({{ loop.index0 }})" class="btn" style="padding: 3px 9px; font-size: 0.74rem; background: rgba(0,212,255,0.12); color: var(--neon-cyan); border: 1px solid rgba(0,212,255,0.35);">
+                            <i class="fa-solid fa-code"></i> Inspect
+                        </button>
+                    </td>
                 </tr>
                 {% else %}
-                <tr><td colspan="5" class="text-muted" style="text-align: center;">No attacks absorbed for this website yet.</td></tr>
+                <tr><td colspan="6" class="text-muted" style="text-align: center;">No attacks absorbed for this website yet.</td></tr>
                 {% endfor %}
             </tbody>
         </table>
@@ -200,6 +206,14 @@ const SDK_SNIPPETS = {
 
 let threatChart = null;
 let mitreChart = null;
+window._sdEventsCache = {{ site_data.recent_events | tojson }};
+
+function inspectSiteEvent(idx) {
+    const ev = (window._sdEventsCache || [])[idx];
+    if (ev && window.MirageAttackInspector) {
+        window.MirageAttackInspector.open(ev);
+    }
+}
 
 function showSdkTab(kind, btn) {
     document.getElementById('sdk-code-box').textContent = SDK_SNIPPETS[kind] || '';
@@ -285,13 +299,15 @@ function refreshSiteDashboard() {
 
             const evBody = document.getElementById('sd-events-body');
             if (data.recent_events && data.recent_events.length) {
-                evBody.innerHTML = data.recent_events.slice(0, 15).map(e => {
+                window._sdEventsCache = data.recent_events.slice(0, 15);
+                evBody.innerHTML = window._sdEventsCache.map((e, idx) => {
                     const t = (e.timestamp || '').slice(11, 19) || e.timestamp;
                     const cls = e.classification === 'CRITICAL' ? 'badge-critical' : 'badge-suspicious';
-                    return `<tr><td>${t}</td><td><a href="/attacker/${e.ip_address}" style="color:var(--neon-cyan);">${e.ip_address}</a></td><td>${e.event_type}</td><td><code>${e.mitre_id || '-'}</code></td><td><span class="badge ${cls}">${e.threat_score || e.threat_pts || 0}</span></td></tr>`;
+                    return `<tr><td>${t}</td><td><a href="/attacker/${e.ip_address}" style="color:var(--neon-cyan);">${e.ip_address}</a></td><td>${e.event_type}</td><td><code>${e.mitre_id || '-'}</code></td><td><span class="badge ${cls}">${e.threat_score || e.threat_pts || 0}</span></td><td><button onclick="inspectSiteEvent(${idx})" class="btn" style="padding:3px 9px;font-size:0.74rem;background:rgba(0,212,255,0.12);color:var(--neon-cyan);border:1px solid rgba(0,212,255,0.35);"><i class="fa-solid fa-code"></i> Inspect</button></td></tr>`;
                 }).join('');
             } else {
-                evBody.innerHTML = '<tr><td colspan="5" class="text-muted" style="text-align:center;">No attacks absorbed for this website yet.</td></tr>';
+                window._sdEventsCache = [];
+                evBody.innerHTML = '<tr><td colspan="6" class="text-muted" style="text-align:center;">No attacks absorbed for this website yet.</td></tr>';
             }
 
             const crBody = document.getElementById('sd-creds-body');

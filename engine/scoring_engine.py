@@ -46,12 +46,11 @@ class ScoringEngine:
         score = 0
         services_hit = set()
         for event in events:
-            # Simple addition of base rule scores mapped to event types
+            # Take the higher of static rule points or dynamic event threat_pts
             event_type = event.get('event_type')
-            if event_type in self.rules:
-                score += self.rules[event_type]
-            elif event.get('threat_pts'):
-                score += int(event['threat_pts'])
+            rule_pts = int(self.rules[event_type]) if event_type in self.rules else 0
+            evt_pts = int(event.get('threat_pts') or 0)
+            score += max(rule_pts, evt_pts)
             if event.get('port'):
                 services_hit.add(event['port'])
         

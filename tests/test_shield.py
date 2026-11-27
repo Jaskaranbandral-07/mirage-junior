@@ -617,6 +617,45 @@ def test_cross_container_site_recovery_and_restore(isolated_shield):
     assert saved["dashboard_key"] == "dash_00112233445566778899aabb"
 
 
+def test_root_is_sites_hub_and_single_probe_quarantines_and_traps_creds(isolated_shield):
+    """Verify Overview is removed (root serves Protected Sites), SQLi/Cred probes hit >=25pts & quarantine, and inspector modal loads."""
+    from dashboard.app import create_app
+    from mirage_shield import shield_proxy
+
+    shield, _ = isolated_shield
+    shield_proxy._shared_shield_instance = shield
+    client = create_app().test_client()
+
+    # 1. Root '/' directly serves Protected Websites hub without Overview nav
+    home = client.get("/")
+    assert home.status_code == 200
+    assert b"Protected Websites" in home.data
+    assert b"Overview" not in home.data
+    assert b"attack_inspector.js" in home.data
+
+    reg = client.post("/api/sites/register", json={"target_url": "https://sec-check.dev"}).get_json()
+    sid = reg["site_id"]
+
+    # 2. Single SQLi probe triggers >=25 threat score and quarantines attacker IP
+    sqli = client.post(f"/api/site/{sid}/test-absorb", json={"kind": "sqli"}, headers={"X-MIRAGE-Client-IP": "198.51.100.145"})
+    assert sqli.status_code == 200
+
+    # 3. Single Cred Login Trap captures trapped username/password AND hits threshold
+    cred = client.post(f"/api/site/{sid}/test-absorb", json={"kind": "cred_trap"}, headers={"X-MIRAGE-Client-IP": "198.51.100.146"})
+    assert cred.status_code == 200
+
+    stats = client.get(f"/api/site/{sid}/stats").get_json()
+    assert stats["ips_quarantined"] >= 2
+    assert stats["creds_captured"] >= 1
+    assert any(c["username"] == "admin' OR '1'='1--" for c in stats["credentials"])
+
+    qpage = client.get("/quarantine")
+    assert qpage.status_code == 200 and b"198.51.100.145" in qpage.data
+
+    sd_page = client.get(f"/site/{sid}")
+    assert sd_page.status_code == 200 and b"inspectSiteEvent" in sd_page.data and b"cred_trap" in sd_page.data
+
+
 
 
 

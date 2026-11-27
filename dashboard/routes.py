@@ -91,36 +91,13 @@ def portal_relative_navigation():
 # ─── PAGE ROUTES ────────────────────────────────────────────────────────
 
 @dashboard_bp.route('/')
-def overview():
-    """Main dashboard overview page."""
-    db = get_db()
-    # Stats cards
-    total_hits = db.execute("SELECT COUNT(*) FROM events").fetchone()[0]
-    unique_ips = db.execute("SELECT COUNT(*) FROM attackers").fetchone()[0]
-    creds_captured = db.execute("SELECT COUNT(*) FROM credentials").fetchone()[0]
-    avg_score_row = db.execute("SELECT AVG(threat_score) FROM attackers WHERE threat_score > 0").fetchone()[0]
-    avg_score = int(avg_score_row) if avg_score_row else 0
-    quarantined = db.execute("SELECT COUNT(DISTINCT ip_address) FROM quarantine_log WHERE is_active = 1").fetchone()[0]
-
-    # Recent events
-    recent_events = [dict(r) for r in db.execute(
-        "SELECT e.*, a.country, a.classification FROM events e LEFT JOIN attackers a ON e.ip_address = a.ip_address ORDER BY e.timestamp DESC LIMIT 20"
-    ).fetchall()]
-
-    # Quarantine log
-    quarantine_log = [dict(r) for r in db.execute(
-        "SELECT * FROM quarantine_log WHERE is_active = 1 ORDER BY blocked_at DESC LIMIT 5"
-    ).fetchall()]
-
-    db.close()
-    return render_template('overview.html',
-                           total_hits=total_hits,
-                           unique_ips=unique_ips,
-                           creds_captured=creds_captured,
-                           avg_score=avg_score,
-                           quarantined=quarantined,
-                           recent_events=recent_events,
-                           quarantine_log=quarantine_log,
+@dashboard_bp.route('/sites')
+def sites_hub():
+    """Main home & multi-tenant Protected Websites directory."""
+    db_mgr = DatabaseManager()
+    sites = db_mgr.list_sites()
+    demo_target_url = getattr(settings_cfg, 'DEMO_TARGET_URL', '')
+    return render_template('sites.html', sites=sites, demo_target_url=demo_target_url,
                            is_vercel=bool(os.getenv('VERCEL')))
 
 
@@ -296,16 +273,6 @@ def shield_page():
     db_mgr = DatabaseManager()
     sites = db_mgr.list_sites()
     return render_template('shield.html', shield_stats=shield.get_full_stats(), sites=sites)
-
-
-@dashboard_bp.route('/sites')
-def sites_hub():
-    """Multi-tenant Protected Websites & Customer Workspaces directory."""
-    db_mgr = DatabaseManager()
-    sites = db_mgr.list_sites()
-    demo_target_url = getattr(settings_cfg, 'DEMO_TARGET_URL', '')
-    return render_template('sites.html', sites=sites, demo_target_url=demo_target_url,
-                           is_vercel=bool(os.getenv('VERCEL')))
 
 
 @dashboard_bp.route('/extension')
@@ -699,16 +666,27 @@ def api_site_test_absorb(site_id):
     ip = get_real_client_ip()
 
     kind_map = {
-        'sqli': ('/api/users?id=1\' OR \'1\'=\'1--', ['sql_injection'], 'sql_injection', 'T1190', 25),
-        'api_scrape': ('/api/v1/customers', ['targeted_recon'], 'targeted_recon', 'T1087', 20),
-        'rce': ('/cmd?exec=whoami', ['command_injection'], 'shell_command', 'T1059', 25),
-        'traversal': ('/download?file=../../../../etc/passwd', ['directory_traversal'], 'directory_traversal', 'T1083', 20),
+        'sqli': ("/api/users?id=1' OR '1'='1--", ['sql_injection'], 'sql_injection', 'T1190', 25, 'GET', 'SyntheticDeceptionEngine._fake_sqli_dump'),
+        'api_scrape': ('/api/v1/customers', ['targeted_recon'], 'targeted_recon', 'T1087', 25, 'GET', 'SyntheticDeceptionEngine._fake_api_records'),
+        'rce': ('/cmd?exec=whoami', ['command_injection'], 'shell_command', 'T1059', 25, 'GET', 'SyntheticDeceptionEngine._fake_rce_response'),
+        'traversal': ('/download?file=../../../../etc/passwd', ['directory_traversal'], 'directory_traversal', 'T1083', 25, 'GET', 'SyntheticDeceptionEngine._fake_traversal_response'),
+        'cred_trap': ('/admin/login', ['targeted_recon', 'sql_injection'], 'credential_harvest', 'T1078', 25, 'POST', 'HoneypotInjector.serve_trap'),
     }
-    path, atk_types, ev_type, mitre_id, pts = kind_map.get(attack_kind, kind_map['sqli'])
+    path, atk_types, ev_type, mitre_id, pts, method, defense_method = kind_map.get(attack_kind, kind_map['sqli'])
 
     body_str, content_type, status_code, fake_count = shield.deception.generate_response(
         path=path, attack_types=atk_types, ip=ip, domain=site['domain']
     )
+
+    if attack_kind == 'cred_trap':
+        db_mgr.log_credential(
+            ip_address=ip,
+            protocol='HTTP',
+            username="admin' OR '1'='1--",
+            password="TrappedLogin!2026",
+            success=False,
+            site_id=site_id,
+        )
 
     db_mgr.log_event(
         ip_address=ip,
@@ -717,9 +695,15 @@ def api_site_test_absorb(site_id):
         event_type=ev_type,
         details={
             'absorbed': True,
+            'source': 'site_shield_probe',
+            'defense_method': defense_method,
+            'decision': 'REDIRECT',
+            'method': method,
             'site_domain': site['domain'],
             'path': path,
+            'attack_types': atk_types,
             'fake_records_served': fake_count,
+            'decoy_preview': body_str[:500],
         },
         threat_pts=pts,
         mitre_id=mitre_id,
@@ -793,13 +777,19 @@ def api_ingest_backend_attack():
     if 'sql_injection' in attack_types:
         ev_type, mitre_id, pts = 'sql_injection', 'T1190', 25
     elif 'directory_traversal' in attack_types:
-        ev_type, mitre_id, pts = 'directory_traversal', 'T1083', 20
+        ev_type, mitre_id, pts = 'directory_traversal', 'T1083', 25
     elif 'command_injection' in attack_types:
         ev_type, mitre_id, pts = 'shell_command', 'T1059', 25
     elif 'xss_probe' in attack_types:
-        ev_type, mitre_id, pts = 'targeted_recon', 'T1190', 15
+        ev_type, mitre_id, pts = 'targeted_recon', 'T1190', 25
     else:
-        ev_type, mitre_id, pts = 'targeted_recon', 'T1552.001', 20
+        ev_type, mitre_id, pts = 'targeted_recon', 'T1552.001', 25
+
+    defense_method = (
+        'SilentBackendWAF -> SyntheticDeceptionEngine.generate_response'
+        if source == 'backend_waf_middleware'
+        else 'MirageShieldWSGIMiddleware -> SyntheticDeceptionEngine.generate_response'
+    )
 
     db_mgr.log_event(
         ip_address=ip,
@@ -809,10 +799,12 @@ def api_ingest_backend_attack():
         details={
             'absorbed': True,
             'source': source,
+            'defense_method': defense_method,
             'decision': decision,
             'shield_score': score,
             'path': path,
             'method': method,
+            'attack_types': attack_types,
             'user_agent': user_agent,
             'fake_records_served': fake_count,
         },

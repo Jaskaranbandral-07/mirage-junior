@@ -111,8 +111,15 @@
                         {% endif %}
                     </td>
                     <td>
-                        <div style="font-weight: 600; color: var(--text-bright); font-size: 0.88rem;">
-                            {{ e.event_type }}
+                        <div style="font-weight: 600; color: var(--text-bright); font-size: 0.88rem; display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                            <span>{{ e.event_type }}</span>
+                            <button type="button"
+                                    data-event="{{ e | tojson | forceescape }}"
+                                    onclick="inspectAttackRow(this)"
+                                    class="btn"
+                                    style="padding: 2px 8px; font-size: 0.72rem; background: rgba(0,212,255,0.12); color: var(--neon-cyan); border: 1px solid rgba(0,212,255,0.35);">
+                                <i class="fa-solid fa-code"></i> View Method &amp; Code
+                            </button>
                         </div>
                         {% if e.details %}
                         <div style="font-size: 0.78rem; color: var(--text-muted); max-width: 320px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="{{ e.details }}">
@@ -185,4 +192,17 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function inspectAttackRow(btn) {
+    try {
+        const ev = JSON.parse(btn.dataset.event || '{}');
+        if (window.MirageAttackInspector) {
+            window.MirageAttackInspector.open(ev);
+        }
+    } catch {}
+}
+</script>
 {% endblock %}

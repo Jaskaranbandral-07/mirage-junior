@@ -19,6 +19,7 @@
         <thead>
             <tr>
                 <th>IP Address</th>
+                <th>Target Site</th>
                 <th>Threat Score</th>
                 <th>Blocked At</th>
                 <th>Reason</th>
@@ -30,6 +31,7 @@
             {% for q in active %}
             <tr>
                 <td><a href="/attacker/{{ q.ip_address }}">{{ q.ip_address }}</a></td>
+                <td><code>{{ q.site_id or 'global' }}</code></td>
                 <td><span class="badge badge-critical">{{ q.threat_score or 100 }}</span></td>
                 <td>{{ q.blocked_at }}</td>
                 <td>{{ q.reason or 'Threat threshold exceeded' }}</td>
@@ -38,7 +40,7 @@
             {% endfor %}
             {% else %}
             <tr>
-                <td colspan="5" class="text-muted" style="text-align: center; padding: 15px;">No active quarantines</td>
+                <td colspan="6" class="text-muted" style="text-align: center; padding: 15px;">No active quarantines</td>
             </tr>
             {% endif %}
         </tbody>
