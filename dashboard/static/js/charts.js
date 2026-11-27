@@ -28,13 +28,14 @@ function initCharts() {
             },
             options: {
                 responsive: true,
+                maintainAspectRatio: false,
                 plugins: {
                     legend: {
                         position: 'bottom',
-                        labels: { padding: 15, usePointStyle: true, pointStyle: 'circle' }
+                        labels: { padding: 14, usePointStyle: true, pointStyle: 'circle' }
                     }
                 },
-                cutout: '65%'
+                cutout: '66%'
             }
         });
     }
@@ -50,15 +51,22 @@ function initCharts() {
                     label: 'Attack Count',
                     data: [],
                     backgroundColor: ['#ff4444', '#ff8c00', '#ffcc00', '#58a6ff', '#bc8cff'],
-                    borderRadius: 4,
-                    borderSkipped: false
+                    borderRadius: 6,
+                    borderSkipped: false,
+                    maxBarThickness: 48
                 }]
             },
             options: {
                 responsive: true,
+                maintainAspectRatio: false,
                 plugins: { legend: { display: false } },
                 scales: {
-                    y: { beginAtZero: true, grid: { color: '#21262d' } },
+                    y: {
+                        beginAtZero: true,
+                        suggestedMax: 3,
+                        ticks: { precision: 0, stepSize: 1 },
+                        grid: { color: '#21262d' }
+                    },
                     x: { grid: { display: false } }
                 }
             }
@@ -78,14 +86,21 @@ function initCharts() {
                     backgroundColor: 'rgba(188, 140, 255, 0.6)',
                     borderColor: '#bc8cff',
                     borderWidth: 1,
-                    borderRadius: 3
+                    borderRadius: 4,
+                    maxBarThickness: 28
                 }]
             },
             options: {
                 responsive: true,
+                maintainAspectRatio: false,
                 plugins: { legend: { display: false } },
                 scales: {
-                    y: { beginAtZero: true, grid: { color: '#21262d' } },
+                    y: {
+                        beginAtZero: true,
+                        suggestedMax: 3,
+                        ticks: { precision: 0, stepSize: 1 },
+                        grid: { color: '#21262d' }
+                    },
                     x: { grid: { display: false } }
                 }
             }
@@ -105,15 +120,22 @@ function initCharts() {
                     backgroundColor: 'rgba(255, 68, 68, 0.7)',
                     borderColor: '#ff4444',
                     borderWidth: 1,
-                    borderRadius: 3
+                    borderRadius: 4,
+                    maxBarThickness: 28
                 }]
             },
             options: {
                 indexAxis: 'y',
                 responsive: true,
+                maintainAspectRatio: false,
                 plugins: { legend: { display: false } },
                 scales: {
-                    x: { beginAtZero: true, grid: { color: '#21262d' } },
+                    x: {
+                        beginAtZero: true,
+                        suggestedMax: 3,
+                        ticks: { precision: 0, stepSize: 1 },
+                        grid: { color: '#21262d' }
+                    },
                     y: { grid: { display: false } }
                 }
             }

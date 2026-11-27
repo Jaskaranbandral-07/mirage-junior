@@ -88,7 +88,9 @@
 <div class="tables-grid" style="margin-bottom: 20px;">
     <div class="table-card">
         <h3><i class="fa-solid fa-code-branch"></i> Traffic Routing Decisions</h3>
-        <canvas id="shieldDecisionChart" style="max-height: 240px;"></canvas>
+        <div class="chart-wrapper">
+            <canvas id="shieldDecisionChart"></canvas>
+        </div>
     </div>
     <div class="table-card">
         <h3><i class="fa-solid fa-plug"></i> Drop-In Website Integration (Extension Snippet)</h3>
@@ -161,7 +163,8 @@ function initShieldChart() {
         },
         options: {
             responsive: true,
-            plugins: { legend: { labels: { color: '#c9d1d9' } } }
+            maintainAspectRatio: false,
+            plugins: { legend: { position: 'bottom', labels: { color: '#c9d1d9' } } }
         }
     });
 }

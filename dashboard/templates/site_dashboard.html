@@ -117,11 +117,15 @@ protect_flask_app(
 <div class="charts-grid" style="margin-bottom: 20px;">
     <div class="chart-card">
         <h3>Site Threat Severity</h3>
-        <canvas id="siteThreatChart" style="max-height: 230px;"></canvas>
+        <div class="chart-wrapper">
+            <canvas id="siteThreatChart"></canvas>
+        </div>
     </div>
     <div class="chart-card">
         <h3>MITRE ATT&amp;CK Techniques Absorbed</h3>
-        <canvas id="siteMitreChart" style="max-height: 230px;"></canvas>
+        <div class="chart-wrapper">
+            <canvas id="siteMitreChart"></canvas>
+        </div>
     </div>
 </div>
 
@@ -303,7 +307,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 labels: ['Scanner', 'Suspicious', 'Active', 'Critical'],
                 datasets: [{ data: [0, 0, 0, 0], backgroundColor: ['#00ff41', '#ffcc00', '#ff8c00', '#ff4444'], borderColor: '#161b22', borderWidth: 2 }]
             },
-            options: { responsive: true, plugins: { legend: { position: 'bottom', labels: { color: '#c9d1d9' } } } }
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { color: '#c9d1d9' } } } }
         });
     }
     const mCtx = document.getElementById('siteMitreChart');
@@ -312,9 +316,9 @@ document.addEventListener('DOMContentLoaded', () => {
             type: 'bar',
             data: {
                 labels: [],
-                datasets: [{ label: 'Absorbed Hits', data: [], backgroundColor: 'rgba(0, 212, 255, 0.65)', borderColor: '#00d4ff', borderWidth: 1, borderRadius: 4 }]
+                datasets: [{ label: 'Absorbed Hits', data: [], backgroundColor: 'rgba(0, 212, 255, 0.65)', borderColor: '#00d4ff', borderWidth: 1, borderRadius: 4, maxBarThickness: 28 }]
             },
-            options: { indexAxis: 'y', responsive: true, plugins: { legend: { display: false } }, scales: { x: { beginAtZero: true }, y: {} } }
+            options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { beginAtZero: true, suggestedMax: 3, ticks: { precision: 0, stepSize: 1 } }, y: {} } }
         });
     }
     refreshSiteDashboard();

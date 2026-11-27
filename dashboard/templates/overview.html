@@ -6,7 +6,13 @@
 <!-- Live Sensor & Real Trap Controls Bar -->
 <div class="live-action-bar">
     <div class="live-status-pill">
-        <span class="pulse"></span> <strong>Live Real-Capture Mode:</strong> SSH (:2222), HTTP (:8080), FTP (:2121), Shield (:8443), Web Traps (/.env, /wp-login.php)
+        <span class="pulse"></span>
+        {% if is_vercel %}
+        <strong>Cloud Serverless Mode:</strong> Web Traps (<code>/.env</code>, <code>/wp-login.php</code>), Shield Proxy &amp; <code>/api/ingest</code>
+        <span style="font-size:0.75rem; color: var(--neon-yellow); margin-left:6px;">(Ephemeral /tmp DB per instance)</span>
+        {% else %}
+        <strong>Live Real-Capture Mode:</strong> SSH (:2222), HTTP (:8080), FTP (:2121), Shield (:8443), Web Traps (/.env, /wp-login.php)
+        {% endif %}
     </div>
     <div class="live-action-buttons">
         <a href="/.env" target="_blank" class="btn btn-warning" style="text-decoration: none;" title="Open live /.env trap to capture your real IP & headers">
@@ -47,19 +53,27 @@
 <div class="charts-grid">
     <div class="chart-card">
         <h3>Threat Distribution</h3>
-        <canvas id="threatDistChart"></canvas>
+        <div class="chart-wrapper">
+            <canvas id="threatDistChart"></canvas>
+        </div>
     </div>
     <div class="chart-card">
         <h3>Top Attacking Countries</h3>
-        <canvas id="topCountriesChart"></canvas>
+        <div class="chart-wrapper">
+            <canvas id="topCountriesChart"></canvas>
+        </div>
     </div>
     <div class="chart-card full-width">
         <h3>Attack Timeline (Last 24h)</h3>
-        <canvas id="attackTimelineChart"></canvas>
+        <div class="chart-wrapper">
+            <canvas id="attackTimelineChart"></canvas>
+        </div>
     </div>
     <div class="chart-card full-width">
         <h3>MITRE ATT&CK Heatmap</h3>
-        <canvas id="mitreChart"></canvas>
+        <div class="chart-wrapper">
+            <canvas id="mitreChart"></canvas>
+        </div>
     </div>
 </div>
 
@@ -112,7 +126,7 @@
 {% endblock %}
 
 {% block scripts %}
-<script src="{{ url_for('static', filename='js/charts.js') }}"></script>
+<script src="{{ url_for('static', filename='js/charts.js') }}?v=4"></script>
 <script>
     document.addEventListener('DOMContentLoaded', initCharts);
 </script>

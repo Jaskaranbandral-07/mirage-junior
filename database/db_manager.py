@@ -310,13 +310,27 @@ class DatabaseManager:
         site_id = site_id or "global"
         conn = self.get_connection()
         c = conn.cursor()
-        c.execute(
-            '''
-            INSERT INTO quarantine_log (site_id, ip_address, expires_at, reason, threat_score)
-            VALUES (?, ?, ?, ?, ?)
-            ''',
-            (site_id, ip_address, expires_at, reason, threat_score),
-        )
+        existing = c.execute(
+            "SELECT id FROM quarantine_log WHERE site_id = ? AND ip_address = ? AND is_active = 1",
+            (site_id, ip_address),
+        ).fetchone()
+        if existing:
+            c.execute(
+                '''
+                UPDATE quarantine_log
+                SET expires_at = ?, reason = ?, threat_score = ?, blocked_at = CURRENT_TIMESTAMP
+                WHERE id = ?
+                ''',
+                (expires_at, reason, threat_score, existing[0]),
+            )
+        else:
+            c.execute(
+                '''
+                INSERT INTO quarantine_log (site_id, ip_address, expires_at, reason, threat_score)
+                VALUES (?, ?, ?, ?, ?)
+                ''',
+                (site_id, ip_address, expires_at, reason, threat_score),
+            )
         if site_id != "global":
             c.execute(
                 "UPDATE site_attackers SET is_quarantined=1 WHERE site_id=? AND ip_address=?",
@@ -409,7 +423,7 @@ class DatabaseManager:
         ).fetchone()[0]
         avg_score = int(avg_score_row) if avg_score_row else 0
         quarantined = conn.execute(
-            "SELECT COUNT(*) FROM quarantine_log WHERE site_id = ? AND is_active = 1",
+            "SELECT COUNT(DISTINCT ip_address) FROM quarantine_log WHERE site_id = ? AND is_active = 1",
             (site_id,),
         ).fetchone()[0]
 

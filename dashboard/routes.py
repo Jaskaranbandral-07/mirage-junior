@@ -173,7 +173,7 @@ def overview():
     creds_captured = db.execute("SELECT COUNT(*) FROM credentials").fetchone()[0]
     avg_score_row = db.execute("SELECT AVG(threat_score) FROM attackers WHERE threat_score > 0").fetchone()[0]
     avg_score = int(avg_score_row) if avg_score_row else 0
-    quarantined = db.execute("SELECT COUNT(*) FROM quarantine_log WHERE is_active = 1").fetchone()[0]
+    quarantined = db.execute("SELECT COUNT(DISTINCT ip_address) FROM quarantine_log WHERE is_active = 1").fetchone()[0]
 
     # Recent events
     recent_events = [dict(r) for r in db.execute(
@@ -193,7 +193,8 @@ def overview():
                            avg_score=avg_score,
                            quarantined=quarantined,
                            recent_events=recent_events,
-                           quarantine_log=quarantine_log)
+                           quarantine_log=quarantine_log,
+                           is_vercel=bool(os.getenv('VERCEL')))
 
 
 @dashboard_bp.route('/attacks')
@@ -303,7 +304,7 @@ def quarantine():
         "SELECT * FROM quarantine_log WHERE is_active = 0 ORDER BY blocked_at DESC LIMIT 50"
     ).fetchall()]
     total_blocked = db.execute("SELECT COUNT(*) FROM quarantine_log").fetchone()[0]
-    currently_active = db.execute("SELECT COUNT(*) FROM quarantine_log WHERE is_active = 1").fetchone()[0]
+    currently_active = db.execute("SELECT COUNT(DISTINCT ip_address) FROM quarantine_log WHERE is_active = 1").fetchone()[0]
     db.close()
     return render_template('quarantine.html', active=active, history=history,
                            total_blocked=total_blocked, currently_active=currently_active)
@@ -445,7 +446,7 @@ def api_stats():
     creds_captured = db.execute("SELECT COUNT(*) FROM credentials").fetchone()[0]
     avg_score_row = db.execute("SELECT AVG(threat_score) FROM attackers WHERE threat_score > 0").fetchone()[0]
     avg_score = int(avg_score_row) if avg_score_row else 0
-    quarantined = db.execute("SELECT COUNT(*) FROM quarantine_log WHERE is_active = 1").fetchone()[0]
+    quarantined = db.execute("SELECT COUNT(DISTINCT ip_address) FROM quarantine_log WHERE is_active = 1").fetchone()[0]
 
     # Threat distribution
     scanner = db.execute("SELECT COUNT(*) FROM attackers WHERE classification = 'SCANNER'").fetchone()[0]

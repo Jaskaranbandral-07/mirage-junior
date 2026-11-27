@@ -450,6 +450,19 @@ def test_python_backend_sdk_absorbs_attacks_and_ingests(isolated_shield):
     assert sdata["total_hits"] == 1
     assert sdata["site"]["fake_records_served"] == 5
 
+    # Repeat ingest from same IP should NOT create duplicate active quarantine rows
+    mirage_client.post("/api/ingest", json={
+        "ip": "203.0.113.77",
+        "path": "/.env",
+        "method": "GET",
+        "score": 85,
+        "decision": "BLOCK",
+        "attack_types": ["targeted_recon"],
+        "fake_records_served": 1,
+    }, headers={"X-MIRAGE-Site-Key": site_key})
+    sdata2 = mirage_client.get(f"/api/site/{site_id}/stats").get_json()
+    assert sdata2["ips_quarantined"] == 1
+
 
 
 
