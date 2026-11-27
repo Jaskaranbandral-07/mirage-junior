@@ -10,10 +10,12 @@ Quick Flask integration (2 lines):
     protect_flask_app(app, site_key="ms_live_YOUR_KEY", shield_url="https://mirage-junior.vercel.app")
 """
 
+import io
 import json
+import os
 import threading
 import urllib.request
-from urllib.parse import unquote_plus
+from urllib.parse import parse_qs, unquote_plus
 
 from mirage_shield.synthetic_deception import SyntheticDeceptionEngine
 
@@ -69,29 +71,57 @@ def inspect_request_payload(path: str, method: str, user_agent: str,
     return "ALLOW", final_score, attack_types
 
 
-def _ship_telemetry_async(shield_url: str, site_key: str, payload: dict):
-    """Fire-and-forget telemetry upload so customer responses stay instant."""
+def _extract_post_credentials(body_text: str) -> tuple:
+    """Safely extract submitted login identifiers on intercepted POST probes."""
+    if not body_text:
+        return "", ""
+    try:
+        parsed = json.loads(body_text)
+        if isinstance(parsed, dict):
+            user = str(parsed.get("email") or parsed.get("username") or parsed.get("log") or "")[:120]
+            pw = str(parsed.get("password") or parsed.get("pwd") or "")[:120]
+            return user, pw
+    except Exception:
+        pass
+    try:
+        form = parse_qs(body_text, keep_blank_values=False)
+        user = str((form.get("email") or form.get("username") or form.get("log") or [""])[0])[:120]
+        pw = str((form.get("password") or form.get("pwd") or [""])[0])[:120]
+        return user, pw
+    except Exception:
+        return "", ""
+
+
+def _post_ingest_once(shield_url: str, site_key: str, payload: dict):
+    url = shield_url.rstrip("/") + "/api/ingest"
+    data = json.dumps(payload).encode("utf-8")
+    req = urllib.request.Request(
+        url,
+        data=data,
+        headers={
+            "Content-Type": "application/json",
+            "X-MIRAGE-Site-Key": site_key,
+        },
+        method="POST",
+    )
+    urllib.request.urlopen(req, timeout=4).close()
+
+
+def _ship_telemetry(shield_url: str, site_key: str, payload: dict):
+    """Ship absorbed telemetry (synchronously on Vercel serverless, async locally)."""
     if not shield_url or not site_key:
         return
 
     def _send():
         try:
-            url = shield_url.rstrip("/") + "/api/ingest"
-            data = json.dumps(payload).encode("utf-8")
-            req = urllib.request.Request(
-                url,
-                data=data,
-                headers={
-                    "Content-Type": "application/json",
-                    "X-MIRAGE-Site-Key": site_key,
-                },
-                method="POST",
-            )
-            urllib.request.urlopen(req, timeout=4).close()
+            _post_ingest_once(shield_url, site_key, payload)
         except Exception:
             pass
 
-    threading.Thread(target=_send, daemon=True).start()
+    if os.getenv("VERCEL") or os.getenv("MIRAGE_SYNC_INGEST"):
+        _send()
+    else:
+        threading.Thread(target=_send, daemon=True).start()
 
 
 class MirageShieldWSGIMiddleware:
@@ -99,11 +129,13 @@ class MirageShieldWSGIMiddleware:
 
     def __init__(self, wsgi_app, site_key: str,
                  shield_url: str = "https://mirage-junior.vercel.app",
-                 domain: str = "protected-app.local"):
+                 domain: str = "protected-app.local",
+                 stealth: bool = False):
         self.wsgi_app = wsgi_app
         self.site_key = site_key
         self.shield_url = shield_url
         self.domain = domain
+        self.stealth = stealth
         self.deception = SyntheticDeceptionEngine()
 
     def __call__(self, environ, start_response):
@@ -112,12 +144,26 @@ class MirageShieldWSGIMiddleware:
         ua = environ.get("HTTP_USER_AGENT", "")
         qs = environ.get("QUERY_STRING", "")
         ip = (
-            environ.get("HTTP_X_FORWARDED_FOR", "").split(",")[0].strip()
-            or environ.get("HTTP_X_REAL_IP", "")
+            environ.get("HTTP_X_MIRAGE_CLIENT_IP", "").strip()
+            or environ.get("HTTP_X_VERCEL_FORWARDED_FOR", "").split(",")[0].strip()
+            or environ.get("HTTP_X_REAL_IP", "").strip()
+            or environ.get("HTTP_X_FORWARDED_FOR", "").split(",")[0].strip()
             or environ.get("REMOTE_ADDR", "127.0.0.1")
         )
 
-        decision, score, attack_types = inspect_request_payload(path, method, ua, qs, "")
+        raw_body = b""
+        if method in ("POST", "PUT", "PATCH"):
+            try:
+                content_len = int(environ.get("CONTENT_LENGTH") or 0)
+            except (ValueError, TypeError):
+                content_len = 0
+            if 0 < content_len <= 16384 and environ.get("wsgi.input") is not None:
+                raw_body = environ["wsgi.input"].read(content_len)
+                environ["wsgi.input"] = io.BytesIO(raw_body)
+                environ["CONTENT_LENGTH"] = str(len(raw_body))
+
+        body_text = raw_body.decode("utf-8", errors="ignore")
+        decision, score, attack_types = inspect_request_payload(path, method, ua, qs, body_text)
         if decision == "ALLOW":
             return self.wsgi_app(environ, start_response)
 
@@ -129,13 +175,15 @@ class MirageShieldWSGIMiddleware:
             status_code = 403
             content_type = "application/json"
             body_str = json.dumps({
-                "error": "Forbidden — Blocked by MIRAGE Shield",
+                "error": "Access Denied — Blocked by Security Edge" if self.stealth else "Forbidden — Blocked by MIRAGE Shield",
                 "incident_score": score,
-                "decoy_reference": f"ms_blk_{ip}",
+                "reference": f"sec_blk_{ip}" if self.stealth else f"ms_blk_{ip}",
             })
             fake_count = 0
 
-        _ship_telemetry_async(self.shield_url, self.site_key, {
+        captured_user, captured_pass = _extract_post_credentials(body_text) if method == "POST" else ("", "")
+
+        _ship_telemetry(self.shield_url, self.site_key, {
             "ip": ip,
             "path": path,
             "method": method,
@@ -144,24 +192,29 @@ class MirageShieldWSGIMiddleware:
             "decision": decision,
             "attack_types": attack_types,
             "fake_records_served": fake_count,
+            "username": captured_user,
+            "password": captured_pass,
             "source": "python_wsgi_sdk",
         })
 
         body_bytes = body_str.encode("utf-8")
         status_text = f"{status_code} {'Forbidden' if status_code == 403 else 'OK'}"
-        start_response(status_text, [
+        headers = [
             ("Content-Type", content_type),
             ("Content-Length", str(len(body_bytes))),
-            ("X-Protected-By", "MIRAGE-Shield"),
-        ])
+        ]
+        if not self.stealth:
+            headers.append(("X-Protected-By", "MIRAGE-Shield"))
+        start_response(status_text, headers)
         return [body_bytes]
 
 
 def protect_flask_app(app, site_key: str,
                       shield_url: str = "https://mirage-junior.vercel.app",
-                      domain: str = "protected-app.local"):
+                      domain: str = "protected-app.local",
+                      stealth: bool = False):
     """Wrap a Flask application's WSGI stack with MIRAGE Shield absorption."""
     app.wsgi_app = MirageShieldWSGIMiddleware(
-        app.wsgi_app, site_key=site_key, shield_url=shield_url, domain=domain
+        app.wsgi_app, site_key=site_key, shield_url=shield_url, domain=domain, stealth=stealth
     )
     return app

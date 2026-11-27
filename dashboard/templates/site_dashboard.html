@@ -86,6 +86,14 @@
             <button class="btn btn-primary sdk-tab" onclick="showSdkTab('flask', this)" style="padding: 5px 12px; font-size: 0.78rem;">Python (Flask)</button>
             <button class="btn sdk-tab" onclick="showSdkTab('node', this)" style="padding: 5px 12px; font-size: 0.78rem; background: var(--bg-dark); color: var(--text-muted); border: 1px solid var(--border);">Node.js (Express)</button>
             <button class="btn sdk-tab" onclick="showSdkTab('nginx', this)" style="padding: 5px 12px; font-size: 0.78rem; background: var(--bg-dark); color: var(--text-muted); border: 1px solid var(--border);">Nginx Proxy</button>
+            <a href="/api/sdk/download/python?site_id={{ site.site_id }}" download="mirage-shield-python-sdk.zip" class="btn"
+               style="padding: 5px 11px; font-size: 0.76rem; margin-left: auto; text-decoration: none; background: rgba(0,255,65,0.12); color: var(--neon-green); border: 1px solid rgba(0,255,65,0.35);">
+                <i class="fa-solid fa-download"></i> Python SDK (.zip)
+            </a>
+            <a href="/api/sdk/download/node?site_id={{ site.site_id }}" download="node_shield.js" class="btn"
+               style="padding: 5px 11px; font-size: 0.76rem; text-decoration: none; background: rgba(0,212,255,0.12); color: var(--neon-cyan); border: 1px solid rgba(0,212,255,0.35);">
+                <i class="fa-solid fa-download"></i> Node SDK (.js)
+            </a>
         </div>
         <pre id="sdk-code-box" style="background: var(--bg-darker); border: 1px solid var(--border); border-radius: 6px; padding: 12px; font-size: 0.76rem; color: var(--neon-green); overflow-x: auto; line-height: 1.45;">from mirage_shield.sdk.python_shield import protect_flask_app
 

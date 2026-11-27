@@ -534,6 +534,56 @@ def test_novapay_demo_target_standalone_functionality(isolated_shield):
     ok_login = demo_client.post("/login", json={"email": "demo@novapay.io", "password": "NovaPay@2026"})
     assert ok_login.status_code == 200 and ok_login.get_json()["status"] == "ok"
 
+    # Silent backend WAF intercepts hostile probes with zero visible MIRAGE branding
+    sqli_api = demo_client.get("/api/customers?q=1%27%20OR%20%271%27%3D%271--", headers={"User-Agent": "Mozilla/5.0 Chrome/122.0.0.0"})
+    assert sqli_api.status_code == 200
+    assert "X-Protected-By" not in sqli_api.headers
+    assert b"DECOY" in sqli_api.data and b"CloudScale" not in sqli_api.data
+    assert b"mirage" not in sqli_api.data.lower()
+
+    env_trap = demo_client.get("/.env", headers={"User-Agent": "Mozilla/5.0 Chrome/122.0.0.0"})
+    assert env_trap.status_code == 200 and b"DECOY" in env_trap.data
+
+    trav = demo_client.get("/download?file=../../../../etc/passwd", headers={"User-Agent": "Mozilla/5.0 Chrome/122.0.0.0"})
+    assert trav.status_code == 200 and b"root:x:0:0" in trav.data
+
+    sqli_login = demo_client.post("/login", json={"email": "admin' OR '1'='1--", "password": "pw"}, headers={"User-Agent": "Mozilla/5.0 Chrome/122.0.0.0"})
+    assert sqli_login.status_code == 200 and b"DECOY" in sqli_login.data
+
+
+def test_sdk_download_endpoints_python_and_node(isolated_shield):
+    """Verify per-site 1-click SDK downloads (/api/sdk/download/python & /node)."""
+    import io
+    import zipfile
+    from dashboard.app import create_app
+    from mirage_shield import shield_proxy
+
+    shield, _ = isolated_shield
+    shield_proxy._shared_shield_instance = shield
+    client = create_app().test_client()
+
+    reg = client.post("/api/sites/register", json={"target_url": "https://startup-app.io"}).get_json()
+    sid = reg["site_id"]
+    skey = reg["api_key"]
+
+    site_page = client.get(f"/site/{sid}")
+    assert site_page.status_code == 200
+    assert b"/api/sdk/download/python" in site_page.data
+    assert b"/api/sdk/download/node" in site_page.data
+
+    py_dl = client.get(f"/api/sdk/download/python?site_id={sid}")
+    assert py_dl.status_code == 200 and "application/zip" in (py_dl.headers.get("Content-Type") or "")
+    with zipfile.ZipFile(io.BytesIO(py_dl.data), "r") as zf:
+        names = set(zf.namelist())
+        assert "mirage_shield/sdk/python_shield.py" in names
+        assert "mirage_shield/synthetic_deception.py" in names
+        assert "QUICKSTART.md" in names
+        qs = zf.read("QUICKSTART.md").decode("utf-8")
+        assert skey in qs and "startup-app.io" in qs
+
+    node_dl = client.get(f"/api/sdk/download/node?site_id={sid}")
+    assert node_dl.status_code == 200 and b"mirageShieldMiddleware" in node_dl.data
+
 
 
 

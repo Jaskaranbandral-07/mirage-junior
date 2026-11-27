@@ -346,6 +346,79 @@ def api_extension_download():
     )
 
 
+@dashboard_bp.route('/api/sdk/download/<lang>')
+def api_sdk_download(lang):
+    """Serve downloadable Backend SDK package (Python WSGI zip or Node.js Express module)."""
+    clean_lang = (lang or '').strip().lower()
+    sdk_dir = os.path.join(BASE_DIR, 'mirage_shield', 'sdk')
+    site_id = (request.args.get('site_id') or '').strip()
+
+    site = None
+    if site_id:
+        try:
+            site = DatabaseManager().get_site(site_id)
+        except Exception:
+            site = None
+
+    base_url = request.host_url.rstrip('/')
+    site_key = site['api_key'] if site else 'ms_live_YOUR_KEY'
+    domain = site['domain'] if site else 'your-domain.com'
+
+    if clean_lang in ('node', 'nodejs', 'js'):
+        node_path = os.path.join(sdk_dir, 'node_shield.js')
+        if not os.path.isfile(node_path):
+            return jsonify({'error': 'Node SDK not found'}), 404
+        with open(node_path, 'r', encoding='utf-8') as f:
+            content = f.read()
+        return Response(
+            content,
+            mimetype='application/javascript',
+            headers={
+                'Content-Disposition': 'attachment; filename="node_shield.js"',
+                'Cache-Control': 'no-store',
+            },
+        )
+
+    if clean_lang in ('python', 'py', 'flask'):
+        py_files = [
+            ('mirage_shield/__init__.py', os.path.join(BASE_DIR, 'mirage_shield', '__init__.py')),
+            ('mirage_shield/synthetic_deception.py', os.path.join(BASE_DIR, 'mirage_shield', 'synthetic_deception.py')),
+            ('mirage_shield/sdk/__init__.py', os.path.join(sdk_dir, '__init__.py')),
+            ('mirage_shield/sdk/python_shield.py', os.path.join(sdk_dir, 'python_shield.py')),
+        ]
+        quickstart = (
+            f"# MIRAGE Shield — Python Backend SDK Quickstart ({domain})\n\n"
+            "1. Unzip the `mirage_shield/` folder into your Flask / Django / WSGI project root.\n"
+            "2. Add these 2 lines right after creating your Flask `app`:\n\n"
+            "```python\n"
+            "from mirage_shield.sdk.python_shield import protect_flask_app\n\n"
+            "protect_flask_app(\n"
+            "    app,\n"
+            f'    site_key="{site_key}",\n'
+            f'    shield_url="{base_url}",\n'
+            f'    domain="{domain}",\n'
+            ")\n"
+            "```\n"
+        )
+        buf = io.BytesIO()
+        with zipfile.ZipFile(buf, 'w', compression=zipfile.ZIP_DEFLATED) as zf:
+            for arc, disk_path in py_files:
+                if os.path.isfile(disk_path):
+                    zf.write(disk_path, arcname=arc)
+            zf.writestr('QUICKSTART.md', quickstart)
+        buf.seek(0)
+        return Response(
+            buf.getvalue(),
+            mimetype='application/zip',
+            headers={
+                'Content-Disposition': 'attachment; filename="mirage-shield-python-sdk.zip"',
+                'Cache-Control': 'no-store',
+            },
+        )
+
+    return jsonify({'error': 'Supported SDK downloads: python, node'}), 404
+
+
 @dashboard_bp.route('/site/<site_id>')
 def site_dashboard(site_id):
     """Dedicated Personal Customer Dashboard strictly isolated to one protected website."""

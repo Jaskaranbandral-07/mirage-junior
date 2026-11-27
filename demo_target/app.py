@@ -7,9 +7,14 @@ dependencies, built for realistic live product demonstrations.
 from collections import deque
 import os
 import secrets
+import sys
 from flask import Flask, jsonify, render_template, request
 
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
+if CURRENT_DIR not in sys.path:
+    sys.path.insert(0, CURRENT_DIR)
+
+from waf_middleware import SilentBackendWAF
 
 PUBLIC_MERCHANTS = [
     {"merchant_id": "NP-101", "company": "CloudScale Systems", "tier": "Enterprise", "region": "AP-South", "volume_usd": "$148,000/mo", "email": "ops@cloudscale.example"},
@@ -34,8 +39,22 @@ RECENT_INVOICES = deque([
 DEMO_INQUIRIES = deque(maxlen=15)
 
 
-def create_demo_app():
+def create_demo_app(telemetry_url: str = None, site_key: str = None):
     app = Flask(__name__, template_folder=os.path.join(CURRENT_DIR, "templates"))
+    default_telemetry = (
+        telemetry_url
+        if telemetry_url is not None
+        else os.getenv(
+            "TELEMETRY_INGEST_URL",
+            "https://mirage-junior.vercel.app" if os.getenv("VERCEL") else "http://127.0.0.1:5000",
+        )
+    )
+    active_key = site_key if site_key is not None else os.getenv("SITE_TELEMETRY_KEY", "")
+    app.wsgi_app = SilentBackendWAF(
+        app.wsgi_app,
+        telemetry_url=default_telemetry,
+        site_key=active_key,
+    )
 
     @app.route("/")
     def home():
