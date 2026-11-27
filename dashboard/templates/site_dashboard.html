@@ -24,6 +24,11 @@
             </div>
         </div>
         <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+            {% if not customer_mode %}
+            <a href="/sites" class="btn" style="text-decoration: none; background: var(--bg-dark); color: var(--text-bright); border: 1px solid var(--border);">
+                <i class="fa-solid fa-arrow-left"></i> Back to Protected Sites
+            </a>
+            {% endif %}
             <a href="{{ portal_url }}" target="_blank" class="btn btn-primary" style="text-decoration: none;">
                 <i class="fa-solid fa-mask"></i> Open Deception Portal
             </a>

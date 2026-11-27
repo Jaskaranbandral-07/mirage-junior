@@ -654,6 +654,7 @@ def test_root_is_sites_hub_and_single_probe_quarantines_and_traps_creds(isolated
 
     sd_page = client.get(f"/site/{sid}")
     assert sd_page.status_code == 200 and b"inspectSiteEvent" in sd_page.data and b"cred_trap" in sd_page.data
+    assert b"Back to Protected Sites" in sd_page.data
     assert b"sd-blocked-list" in sd_page.data and b"198.51.100.145" in sd_page.data
 
 
