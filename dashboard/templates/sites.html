@@ -76,6 +76,10 @@
             <a href="/portal/{{ s.domain }}" target="_blank" class="btn" style="text-decoration: none; background: rgba(0,212,255,0.12); color: var(--neon-cyan); border: 1px solid rgba(0,212,255,0.35);">
                 <i class="fa-solid fa-mask"></i> Clone
             </a>
+            <button onclick="deleteCustomerSite('{{ s.site_id }}', '{{ s.domain }}')" class="btn" title="Remove site workspace"
+                    style="background: rgba(255,68,68,0.12); color: var(--neon-red); border: 1px solid rgba(255,68,68,0.35);">
+                <i class="fa-solid fa-trash-can"></i>
+            </button>
         </div>
     </div>
     {% else %}
@@ -140,9 +144,23 @@ function renderSitesGrid(sites) {
                 <a href="/portal/${encodeURIComponent(s.domain)}" target="_blank" class="btn" style="text-decoration: none; background: rgba(0,212,255,0.12); color: var(--neon-cyan); border: 1px solid rgba(0,212,255,0.35);">
                     <i class="fa-solid fa-mask"></i> Clone
                 </a>
+                <button onclick="deleteCustomerSite('${sid}', '${dom}')" class="btn" title="Remove site workspace"
+                        style="background: rgba(255,68,68,0.12); color: var(--neon-red); border: 1px solid rgba(255,68,68,0.35);">
+                    <i class="fa-solid fa-trash-can"></i>
+                </button>
             </div>
         </div>`;
     }).join('');
+}
+
+function deleteCustomerSite(siteId, domain) {
+    if (!confirm(`Remove ${domain} from Protected Sites?`)) return;
+    if (window.MirageSiteSync) {
+        window.MirageSiteSync.removeSite(siteId);
+    }
+    fetch(`/api/site/${encodeURIComponent(siteId)}/delete`, { method: 'POST' })
+        .catch(() => {})
+        .finally(() => fetch('/api/sites').then(r => r.json()).then(d => renderSitesGrid(d.sites || [])));
 }
 
 document.addEventListener('DOMContentLoaded', async () => {

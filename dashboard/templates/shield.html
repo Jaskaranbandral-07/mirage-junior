@@ -35,8 +35,8 @@
     <!-- URL Cloner Form -->
     <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 14px;">
         <input type="text" id="shield-target-input"
-               value="{{ shield_stats.target_url }}"
-               placeholder="https://example.com or https://your-startup.com"
+               value="{{ shield_stats.target_url if is_cloned else '' }}"
+               placeholder="Enter website URL to clone &amp; protect (e.g. https://your-startup.com)"
                style="flex: 1; min-width: 260px; padding: 10px 14px; background: var(--bg-dark); border: 1px solid var(--border); border-radius: 6px; color: var(--text-bright);">
         <button onclick="cloneTargetSite()" class="btn btn-primary" id="btnCloneSite">
             <i class="fa-solid fa-clone"></i> Clone &amp; Protect Website
@@ -46,7 +46,7 @@
     <!-- Active Cloner Status Bar -->
     <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; padding-top: 12px; border-top: 1px solid var(--border);">
         <div style="font-size: 0.85rem; color: var(--text-muted);">
-            Active Origin: <strong id="shield-target-label" style="color: var(--neon-green);">{{ shield_stats.target_url }}</strong>
+            Active Origin: <strong id="shield-target-label" style="color: var(--neon-green);">{{ shield_stats.target_url if is_cloned else 'None (Clone a website to activate)' }}</strong>
             &nbsp;|&nbsp; Clone Mode: <span class="tag" id="shield-mode-label">{{ shield_stats.clone_status.mode }}</span>
         </div>
         <div style="display: flex; gap: 8px; flex-wrap: wrap;">
@@ -194,6 +194,7 @@ function refreshShieldData() {
             const mode = data.clone_status?.mode || 'uninitialized';
             document.getElementById('shield-mode-label').textContent = mode;
             const isCloned = Boolean(mode && mode !== 'uninitialized');
+            document.getElementById('shield-target-label').textContent = isCloned ? (data.target_url || 'Active') : 'None (Clone a website to activate)';
             const previewHref = data.clone_status?.domain ? ('/portal/' + encodeURIComponent(data.clone_status.domain)) : '';
             setCloneActionsEnabled(isCloned, previewHref);
         });
