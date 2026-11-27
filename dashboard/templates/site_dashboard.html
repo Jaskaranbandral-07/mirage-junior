@@ -1,0 +1,324 @@
+{% extends 'base.html' %}
+{% block title %}{{ site.domain }} — Personal Dashboard | MIRAGE Shield{% endblock %}
+{% block header_title %}Website Shield: {{ site.domain }}{% endblock %}
+
+{% block content %}
+<!-- Customer Workspace Header Banner -->
+<div class="card full-width" style="margin-bottom: 20px; border-left: 4px solid var(--neon-cyan);">
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px;">
+        <div style="display: flex; align-items: center; gap: 14px;">
+            <img src="{{ url_for('static', filename='img/mirage-shield-logo.png') }}?v=2" alt="MIRAGE Shield"
+                 style="width: 50px; height: 50px; border-radius: 12px; border: 1px solid rgba(0,212,255,0.45); object-fit: cover;">
+            <div>
+                <h3 style="color: var(--neon-cyan); margin-bottom: 4px;">
+                    {{ site.domain }} — Personal Shield Workspace
+                    {% if customer_mode %}
+                    <span class="badge badge-scanner" style="margin-left: 8px;">CUSTOMER VIEW</span>
+                    {% endif %}
+                </h3>
+                <p style="font-size: 0.82rem; color: var(--text-muted);">
+                    Owner: <strong style="color: var(--text-bright);">{{ site.owner_name }}</strong> &bull;
+                    Origin: <code style="color: var(--neon-green);">{{ site.target_url }}</code> &bull;
+                    Workspace ID: <code>{{ site.site_id }}</code>
+                </p>
+            </div>
+        </div>
+        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+            <a href="{{ portal_url }}" target="_blank" class="btn btn-primary" style="text-decoration: none;">
+                <i class="fa-solid fa-mask"></i> Open Deception Portal
+            </a>
+            <button onclick="copyShareLink()" class="btn" style="background: rgba(0,212,255,0.14); color: var(--neon-cyan); border: 1px solid rgba(0,212,255,0.35);">
+                <i class="fa-solid fa-share-nodes"></i> Copy Customer Link
+            </button>
+            <button onclick="clearSiteData()" class="btn btn-danger">
+                <i class="fa-solid fa-trash-can"></i> Purge Site Logs
+            </button>
+        </div>
+    </div>
+
+    <!-- Credentials / API Key Strip -->
+    <div style="display: flex; gap: 12px; flex-wrap: wrap; align-items: center; margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border); font-size: 0.82rem;">
+        <span style="color: var(--text-muted);">Backend Site API Key:</span>
+        <code id="site-api-key" data-full="{{ site.api_key }}" style="background: var(--bg-darker); padding: 4px 10px; border-radius: 6px; border: 1px solid var(--border); color: var(--neon-green);">
+            {{ site.api_key[:14] }}••••••••••••••••
+        </code>
+        <button onclick="toggleApiKey()" class="btn" style="padding: 4px 10px; font-size: 0.75rem; background: var(--bg-dark); color: var(--text-main); border: 1px solid var(--border);">Reveal / Copy Key</button>
+        <a href="/api/export/csv?site_id={{ site.site_id }}" class="btn" style="padding: 4px 10px; font-size: 0.75rem; margin-left: auto; text-decoration: none; background: var(--bg-dark); color: var(--neon-blue); border: 1px solid var(--border);">
+            <i class="fa-solid fa-download"></i> Export Site CSV
+        </a>
+    </div>
+    <div id="site-toast" style="display:none; margin-top: 10px; padding: 8px 12px; border-radius: 6px; background: rgba(0,255,65,0.1); border: 1px solid rgba(0,255,65,0.35); color: var(--neon-green); font-size: 0.82rem;"></div>
+</div>
+
+<!-- 5 Isolated Site Metric Cards -->
+<div class="stats-grid">
+    <div class="stat-card" style="border-left-color: var(--neon-cyan);">
+        <h3>Attacks Absorbed</h3>
+        <p id="sd-absorbed">{{ site.total_absorbed or site_data.total_hits }}</p>
+    </div>
+    <div class="stat-card" style="border-left-color: var(--neon-green);">
+        <h3>Fake Records Served</h3>
+        <p id="sd-fake">{{ site.fake_records_served or 0 }}</p>
+    </div>
+    <div class="stat-card" style="border-left-color: var(--neon-purple);">
+        <h3>Unique Attackers</h3>
+        <p id="sd-ips">{{ site_data.unique_ips }}</p>
+    </div>
+    <div class="stat-card" style="border-left-color: var(--neon-yellow);">
+        <h3>Creds Harvested</h3>
+        <p id="sd-creds">{{ site_data.creds_captured }}</p>
+    </div>
+    <div class="stat-card" style="border-left-color: var(--neon-red);">
+        <h3>Blocked IPs</h3>
+        <p id="sd-blocked">{{ site_data.ips_quarantined }}</p>
+    </div>
+</div>
+
+<!-- Backend Installation & Attack Absorption Tester -->
+<div class="tables-grid" style="margin-bottom: 20px;">
+    <!-- 2-Line Backend SDK Installer -->
+    <div class="table-card">
+        <h3><i class="fa-solid fa-plug"></i> Install Shield on Customer Backend</h3>
+        <p style="font-size: 0.82rem; color: var(--text-muted); margin-bottom: 10px;">
+            Drop this middleware in front of your real routes so attacks are absorbed before reaching your database:
+        </p>
+        <div style="display: flex; gap: 6px; margin-bottom: 10px; flex-wrap: wrap;">
+            <button class="btn btn-primary sdk-tab" onclick="showSdkTab('flask', this)" style="padding: 5px 12px; font-size: 0.78rem;">Python (Flask)</button>
+            <button class="btn sdk-tab" onclick="showSdkTab('node', this)" style="padding: 5px 12px; font-size: 0.78rem; background: var(--bg-dark); color: var(--text-muted); border: 1px solid var(--border);">Node.js (Express)</button>
+            <button class="btn sdk-tab" onclick="showSdkTab('nginx', this)" style="padding: 5px 12px; font-size: 0.78rem; background: var(--bg-dark); color: var(--text-muted); border: 1px solid var(--border);">Nginx Proxy</button>
+        </div>
+        <pre id="sdk-code-box" style="background: var(--bg-darker); border: 1px solid var(--border); border-radius: 6px; padding: 12px; font-size: 0.76rem; color: var(--neon-green); overflow-x: auto; line-height: 1.45;">from mirage_shield.sdk.python_shield import protect_flask_app
+
+protect_flask_app(
+    app,
+    site_key="{{ site.api_key }}",
+    shield_url="{{ shield_base_url }}",
+    domain="{{ site.domain }}"
+)</pre>
+    </div>
+
+    <!-- Live Attack Absorption & Fake Data Preview -->
+    <div class="table-card">
+        <h3><i class="fa-solid fa-vial-virus"></i> Test Attack Absorption &amp; Fake Data</h3>
+        <p style="font-size: 0.82rem; color: var(--text-muted); margin-bottom: 10px;">
+            Send a live attack probe against <strong>{{ site.domain }}</strong>'s Shield layer and inspect the useless synthetic data returned to the attacker:
+        </p>
+        <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px;">
+            <button onclick="testAbsorb('sqli')" class="btn btn-danger" style="font-size: 0.78rem;"><i class="fa-solid fa-database"></i> SQLi Dump Trap</button>
+            <button onclick="testAbsorb('api_scrape')" class="btn btn-warning" style="font-size: 0.78rem;"><i class="fa-solid fa-spider"></i> API Scrape Bait</button>
+            <button onclick="testAbsorb('rce')" class="btn" style="font-size: 0.78rem; background: rgba(188,140,255,0.16); color: var(--neon-purple); border: 1px solid rgba(188,140,255,0.4);"><i class="fa-solid fa-terminal"></i> RCE Shell Trap</button>
+            <button onclick="testAbsorb('traversal')" class="btn btn-primary" style="font-size: 0.78rem;"><i class="fa-solid fa-folder-tree"></i> Traversal Bait</button>
+        </div>
+        <pre id="fake-preview-box" style="background: var(--bg-darker); border: 1px solid var(--border); border-radius: 6px; padding: 10px; font-size: 0.74rem; color: var(--neon-cyan); max-height: 150px; overflow: auto;">Click any probe button above to inspect the useless synthetic data fed to attackers...</pre>
+    </div>
+</div>
+
+<!-- Isolated Charts -->
+<div class="charts-grid" style="margin-bottom: 20px;">
+    <div class="chart-card">
+        <h3>Site Threat Severity</h3>
+        <canvas id="siteThreatChart" style="max-height: 230px;"></canvas>
+    </div>
+    <div class="chart-card">
+        <h3>MITRE ATT&amp;CK Techniques Absorbed</h3>
+        <canvas id="siteMitreChart" style="max-height: 230px;"></canvas>
+    </div>
+</div>
+
+<!-- Isolated Events & Credentials Tables -->
+<div class="tables-grid">
+    <div class="table-card">
+        <h3><i class="fa-solid fa-shield-virus"></i> Attacks Absorbed on {{ site.domain }}</h3>
+        <table>
+            <thead>
+                <tr><th>Time</th><th>IP</th><th>Event</th><th>MITRE</th><th>Score</th></tr>
+            </thead>
+            <tbody id="sd-events-body">
+                {% for e in site_data.recent_events %}
+                <tr>
+                    <td>{{ e.timestamp[11:19] if e.timestamp and e.timestamp|length >= 19 else e.timestamp }}</td>
+                    <td><a href="/attacker/{{ e.ip_address }}" style="color: var(--neon-cyan);">{{ e.ip_address }}</a></td>
+                    <td>{{ e.event_type }}</td>
+                    <td><code>{{ e.mitre_id or '-' }}</code></td>
+                    <td><span class="badge {{ 'badge-critical' if e.classification == 'CRITICAL' else 'badge-suspicious' }}">{{ e.threat_score or e.threat_pts }}</span></td>
+                </tr>
+                {% else %}
+                <tr><td colspan="5" class="text-muted" style="text-align: center;">No attacks absorbed for this website yet.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="table-card">
+        <h3><i class="fa-solid fa-key"></i> Trap Credentials Captured</h3>
+        <table>
+            <thead>
+                <tr><th>Time</th><th>IP</th><th>Username</th><th>Password</th></tr>
+            </thead>
+            <tbody id="sd-creds-body">
+                {% for c in site_data.credentials %}
+                <tr>
+                    <td>{{ c.timestamp[11:19] if c.timestamp and c.timestamp|length >= 19 else c.timestamp }}</td>
+                    <td><code>{{ c.ip_address }}</code></td>
+                    <td style="color: var(--neon-purple);">{{ c.username }}</td>
+                    <td style="color: var(--neon-red);">{{ c.password }}</td>
+                </tr>
+                {% else %}
+                <tr><td colspan="4" class="text-muted" style="text-align: center;">No credentials trapped on this site yet.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const SITE_ID = "{{ site.site_id }}";
+const SITE_API_KEY = "{{ site.api_key }}";
+const SITE_DOMAIN = "{{ site.domain }}";
+const SHIELD_BASE_URL = "{{ shield_base_url }}";
+const SHARE_URL = "{{ share_url }}";
+
+const SDK_SNIPPETS = {
+    flask: `from mirage_shield.sdk.python_shield import protect_flask_app\n\nprotect_flask_app(\n    app,\n    site_key="${SITE_API_KEY}",\n    shield_url="${SHIELD_BASE_URL}",\n    domain="${SITE_DOMAIN}"\n)`,
+    node: `const mirageShield = require("./mirage_shield/sdk/node_shield");\n\napp.use(mirageShield({\n  siteKey: "${SITE_API_KEY}",\n  shieldUrl: "${SHIELD_BASE_URL}"\n}));`,
+    nginx: `# Route traffic through MIRAGE Shield proxy\nlocation / {\n    proxy_pass http://127.0.0.1:8443;\n    proxy_set_header X-Forwarded-For $remote_addr;\n    proxy_set_header X-MIRAGE-Site-Key "${SITE_API_KEY}";\n}`
+};
+
+let threatChart = null;
+let mitreChart = null;
+
+function showSdkTab(kind, btn) {
+    document.getElementById('sdk-code-box').textContent = SDK_SNIPPETS[kind] || '';
+    document.querySelectorAll('.sdk-tab').forEach(b => {
+        b.classList.remove('btn-primary');
+        b.style.background = 'var(--bg-dark)';
+        b.style.color = 'var(--text-muted)';
+        b.style.border = '1px solid var(--border)';
+    });
+    btn.classList.add('btn-primary');
+    btn.style.background = '';
+    btn.style.color = '';
+    btn.style.border = '';
+}
+
+function showSiteToast(msg) {
+    const el = document.getElementById('site-toast');
+    el.textContent = msg;
+    el.style.display = 'block';
+    setTimeout(() => { el.style.display = 'none'; }, 4000);
+}
+
+function toggleApiKey() {
+    const codeEl = document.getElementById('site-api-key');
+    const full = codeEl.dataset.full;
+    codeEl.textContent = full;
+    if (navigator.clipboard) navigator.clipboard.writeText(full).catch(() => {});
+    showSiteToast('Site API key revealed and copied to clipboard.');
+}
+
+function copyShareLink() {
+    if (navigator.clipboard) navigator.clipboard.writeText(SHARE_URL).catch(() => {});
+    showSiteToast('Private customer dashboard link copied: ' + SHARE_URL);
+}
+
+function testAbsorb(kind) {
+    fetch(`/api/site/${SITE_ID}/test-absorb`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ kind })
+    })
+    .then(r => r.json())
+    .then(res => {
+        if (res.success) {
+            document.getElementById('fake-preview-box').textContent = res.fake_response_preview;
+            showSiteToast(`Absorbed ${kind.toUpperCase()} probe & fed ${res.fake_records_served} fake records!`);
+            refreshSiteDashboard();
+        }
+    });
+}
+
+function clearSiteData() {
+    if (!confirm(`Purge all captured logs strictly for ${SITE_DOMAIN}?`)) return;
+    fetch(`/api/site/${SITE_ID}/clear`, { method: 'POST' })
+        .then(r => r.json())
+        .then(() => {
+            showSiteToast(`Cleared telemetry for ${SITE_DOMAIN}.`);
+            refreshSiteDashboard();
+        });
+}
+
+function refreshSiteDashboard() {
+    fetch(`/api/site/${SITE_ID}/stats`)
+        .then(r => r.json())
+        .then(data => {
+            if (data.error) return;
+            document.getElementById('sd-absorbed').textContent = data.site?.total_absorbed || data.total_hits || 0;
+            document.getElementById('sd-fake').textContent = data.site?.fake_records_served || 0;
+            document.getElementById('sd-ips').textContent = data.unique_ips || 0;
+            document.getElementById('sd-creds').textContent = data.creds_captured || 0;
+            document.getElementById('sd-blocked').textContent = data.ips_quarantined || 0;
+
+            if (threatChart && data.threat_distribution) {
+                const d = data.threat_distribution;
+                threatChart.data.datasets[0].data = [d.Scanner || 0, d.Suspicious || 0, d.Active || 0, d.Critical || 0];
+                threatChart.update('none');
+            }
+            if (mitreChart && data.mitre_stats) {
+                mitreChart.data.labels = Object.keys(data.mitre_stats);
+                mitreChart.data.datasets[0].data = Object.values(data.mitre_stats);
+                mitreChart.update('none');
+            }
+
+            const evBody = document.getElementById('sd-events-body');
+            if (data.recent_events && data.recent_events.length) {
+                evBody.innerHTML = data.recent_events.slice(0, 15).map(e => {
+                    const t = (e.timestamp || '').slice(11, 19) || e.timestamp;
+                    const cls = e.classification === 'CRITICAL' ? 'badge-critical' : 'badge-suspicious';
+                    return `<tr><td>${t}</td><td><a href="/attacker/${e.ip_address}" style="color:var(--neon-cyan);">${e.ip_address}</a></td><td>${e.event_type}</td><td><code>${e.mitre_id || '-'}</code></td><td><span class="badge ${cls}">${e.threat_score || e.threat_pts || 0}</span></td></tr>`;
+                }).join('');
+            } else {
+                evBody.innerHTML = '<tr><td colspan="5" class="text-muted" style="text-align:center;">No attacks absorbed for this website yet.</td></tr>';
+            }
+
+            const crBody = document.getElementById('sd-creds-body');
+            if (data.credentials && data.credentials.length) {
+                crBody.innerHTML = data.credentials.slice(0, 12).map(c => {
+                    const t = (c.timestamp || '').slice(11, 19) || c.timestamp;
+                    return `<tr><td>${t}</td><td><code>${c.ip_address}</code></td><td style="color:var(--neon-purple);">${c.username}</td><td style="color:var(--neon-red);">${c.password}</td></tr>`;
+                }).join('');
+            } else {
+                crBody.innerHTML = '<tr><td colspan="4" class="text-muted" style="text-align:center;">No credentials trapped on this site yet.</td></tr>';
+            }
+        });
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    const tCtx = document.getElementById('siteThreatChart');
+    if (tCtx) {
+        threatChart = new Chart(tCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Scanner', 'Suspicious', 'Active', 'Critical'],
+                datasets: [{ data: [0, 0, 0, 0], backgroundColor: ['#00ff41', '#ffcc00', '#ff8c00', '#ff4444'], borderColor: '#161b22', borderWidth: 2 }]
+            },
+            options: { responsive: true, plugins: { legend: { position: 'bottom', labels: { color: '#c9d1d9' } } } }
+        });
+    }
+    const mCtx = document.getElementById('siteMitreChart');
+    if (mCtx) {
+        mitreChart = new Chart(mCtx, {
+            type: 'bar',
+            data: {
+                labels: [],
+                datasets: [{ label: 'Absorbed Hits', data: [], backgroundColor: 'rgba(0, 212, 255, 0.65)', borderColor: '#00d4ff', borderWidth: 1, borderRadius: 4 }]
+            },
+            options: { indexAxis: 'y', responsive: true, plugins: { legend: { display: false } }, scales: { x: { beginAtZero: true }, y: {} } }
+        });
+    }
+    refreshSiteDashboard();
+    setInterval(refreshSiteDashboard, 5000);
+});
+</script>
+{% endblock %}

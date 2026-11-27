@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>{% block title %}MIRAGE Junior Dashboard{% endblock %}</title>
-    <link rel="icon" type="image/png" href="{{ url_for('static', filename='img/mirage-junior-favicon.png') }}?v=2">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=2">
+    <title>{% block title %}MIRAGE Shield — Deception WAF &amp; SOC{% endblock %}</title>
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='img/mirage-junior-favicon.png') }}?v=3">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=3">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
@@ -13,8 +13,8 @@
     <!-- Mobile Cyber Top App-Bar (Visible on phones) -->
     <div class="mobile-top-bar">
         <div class="mobile-brand">
-            <img src="{{ url_for('static', filename='img/mirage-junior-logo.png') }}?v=2" alt="MIRAGE Jr" class="brand-logo-sm">
-            <span>MIRAGE <span class="neon-text">Jr</span></span>
+            <img src="{{ url_for('static', filename='img/mirage-junior-logo.png') }}?v=3" alt="MIRAGE Shield" class="brand-logo-sm">
+            <span>MIRAGE <span class="neon-text">Shield</span></span>
         </div>
         <div class="mobile-top-right">
             <div class="live-indicator-compact"><span class="pulse"></span> LIVE</div>
@@ -27,13 +27,19 @@
     <!-- Desktop Sidebar (Hidden on mobile) -->
     <aside class="sidebar">
         <div class="logo">
-            <img src="{{ url_for('static', filename='img/mirage-junior-logo.png') }}?v=2" alt="MIRAGE Junior Logo" class="sidebar-logo-img">
-            <h2>MIRAGE <span style="color:var(--neon-green)">Jr</span></h2>
-            <div class="sys-badge"><span class="badge-dot"></span> DECEPTION ACTIVE</div>
+            <img src="{{ url_for('static', filename='img/mirage-junior-logo.png') }}?v=3" alt="MIRAGE Shield Logo" class="sidebar-logo-img">
+            <h2>MIRAGE <span style="color:var(--neon-green)">Shield</span></h2>
+            <div class="sys-badge"><span class="badge-dot"></span> DECEPTION WAF ACTIVE</div>
         </div>
         <nav>
             <a href="/" class="nav-link {{ 'active' if request.path == '/' else '' }}">
                 <i class="fa-solid fa-chart-line"></i> <span>Overview</span>
+            </a>
+            <a href="/sites" class="nav-link {{ 'active' if request.path == '/sites' or request.path.startswith('/site/') else '' }}">
+                <i class="fa-solid fa-layer-group"></i> <span>Protected Sites</span>
+            </a>
+            <a href="/shield" class="nav-link {{ 'active' if request.path == '/shield' else '' }}">
+                <i class="fa-solid fa-shield-halved"></i> <span>Shield Proxy</span>
             </a>
             <a href="/attacks" class="nav-link {{ 'active' if request.path == '/attacks' else '' }}">
                 <i class="fa-solid fa-bolt"></i> <span>Attack Log</span>
@@ -43,9 +49,6 @@
             </a>
             <a href="/honeytokens" class="nav-link {{ 'active' if request.path == '/honeytokens' else '' }}">
                 <i class="fa-solid fa-cheese"></i> <span>Honeytokens</span>
-            </a>
-            <a href="/shield" class="nav-link {{ 'active' if request.path == '/shield' else '' }}">
-                <i class="fa-solid fa-shield-halved"></i> <span>MIRAGE Shield</span>
             </a>
             <a href="/settings" class="nav-link {{ 'active' if request.path == '/settings' else '' }}">
                 <i class="fa-solid fa-gear"></i> <span>Settings</span>
@@ -63,8 +66,8 @@
     <div class="mobile-drawer" id="mobileDrawer">
         <div class="mobile-drawer-header">
             <div class="mobile-brand">
-                <img src="{{ url_for('static', filename='img/mirage-junior-logo.png') }}?v=2" alt="MIRAGE Jr" class="brand-logo-sm">
-                <span>MIRAGE <span class="neon-text">Jr</span></span>
+                <img src="{{ url_for('static', filename='img/mirage-junior-logo.png') }}?v=3" alt="MIRAGE Shield" class="brand-logo-sm">
+                <span>MIRAGE <span class="neon-text">Shield</span></span>
             </div>
             <button class="mobile-drawer-close" id="mobileDrawerCloseBtn" aria-label="Close Navigation Menu">
                 <i class="fa-solid fa-xmark"></i>
@@ -92,7 +95,15 @@
                 <div class="nav-icon-box"><i class="fa-solid fa-chart-line"></i></div>
                 <div class="nav-text-box">
                     <strong>Overview</strong>
-                    <small>High-level SOC metrics & visual charts</small>
+                    <small>Global deception metrics & visual charts</small>
+                </div>
+                <i class="fa-solid fa-chevron-right arrow-icon"></i>
+            </a>
+            <a href="/sites" class="drawer-nav-item {{ 'active' if request.path == '/sites' or request.path.startswith('/site/') else '' }}">
+                <div class="nav-icon-box"><i class="fa-solid fa-layer-group"></i></div>
+                <div class="nav-text-box">
+                    <strong>Protected Sites</strong>
+                    <small>Per-website personal customer dashboards</small>
                 </div>
                 <i class="fa-solid fa-chevron-right arrow-icon"></i>
             </a>
@@ -156,7 +167,7 @@
     <div class="main-content">
         <header class="desktop-header">
             <div class="desktop-header-brand">
-                <img src="{{ url_for('static', filename='img/mirage-junior-logo.png') }}?v=2" alt="MIRAGE Jr Crest" class="header-crest-img">
+                <img src="{{ url_for('static', filename='img/mirage-junior-logo.png') }}?v=3" alt="MIRAGE Shield Crest" class="header-crest-img">
                 <h1>{% block header_title %}Dashboard{% endblock %}</h1>
             </div>
             <div class="live-indicator"><span class="pulse"></span> LIVE MONITORING</div>
@@ -167,7 +178,7 @@
         </main>
 
         <footer>
-            <p>MIRAGE Junior &copy; 2026 — Next-Gen Autonomous Deception Network</p>
+            <p>MIRAGE Shield &copy; 2026 — Multi-Tenant Autonomous Deception &amp; WAF Platform</p>
         </footer>
     </div>
 

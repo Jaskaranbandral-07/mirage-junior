@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% block title %}Attack Log - MIRAGE Junior{% endblock %}
+{% block title %}Attack Log - MIRAGE Shield{% endblock %}
 {% block header_title %}Full Attack Telemetry Log{% endblock %}
 
 {% block content %}
@@ -30,6 +30,11 @@
        class="btn {{ 'btn-primary' if protocol == 'HONEYTOKEN' else '' }}" 
        style="padding: 5px 14px; font-size: 0.8rem; border-radius: 20px; text-decoration: none; {{ 'background: var(--card-bg); color: var(--neon-red); border: 1px solid rgba(255,68,68,0.3);' if protocol != 'HONEYTOKEN' else '' }}">
        <i class="fa-solid fa-biohazard"></i> Honeytokens ({{ protocol_counts.get('HONEYTOKEN', 0) }})
+    </a>
+    <a href="/attacks?protocol=SHIELD{% if search %}&search={{ search }}{% endif %}" 
+       class="btn {{ 'btn-primary' if protocol == 'SHIELD' else '' }}" 
+       style="padding: 5px 14px; font-size: 0.8rem; border-radius: 20px; text-decoration: none; {{ 'background: var(--card-bg); color: var(--neon-cyan); border: 1px solid rgba(0,212,255,0.35);' if protocol != 'SHIELD' else '' }}">
+       <i class="fa-solid fa-shield-halved"></i> Shield Absorbed ({{ protocol_counts.get('SHIELD', 0) }})
     </a>
 </div>
 
@@ -106,6 +111,10 @@
                         {% elif e.protocol == 'HONEYTOKEN' %}
                         <span class="badge badge-critical">
                             <i class="fa-solid fa-biohazard"></i> BAIT
+                        </span>
+                        {% elif e.protocol == 'SHIELD' %}
+                        <span class="badge" style="background: rgba(0, 212, 255, 0.15); color: var(--neon-cyan); border: 1px solid rgba(0, 212, 255, 0.35);">
+                            <i class="fa-solid fa-shield-halved"></i> SHIELD
                         </span>
                         {% else %}
                         <span class="badge">{{ e.protocol }}</span>

@@ -82,8 +82,8 @@ class SiteCloner:
         Clone the target website (index + key internal pages).
         Falls back cleanly to a corporate portal decoy if offline/unreachable.
         """
-        if not requests or not BeautifulSoup:
-            logger.warning("requests/beautifulsoup4 unavailable. Creating fallback corporate clone.")
+        if not requests:
+            logger.warning("requests library unavailable. Creating fallback corporate clone.")
             return self._create_fallback_clone()
 
         os.makedirs(self.clone_path, exist_ok=True)
@@ -178,6 +178,17 @@ class SiteCloner:
         # Use final URL post-redirect (e.g. programiz.com -> https://www.programiz.com/)
         base_url = resp.url or url
         actual_domain = urlparse(base_url).netloc or self.domain
+        if not BeautifulSoup:
+            html_out, internal_links, asset_count = self._clone_html_stdlib(resp.text, base_url, actual_domain)
+            rel_path = urlparse(url).path.strip("/") or "index"
+            filepath = self._page_path_to_filepath(rel_path)
+            os.makedirs(os.path.dirname(filepath), exist_ok=True)
+            with open(filepath, "w", encoding="utf-8") as f:
+                f.write(html_out)
+            route_key = "/" + urlparse(url).path.strip("/")
+            self.cloned_pages[route_key] = filepath
+            return html_out, internal_links, asset_count
+
         soup = BeautifulSoup(resp.text, "html.parser")
         internal_links = []
         asset_count = 0
@@ -310,7 +321,7 @@ class SiteCloner:
         os.makedirs(self.clone_path, exist_ok=True)
         os.makedirs(os.path.join(self.clone_path, "assets"), exist_ok=True)
 
-        if requests and BeautifulSoup:
+        if requests:
             target_page_url = self.target_url if clean == "/" else f"{self.target_url}{clean}"
             html, _, _ = self._clone_page(target_page_url)
             if html and os.path.exists(candidate):
@@ -318,11 +329,72 @@ class SiteCloner:
 
         return self.resolve_page_path(clean)
 
+    def _clone_html_stdlib(self, html: str, base_url: str, actual_domain: str) -> tuple:
+        """Pure-stdlib HTML asset & trap rewriter fallback when BeautifulSoup is not installed."""
+        internal_links = []
+        asset_count = 0
+
+        # Strip CSP meta and <base> tags
+        out = re.sub(r"<meta[^>]+http-equiv\s*=\s*['\"]content-security-policy['\"][^>]*>", "", html, flags=re.I)
+        out = re.sub(r"<base\b[^>]*>", "", out, flags=re.I)
+
+        def _rewrite_link_or_asset(match):
+            nonlocal asset_count
+            tag_prefix, quote, raw_val = match.group(1), match.group(2), match.group(3)
+            asset_count += 1
+            return f"{tag_prefix}{quote}{self._abs_url(base_url, raw_val)}{quote}"
+
+        out = re.sub(r"(<link\b[^>]*?\bhref\s*=\s*)(['\"])([^'\"]+)\2", _rewrite_link_or_asset, out, flags=re.I)
+        out = re.sub(r"(<(?:script|img|source|video|audio|iframe)\b[^>]*?\bsrc\s*=\s*)(['\"])([^'\"]+)\2", _rewrite_link_or_asset, out, flags=re.I)
+        out = re.sub(
+            r"(<(?:img|source)\b[^>]*?\bsrcset\s*=\s*)(['\"])([^'\"]+)\2",
+            lambda m: f"{m.group(1)}{m.group(2)}{self._rewrite_srcset(base_url, m.group(3))}{m.group(2)}",
+            out,
+            flags=re.I,
+        )
+        out = self._rewrite_css_urls(base_url, out)
+
+        def _rewrite_anchor(match):
+            prefix, quote, href = match.group(1), match.group(2), match.group(3)
+            if href.startswith(("#", "mailto:", "tel:", "javascript:")):
+                return match.group(0)
+            full_url = urljoin(base_url, href)
+            parsed = urlparse(full_url)
+            if parsed.netloc in (self.domain, actual_domain):
+                internal_links.append(f"{parsed.scheme}://{parsed.netloc}{parsed.path or '/'}")
+                rel = parsed.path or "/"
+                if parsed.query:
+                    rel = f"{rel}?{parsed.query}"
+                return f"{prefix}{quote}{rel}{quote}"
+            return match.group(0)
+
+        out = re.sub(r"(<a\b[^>]*?\bhref\s*=\s*)(['\"])([^'\"]+)\2", _rewrite_anchor, out, flags=re.I)
+
+        def _rewrite_form(match):
+            prefix, quote, action = match.group(1), match.group(2), match.group(3)
+            parsed_action = urlparse(urljoin(base_url, action or "/login"))
+            return f"{prefix}{quote}{parsed_action.path or '/login'}{quote}"
+
+        out = re.sub(r"(<form\b[^>]*?\baction\s*=\s*)(['\"])([^'\"]*)\2", _rewrite_form, out, flags=re.I)
+        return out, internal_links, asset_count
+
     def apply_portal_prefix(self, html: str, prefix: str) -> str:
         """Rewrite internal <a> links and <form> actions under a clean /portal/<domain> prefix."""
         clean_prefix = "/" + prefix.strip("/")
-        if not BeautifulSoup or not html:
+        if not html:
             return html
+
+        if not BeautifulSoup:
+            def _prefix_attr(match):
+                head, quote, val = match.group(1), match.group(2), match.group(3).strip()
+                if val.startswith("/") and not val.startswith("//") and not val.startswith(clean_prefix):
+                    new_val = clean_prefix if val == "/" else f"{clean_prefix}{val}"
+                    return f"{head}{quote}{new_val}{quote}"
+                return match.group(0)
+
+            out = re.sub(r"(<a\b[^>]*?\bhref\s*=\s*)(['\"])([^'\"]+)\2", _prefix_attr, html, flags=re.I)
+            out = re.sub(r"(<form\b[^>]*?\baction\s*=\s*)(['\"])([^'\"]+)\2", _prefix_attr, out, flags=re.I)
+            return out
 
         soup = BeautifulSoup(html, "html.parser")
         for tag in soup.find_all("a", href=True):

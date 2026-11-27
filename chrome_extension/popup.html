@@ -35,20 +35,20 @@
       <label class="label">Website to Protect (Current Tab)</label>
       <input type="text" id="target-url" placeholder="https://example.com" />
       <button id="btn-clone" class="btn btn-primary">
-        🪞 Create Honeypot Clone &amp; Protect
+        🛡️ Protect Site &amp; Open Its Dashboard
       </button>
       <div id="feedback" class="feedback hidden"></div>
     </section>
 
-    <!-- Live Shield Stats -->
+    <!-- Live Shield Stats (Per-Website) -->
     <section class="stats-grid">
       <div class="stat allowed">
         <span class="stat-val" id="stat-allowed">0</span>
-        <span class="stat-lbl">Real Site</span>
+        <span class="stat-lbl">Absorbed</span>
       </div>
       <div class="stat diverted">
         <span class="stat-val" id="stat-diverted">0</span>
-        <span class="stat-lbl">In Clone</span>
+        <span class="stat-lbl">Fake Data</span>
       </div>
       <div class="stat blocked">
         <span class="stat-val" id="stat-blocked">0</span>
@@ -62,12 +62,12 @@
 
     <!-- Quick Test & Open Actions -->
     <section class="actions-grid">
-      <button id="btn-sim-attack" class="btn btn-danger">⚡ Send Real Probe</button>
+      <button id="btn-sim-attack" class="btn btn-danger">⚡ Test Attack Probe</button>
       <button id="btn-preview" class="btn btn-secondary">👁️ Preview Clone</button>
     </section>
 
     <button id="btn-dashboard" class="btn btn-outline">
-      📊 Open Full MIRAGE Shield Dashboard
+      📊 Open This Website's Personal Dashboard
     </button>
   </div>
 

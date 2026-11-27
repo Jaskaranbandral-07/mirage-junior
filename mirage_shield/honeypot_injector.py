@@ -62,7 +62,8 @@ class HoneypotInjector:
         return clean in self.trap_endpoints
 
     def serve_trap(self, path: str, request_ip: str,
-                   method: str = "GET", post_data: dict = None) -> tuple:
+                   method: str = "GET", post_data: dict = None,
+                   site_id: str = "global") -> tuple:
         """
         Serve deception content for a trap endpoint and record telemetry.
         Returns: (body, content_type, status_code)
@@ -72,10 +73,12 @@ class HoneypotInjector:
         if not handler:
             return None, None, None
 
-        self._log_interaction(request_ip, clean, method, post_data)
+        self._log_interaction(request_ip, clean, method, post_data, site_id=site_id)
+        if method == "POST" and post_data and clean in ("/admin", "/admin/login", "/wp-admin", "/wp-login.php", "/administrator", "/phpmyadmin", "/pma"):
+            return self.capture_form_submission(request_ip, clean, post_data, site_id=site_id)
         return handler(request_ip, method, post_data)
 
-    def capture_form_submission(self, ip: str, path: str, form_data: dict) -> tuple:
+    def capture_form_submission(self, ip: str, path: str, form_data: dict, site_id: str = "global") -> tuple:
         """
         Capture credentials submitted to any cloned HTML login form inside the honeypot.
         """
@@ -94,12 +97,15 @@ class HoneypotInjector:
             or form_data.get("pma_password")
             or ""
         )
-        self.record_credential(ip, username, password, path)
+        self.record_credential(ip, username, password, path, site_id=site_id)
         return self._admin_error_page(), "text/html", 401
 
-    def record_credential(self, ip: str, username: str, password: str, path: str = "/login"):
-        """Store captured credential locally and in MIRAGE Junior's database."""
+    def record_credential(self, ip: str, username: str, password: str,
+                          path: str = "/login", site_id: str = "global"):
+        """Store captured credential locally and in MIRAGE Shield's database."""
+        site_id = site_id or "global"
         entry = {
+            "site_id": site_id,
             "ip": ip,
             "username": username,
             "password": password,
@@ -110,7 +116,7 @@ class HoneypotInjector:
         if len(self.injected_credentials) > 500:
             self.injected_credentials = self.injected_credentials[-250:]
 
-        logger.warning(f"🔑 SHIELD CAPTURED CREDENTIAL: {ip} → {username}:{password} on {path}")
+        logger.warning(f"🔑 SHIELD CAPTURED CREDENTIAL [{site_id}]: {ip} → {username}:{password} on {path}")
 
         if self.db_manager:
             try:
@@ -120,6 +126,7 @@ class HoneypotInjector:
                     username=username,
                     password=password,
                     success=False,
+                    site_id=site_id,
                 )
             except Exception as e:
                 logger.error(f"DB credential log error: {e}")
@@ -131,6 +138,7 @@ class HoneypotInjector:
             details={"shield": True, "path": path, "username": username},
             threat_pts=15,
             mitre_id="T1110",
+            site_id=site_id,
         )
 
     def record_beacon(self, beacon_data: dict, fallback_ip: str = "unknown"):
@@ -204,9 +212,10 @@ class HoneypotInjector:
 }})();
 </script>"""
 
-    def _log_interaction(self, ip: str, path: str, method: str, data: dict = None):
+    def _log_interaction(self, ip: str, path: str, method: str, data: dict = None, site_id: str = "global"):
         """Log trap hit to console, honeytoken_triggers table, and events table."""
-        logger.warning(f"🪤 SHIELD TRAP TRIGGERED: {ip} → {method} {path}")
+        site_id = site_id or "global"
+        logger.warning(f"🪤 SHIELD TRAP TRIGGERED [{site_id}]: {ip} → {method} {path}")
 
         if self.db_manager:
             try:
@@ -216,6 +225,7 @@ class HoneypotInjector:
                     ip_address=ip,
                     process_name="MIRAGE_SHIELD",
                     details=json.dumps({"method": method, "shield": True}),
+                    site_id=site_id,
                 )
             except Exception as e:
                 logger.error(f"DB honeytoken trigger log error: {e}")
@@ -245,10 +255,12 @@ class HoneypotInjector:
             details={"shield": True, "path": path, "method": method},
             threat_pts=pts,
             mitre_id=mitre_id,
+            site_id=site_id,
         )
 
     def _sync_event_to_db(self, ip: str, protocol: str, event_type: str,
-                          details: dict, threat_pts: int, mitre_id: str):
+                          details: dict, threat_pts: int, mitre_id: str,
+                          site_id: str = "global"):
         """Persist event via DatabaseManager and trigger ScoringEngine safely."""
         if not self.db_manager:
             return
@@ -261,9 +273,10 @@ class HoneypotInjector:
                 details=details,
                 threat_pts=threat_pts,
                 mitre_id=mitre_id,
+                site_id=site_id,
             )
             if self.scoring_engine:
-                self.scoring_engine.calculate_threat_score(ip)
+                self.scoring_engine.calculate_threat_score(ip, site_id=site_id)
         except Exception as e:
             logger.error(f"Failed syncing Shield event to DB: {e}")
 
@@ -432,8 +445,13 @@ Disallow: /debug
 """
         return content, "text/plain", 200
 
-    def get_captured_credentials(self) -> list:
-        return self.injected_credentials[-50:][::-1]
+    def get_captured_credentials(self, site_id: str = None) -> list:
+        creds = (
+            [c for c in self.injected_credentials if c.get("site_id") == site_id]
+            if site_id and site_id != "global"
+            else self.injected_credentials
+        )
+        return creds[-50:][::-1]
 
     def get_beacons(self) -> list:
         return self.beacon_logs[-50:][::-1]

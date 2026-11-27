@@ -7,6 +7,7 @@ config/ssh_host_key
 *.db
 *.sqlite3
 database/mirage_junior.db
+database/mirage_shield.db
 database/geo_cache.json
 mirage_shield/cloned_sites/
 

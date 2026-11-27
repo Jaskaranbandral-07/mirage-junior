@@ -16,7 +16,7 @@ class AlertManager:
 
         emoji = "🔴" if classification == "CRITICAL" else "🟠"
         message = f"""
-{emoji} {classification} ALERT — MIRAGE Junior
+{emoji} {classification} ALERT — MIRAGE Shield
 ━━━━━━━━━━━━━━━━━━━━━━━━━━
 🌍 IP: {ip}
 📊 Threat Score: {score}/100

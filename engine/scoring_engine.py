@@ -37,12 +37,12 @@ class ScoringEngine:
         self.alert_manager = alert_manager or AlertManager(bot_token=getattr(settings_cfg, 'TELEGRAM_BOT_TOKEN', TELEGRAM_BOT_TOKEN), chat_id=getattr(settings_cfg, 'TELEGRAM_CHAT_ID', TELEGRAM_CHAT_ID))
 
     @classmethod
-    def calculate_threat_score(cls, ip_address):
+    def calculate_threat_score(cls, ip_address, site_id="global"):
         instance = cls._instance if cls._instance is not None else cls()
-        return instance._calculate_threat_score(ip_address)
+        return instance._calculate_threat_score(ip_address, site_id=site_id)
 
-    def _calculate_threat_score(self, ip_address):
-        events = self.db.get_events_by_ip(ip_address)
+    def _calculate_threat_score(self, ip_address, site_id="global"):
+        events = self.db.get_events_by_ip(ip_address, site_id=site_id)
         score = 0
         services_hit = set()
         for event in events:
@@ -63,7 +63,7 @@ class ScoringEngine:
         
         classification = self._get_classification(score)
         
-        self.db.update_threat_score(ip_address, score, classification)
+        self.db.update_threat_score(ip_address, score, classification, site_id=site_id)
         
         # Trigger actions based on thresholds
         summary = f"IP {ip_address} classified as {classification} with threat score {score}/100."
@@ -71,7 +71,12 @@ class ScoringEngine:
         # Quarantine attacker if score meets or exceeds threshold (25 pts)
         threshold = getattr(settings_cfg, 'QUARANTINE_THRESHOLD', 25)
         if score >= threshold:
-            self.quarantine_manager.block_ip(ip_address, reason=f'Threat score {score} exceeded threshold ({threshold})', threat_score=score)
+            self.quarantine_manager.block_ip(
+                ip_address,
+                reason=f'Threat score {score} exceeded threshold ({threshold})',
+                threat_score=score,
+                site_id=site_id,
+            )
 
         # Graded alerts
         if score >= 76:

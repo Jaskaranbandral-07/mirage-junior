@@ -1,9 +1,12 @@
 """
-MIRAGE Junior — Dashboard Routes
-All route handlers for the analytics dashboard.
+MIRAGE Shield — Dashboard & Multi-Tenant Customer Portal Routes
+All route handlers for global telemetry, per-website personal dashboards,
+backend SDK ingestion, and deception traps.
 """
 
 from flask import Blueprint, render_template, jsonify, request, redirect, url_for, flash, Response
+import csv
+import io
 import sqlite3
 import json
 import os
@@ -24,7 +27,15 @@ TRAP_ENDPOINTS = {
     '/robots.txt', '/server-status'
 }
 
-DASHBOARD_UI_ROUTES = {'/', '/attacks', '/quarantine', '/honeytokens', '/shield', '/settings'}
+DASHBOARD_UI_ROUTES = {'/', '/attacks', '/quarantine', '/honeytokens', '/shield', '/sites', '/settings'}
+
+
+def _is_dashboard_route(norm_path: str) -> bool:
+    return (
+        norm_path in DASHBOARD_UI_ROUTES
+        or norm_path.startswith('/attacker/')
+        or norm_path.startswith('/site/')
+    )
 
 
 def get_real_client_ip():
@@ -99,7 +110,7 @@ def capture_real_web_threats():
     body = request.get_data(as_text=True) if request.method in ('POST', 'PUT', 'PATCH') else ''
 
     # Skip scanning normal clean dashboard navigation unless it carries an attack payload or bad UA
-    if norm_path in DASHBOARD_UI_ROUTES and not query_string and not body:
+    if _is_dashboard_route(norm_path) and not query_string and not body:
         ua_score = shield.analyzer._score_user_agent(user_agent)
         if ua_score < 20:
             shield.stats['total_requests'] += 1
@@ -119,15 +130,22 @@ def capture_real_web_threats():
     if decision in ('REDIRECT', 'BLOCK'):
         _record_real_http_attack(ip, path, request.method, score, decision, breakdown, user_agent)
         # Do not lock out clean dashboard UI pages themselves, only block attack requests or unknown trap paths
-        if decision == 'BLOCK' and norm_path not in DASHBOARD_UI_ROUTES:
+        if decision == 'BLOCK' and not _is_dashboard_route(norm_path):
             return shield._serve_block_page(ip, score)
-        if norm_path not in DASHBOARD_UI_ROUTES and not norm_path.startswith('/attacker/'):
-            return shield._serve_honeypot(ip, path, request.method)
+        if not _is_dashboard_route(norm_path):
+            attack_types = breakdown.get('attack_types') or []
+            if attack_types or norm_path.startswith('/api'):
+                body_str, ct, sc, fake_cnt = shield.deception.generate_response(
+                    path=path, attack_types=attack_types, ip=ip, domain=request.host or 'mirage-shield'
+                )
+                shield._record_fake_data_metric('global', fake_cnt)
+                return Response(body_str, status=sc, content_type=ct)
+            return shield._serve_honeypot(ip, path, request.method, breakdown=breakdown)
     else:
         # If user clicked a relative link inside /portal/<domain> (e.g. via JS navigation),
         # keep them seamlessly inside the cloned subpage instead of 404ing
         referer = request.headers.get('Referer', '')
-        if '/portal/' in referer and norm_path not in DASHBOARD_UI_ROUTES and not norm_path.startswith('/attacker/'):
+        if '/portal/' in referer and not _is_dashboard_route(norm_path):
             try:
                 from urllib.parse import urlparse
                 ref_path = urlparse(referer).path
@@ -374,7 +392,45 @@ def shield_page():
     """MIRAGE Shield Deception-as-a-Service control panel."""
     from mirage_shield.shield_proxy import get_shield_instance
     shield = get_shield_instance()
-    return render_template('shield.html', shield_stats=shield.get_full_stats())
+    db_mgr = DatabaseManager()
+    sites = db_mgr.list_sites()
+    return render_template('shield.html', shield_stats=shield.get_full_stats(), sites=sites)
+
+
+@dashboard_bp.route('/sites')
+def sites_hub():
+    """Multi-tenant Protected Websites & Customer Workspaces directory."""
+    db_mgr = DatabaseManager()
+    sites = db_mgr.list_sites()
+    return render_template('sites.html', sites=sites)
+
+
+@dashboard_bp.route('/site/<site_id>')
+def site_dashboard(site_id):
+    """Dedicated Personal Customer Dashboard strictly isolated to one protected website."""
+    db_mgr = DatabaseManager()
+    site = db_mgr.get_site(site_id)
+    if not site:
+        return Response("Protected site workspace not found.", status=404)
+
+    # If a customer key query parameter is supplied, enforce tenant access check
+    provided_key = request.args.get('key', '').strip()
+    if provided_key and provided_key != site['dashboard_key']:
+        return Response("403 Forbidden — Invalid customer dashboard key.", status=403)
+
+    site_data = db_mgr.get_site_dashboard_data(site_id)
+    base_url = request.host_url.rstrip('/')
+    share_url = f"{base_url}/site/{site_id}?key={site['dashboard_key']}"
+    portal_url = f"{base_url}/portal/{site['domain']}"
+    return render_template(
+        'site_dashboard.html',
+        site=site,
+        site_data=site_data,
+        share_url=share_url,
+        portal_url=portal_url,
+        shield_base_url=base_url,
+        customer_mode=bool(provided_key),
+    )
 
 
 
@@ -455,31 +511,60 @@ def api_events():
 
 @dashboard_bp.route('/api/unblock/<ip>', methods=['POST'])
 def api_unblock(ip):
-    """Manually unblock a quarantined IP."""
-    db = get_db()
-    db.execute("UPDATE quarantine_log SET is_active = 0, unblocked_by = 'manual' WHERE ip_address = ? AND is_active = 1", (ip,))
-    db.execute("UPDATE attackers SET is_quarantined = 0 WHERE ip_address = ?", (ip,))
-    db.commit()
-    db.close()
+    """Manually unblock a quarantined IP across OS firewall, Shield, and DB."""
+    from engine.quarantine import QuarantineManager
+    from mirage_shield.shield_proxy import get_shield_instance
+    site_id = request.args.get('site_id') or (request.get_json(silent=True) or {}).get('site_id')
+    try:
+        QuarantineManager().unblock_ip(ip, unblocked_by='manual', site_id=site_id)
+    except Exception:
+        db = get_db()
+        db.execute("UPDATE quarantine_log SET is_active = 0, unblocked_by = 'manual' WHERE ip_address = ? AND is_active = 1", (ip,))
+        db.execute("UPDATE attackers SET is_quarantined = 0 WHERE ip_address = ?", (ip,))
+        db.commit()
+        db.close()
+    try:
+        get_shield_instance().analyzer.unblock_ip(ip)
+    except Exception:
+        pass
     return jsonify({'status': 'success', 'message': f'IP {ip} has been unblocked.'})
 
 
 @dashboard_bp.route('/api/export/csv')
 def api_export_csv():
-    """Export all events as CSV."""
+    """Export events as properly escaped CSV (optionally filtered by site_id)."""
+    site_id = (request.args.get('site_id') or '').strip()
     db = get_db()
-    events = db.execute(
-        "SELECT e.*, a.country FROM events e LEFT JOIN attackers a ON e.ip_address = a.ip_address ORDER BY e.timestamp DESC"
-    ).fetchall()
+    if site_id and site_id != 'global':
+        events = db.execute(
+            "SELECT e.*, sa.country FROM events e LEFT JOIN site_attackers sa ON e.site_id = sa.site_id AND e.ip_address = sa.ip_address WHERE e.site_id = ? ORDER BY e.timestamp DESC",
+            (site_id,),
+        ).fetchall()
+    else:
+        events = db.execute(
+            "SELECT e.*, a.country FROM events e LEFT JOIN attackers a ON e.ip_address = a.ip_address ORDER BY e.timestamp DESC"
+        ).fetchall()
     db.close()
 
-    csv_lines = ['timestamp,ip_address,port,protocol,event_type,threat_pts,mitre_id,country']
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(['site_id', 'timestamp', 'ip_address', 'port', 'protocol', 'event_type', 'threat_pts', 'mitre_id', 'country'])
     for e in events:
-        csv_lines.append(f"{e['timestamp']},{e['ip_address']},{e['port']},{e['protocol']},{e['event_type']},{e['threat_pts']},{e['mitre_id']},{e['country']}")
+        writer.writerow([
+            e['site_id'] if 'site_id' in e.keys() else 'global',
+            e['timestamp'],
+            e['ip_address'],
+            e['port'],
+            e['protocol'],
+            e['event_type'],
+            e['threat_pts'],
+            e['mitre_id'],
+            e['country'],
+        ])
 
-    from flask import Response
-    return Response('\n'.join(csv_lines), mimetype='text/csv',
-                    headers={'Content-Disposition': 'attachment; filename=mirage_events.csv'})
+    fname = f"mirage_shield_{site_id or 'all'}_events.csv"
+    return Response(output.getvalue(), mimetype='text/csv',
+                    headers={'Content-Disposition': f'attachment; filename={fname}'})
 
 
 @dashboard_bp.route('/api/simulate-attack', methods=['POST'])
@@ -587,30 +672,244 @@ def api_simulate_attack():
         return jsonify({'status': 'error', 'message': str(e)}), 500
 
 
+# ─── MULTI-TENANT SITE WORKSPACES & BACKEND SDK INGESTION ───────────────
+
+@dashboard_bp.route('/api/sites')
+def api_sites_list():
+    """List all registered customer websites with live per-site counters."""
+    db_mgr = DatabaseManager()
+    return jsonify({'sites': db_mgr.list_sites()})
+
+
+@dashboard_bp.route('/api/sites/register', methods=['POST'])
+def api_sites_register():
+    """Register a customer website and issue its API key + private dashboard URL."""
+    payload = request.get_json(silent=True) or {}
+    target_url = (payload.get('target_url') or payload.get('domain') or '').strip()
+    owner_name = (payload.get('owner_name') or 'Customer').strip()
+    if not target_url:
+        return jsonify({'success': False, 'error': 'target_url or domain is required'}), 400
+    try:
+        db_mgr = DatabaseManager()
+        site = db_mgr.register_or_get_site(target_url, owner_name=owner_name)
+        base_url = request.host_url.rstrip('/')
+        return jsonify({
+            'success': True,
+            'site': site,
+            'site_id': site['site_id'],
+            'api_key': site['api_key'],
+            'dashboard_url': f"/site/{site['site_id']}",
+            'share_url': f"{base_url}/site/{site['site_id']}?key={site['dashboard_key']}",
+            'portal_url': f"/portal/{site['domain']}",
+        })
+    except ValueError as e:
+        return jsonify({'success': False, 'error': str(e)}), 400
+
+
+@dashboard_bp.route('/api/site/<site_id>/stats')
+def api_site_stats(site_id):
+    """Isolated JSON stats & live feeds for a single customer website."""
+    from mirage_shield.shield_proxy import get_shield_instance
+    db_mgr = DatabaseManager()
+    site = db_mgr.get_site(site_id)
+    if not site:
+        return jsonify({'error': 'Site not found'}), 404
+    data = db_mgr.get_site_dashboard_data(site_id)
+    shield = get_shield_instance()
+    data['site'] = site
+    data['shield_live'] = shield.analyzer.get_recent_analysis(limit=20, site_id=site_id)
+    data['shield_creds'] = shield.injector.get_captured_credentials(site_id=site_id)
+    return jsonify(data)
+
+
+@dashboard_bp.route('/api/site/<site_id>/test-absorb', methods=['POST'])
+def api_site_test_absorb(site_id):
+    """Simulate an absorbed attack on a customer site and return the useless fake payload."""
+    from mirage_shield.shield_proxy import get_shield_instance
+    db_mgr = DatabaseManager()
+    site = db_mgr.get_site(site_id)
+    if not site:
+        return jsonify({'success': False, 'error': 'Site not found'}), 404
+
+    payload = request.get_json(silent=True) or {}
+    attack_kind = payload.get('kind', 'sqli')
+    shield = get_shield_instance()
+    ip = get_real_client_ip()
+
+    kind_map = {
+        'sqli': ('/api/users?id=1\' OR \'1\'=\'1--', ['sql_injection'], 'sql_injection', 'T1190', 25),
+        'api_scrape': ('/api/v1/customers', ['targeted_recon'], 'targeted_recon', 'T1087', 20),
+        'rce': ('/cmd?exec=whoami', ['command_injection'], 'shell_command', 'T1059', 25),
+        'traversal': ('/download?file=../../../../etc/passwd', ['directory_traversal'], 'directory_traversal', 'T1083', 20),
+    }
+    path, atk_types, ev_type, mitre_id, pts = kind_map.get(attack_kind, kind_map['sqli'])
+
+    body_str, content_type, status_code, fake_count = shield.deception.generate_response(
+        path=path, attack_types=atk_types, ip=ip, domain=site['domain']
+    )
+
+    db_mgr.log_event(
+        ip_address=ip,
+        port=443,
+        protocol='SHIELD',
+        event_type=ev_type,
+        details={
+            'absorbed': True,
+            'site_domain': site['domain'],
+            'path': path,
+            'fake_records_served': fake_count,
+        },
+        threat_pts=pts,
+        mitre_id=mitre_id,
+        site_id=site_id,
+    )
+    db_mgr.increment_site_deception(site_id, absorbed_delta=1, fake_records_delta=fake_count)
+    ScoringEngine().calculate_threat_score(ip, site_id=site_id)
+
+    shield.stats['total_requests'] += 1
+    shield.stats['redirected'] += 1
+    shield.stats['fake_records_served'] += fake_count
+
+    return jsonify({
+        'success': True,
+        'site_id': site_id,
+        'absorbed_path': path,
+        'fake_records_served': fake_count,
+        'fake_response_preview': body_str,
+        'content_type': content_type,
+    })
+
+
+@dashboard_bp.route('/api/site/<site_id>/clear', methods=['POST'])
+def api_site_clear(site_id):
+    """Purge telemetry strictly for one customer website."""
+    db_mgr = DatabaseManager()
+    if not db_mgr.get_site(site_id):
+        return jsonify({'status': 'error', 'message': 'Site not found'}), 404
+    db_mgr.clear_site_telemetry(site_id)
+    return jsonify({'status': 'success', 'message': f'Cleared telemetry for {site_id}.'})
+
+
+@dashboard_bp.route('/api/site/<site_id>/delete', methods=['POST'])
+def api_site_delete(site_id):
+    """Delete a customer site workspace."""
+    db_mgr = DatabaseManager()
+    if not db_mgr.get_site(site_id):
+        return jsonify({'status': 'error', 'message': 'Site not found'}), 404
+    db_mgr.delete_site(site_id)
+    return jsonify({'status': 'success', 'message': f'Deleted workspace {site_id}.'})
+
+
+@dashboard_bp.route('/api/ingest', methods=['POST'])
+def api_ingest_backend_attack():
+    """
+    Ingestion API for customer backend SDKs (Python WSGI/Flask/FastAPI & Node Express).
+    Authenticates X-MIRAGE-Site-Key and stores absorbed attack telemetry strictly
+    into that customer's private site workspace.
+    """
+    payload = request.get_json(silent=True) or {}
+    site_key = (request.headers.get('X-MIRAGE-Site-Key') or payload.get('site_key') or '').strip()
+    if not site_key:
+        return jsonify({'success': False, 'error': 'Missing X-MIRAGE-Site-Key'}), 401
+
+    db_mgr = DatabaseManager()
+    site = db_mgr.get_site_by_api_key(site_key)
+    if not site:
+        return jsonify({'success': False, 'error': 'Invalid site API key'}), 403
+
+    site_id = site['site_id']
+    ip = (payload.get('ip') or get_real_client_ip()).strip()
+    path = (payload.get('path') or '/').strip()
+    method = (payload.get('method') or 'GET').strip().upper()
+    score = int(payload.get('score') or 45)
+    decision = (payload.get('decision') or 'REDIRECT').upper()
+    attack_types = payload.get('attack_types') or []
+    fake_count = int(payload.get('fake_records_served') or 0)
+    source = payload.get('source') or 'backend_sdk'
+    user_agent = (payload.get('user_agent') or '')[:160]
+
+    if 'sql_injection' in attack_types:
+        ev_type, mitre_id, pts = 'sql_injection', 'T1190', 25
+    elif 'directory_traversal' in attack_types:
+        ev_type, mitre_id, pts = 'directory_traversal', 'T1083', 20
+    elif 'command_injection' in attack_types:
+        ev_type, mitre_id, pts = 'shell_command', 'T1059', 25
+    elif 'xss_probe' in attack_types:
+        ev_type, mitre_id, pts = 'targeted_recon', 'T1190', 15
+    else:
+        ev_type, mitre_id, pts = 'targeted_recon', 'T1552.001', 20
+
+    db_mgr.log_event(
+        ip_address=ip,
+        port=443,
+        protocol='SHIELD',
+        event_type=ev_type,
+        details={
+            'absorbed': True,
+            'source': source,
+            'decision': decision,
+            'shield_score': score,
+            'path': path,
+            'method': method,
+            'user_agent': user_agent,
+            'fake_records_served': fake_count,
+        },
+        threat_pts=pts,
+        mitre_id=mitre_id,
+        site_id=site_id,
+    )
+    if payload.get('username') or payload.get('password'):
+        db_mgr.log_credential(
+            ip_address=ip,
+            protocol='HTTP',
+            username=payload.get('username', ''),
+            password=payload.get('password', ''),
+            success=False,
+            site_id=site_id,
+        )
+
+    db_mgr.increment_site_deception(site_id, absorbed_delta=1, fake_records_delta=fake_count)
+    ScoringEngine().calculate_threat_score(ip, site_id=site_id)
+
+    return jsonify({'success': True, 'site_id': site_id, 'absorbed': True})
+
+
 # ─── MIRAGE SHIELD API ROUTES ──────────────────────────────────────────
 
 @dashboard_bp.route('/api/shield/stats')
 def api_shield_stats():
     """Combined JSON telemetry for the integrated MIRAGE Shield view."""
     from mirage_shield.shield_proxy import get_shield_instance
+    site_id = (request.args.get('site_id') or '').strip() or None
     shield = get_shield_instance()
-    data = shield.get_full_stats()
-    data['recent'] = shield.analyzer.get_recent_analysis(limit=25)
-    data['credentials'] = shield.injector.get_captured_credentials()
+    data = shield.get_full_stats(site_id=site_id)
+    data['recent'] = shield.analyzer.get_recent_analysis(limit=25, site_id=site_id)
+    data['credentials'] = shield.injector.get_captured_credentials(site_id=site_id)
     return jsonify(data)
 
 
 @dashboard_bp.route('/api/shield/clone', methods=['POST'])
 def api_shield_clone():
-    """Clone a new website URL into MIRAGE Shield's honeypot cache."""
+    """Clone a new website URL into MIRAGE Shield's honeypot cache & register its dashboard."""
     from mirage_shield.shield_proxy import get_shield_instance
     payload = request.get_json(silent=True) or {}
     target_url = (payload.get('target_url') or '').strip()
+    owner_name = (payload.get('owner_name') or 'Customer').strip()
     shield = get_shield_instance()
     pages_limit = 1 if os.getenv('VERCEL') else 2
-    res = shield.switch_and_clone(target_url, max_pages=pages_limit)
+    res = shield.switch_and_clone(target_url, max_pages=pages_limit, owner_name=owner_name)
     if res.get('success'):
         res['preview_url'] = f"/portal/{shield.cloner.domain}"
+        # Ensure site record exists even if shield had auto_init_backend=False
+        if not res.get('site_id'):
+            try:
+                site = DatabaseManager().register_or_get_site(res['target_url'], owner_name=owner_name)
+                res['site'] = site
+                res['site_id'] = site['site_id']
+                res['api_key'] = site['api_key']
+                res['dashboard_url'] = f"/site/{site['site_id']}"
+            except Exception:
+                pass
     return jsonify(res), (200 if res.get('success') else 400)
 
 
@@ -636,43 +935,76 @@ def api_shield_unblock(ip):
 @dashboard_bp.route('/portal/<domain>', defaults={'subpath': ''}, methods=['GET', 'POST', 'PUT', 'DELETE'])
 @dashboard_bp.route('/portal/<domain>/<path:subpath>', methods=['GET', 'POST', 'PUT', 'DELETE'])
 def shield_clean_portal(domain, subpath=''):
-    """Serve cloned target pages and subpages seamlessly without dead 404s."""
+    """Serve cloned target pages and subpages seamlessly while scoping traps to that domain's site_id."""
     from mirage_shield.shield_proxy import get_shield_instance
     shield = get_shield_instance()
-    clean_domain = domain.strip()
+    clean_domain = domain.strip().lower()
     ip = get_real_client_ip()
     rel_subpath = ('/' + subpath.lstrip('/')) if subpath else '/'
+    target = f"http://{clean_domain}" if clean_domain.startswith(('127.0.0.1', 'localhost')) else f"https://{clean_domain}"
+
+    site_id = 'global'
+    db_mgr = DatabaseManager()
+    try:
+        site = db_mgr.register_or_get_site(target)
+        site_id = site['site_id']
+    except Exception:
+        pass
+
+    # Absorb SQLi / XSS / Traversal / RCE attacks inside cloned portal using useless fake data
+    qs = request.query_string.decode('utf-8', errors='ignore')
+    body_text = request.get_data(as_text=True) if request.method in ('POST', 'PUT', 'PATCH') else ''
+    if qs or any(k in rel_subpath.lower() for k in ('/api', '/graphql', '/cmd', '/shell', '../')):
+        decision, score, breakdown = shield.analyzer.analyze(
+            ip=ip,
+            path=rel_subpath,
+            method=request.method,
+            user_agent=request.headers.get('User-Agent', ''),
+            headers=dict(request.headers),
+            query_string=qs,
+            body=body_text,
+            site_id=site_id,
+        )
+        if decision in ('REDIRECT', 'BLOCK') and (breakdown.get('attack_types') or rel_subpath.lower().startswith('/api')):
+            shield._sync_detection_to_db(
+                ip, f"/portal/{clean_domain}{rel_subpath}", request.method,
+                score, decision, breakdown, request.headers.get('User-Agent', ''), site_id=site_id
+            )
+            if decision == 'BLOCK':
+                return shield._serve_block_page(ip, score)
+            body_str, ct, sc, fake_cnt = shield.deception.generate_response(
+                path=rel_subpath, attack_types=breakdown.get('attack_types'), ip=ip, domain=clean_domain
+            )
+            shield._record_fake_data_metric(site_id, fake_cnt)
+            return Response(body_str, status=sc, content_type=ct)
 
     # Trap sensitive paths or POST form submissions inside the cloned portal
     if shield.injector.is_trap_endpoint(rel_subpath):
-        return _handle_live_trap(rel_subpath)
+        return _handle_live_trap(rel_subpath, site_id=site_id)
 
     if request.method == 'POST':
         form_data = request.form.to_dict() or request.get_json(silent=True) or {}
         if form_data:
             shield.stats['credentials_captured'] += 1
             content, content_type, status = shield.injector.capture_form_submission(
-                ip, f"/portal/{clean_domain}{rel_subpath}", form_data
+                ip, f"/portal/{clean_domain}{rel_subpath}", form_data, site_id=site_id
             )
+            db_mgr.increment_site_deception(site_id, absorbed_delta=1, fake_records_delta=0)
             return Response(content, status=status, content_type=content_type)
 
-    target = f"https://{clean_domain}" if not clean_domain.startswith(('127.0.0.1', 'localhost')) else f"http://{clean_domain}"
-    if shield.cloner.domain != clean_domain:
-        shield.target_url = target.rstrip('/')
-        shield.cloner.set_target(target)
+    cloner = shield.get_cloner_for_target(target)
 
     # Preserve query string when cloning search/tutorial URLs on-demand
-    qs = request.query_string.decode('utf-8', errors='ignore')
     fetch_path = f"{rel_subpath}?{qs}" if qs and rel_subpath != '/' else rel_subpath
-    page_file = shield.cloner.get_or_clone_page(fetch_path)
+    page_file = cloner.get_or_clone_page(fetch_path)
     if not page_file or not os.path.exists(page_file):
-        shield.cloner.clone(max_pages=1)
-        page_file = shield.cloner.resolve_page_path(rel_subpath)
+        cloner.clone(max_pages=1)
+        page_file = cloner.resolve_page_path(rel_subpath)
 
     if page_file and os.path.exists(page_file):
         with open(page_file, 'r', encoding='utf-8', errors='ignore') as f:
             html = f.read()
-        prefixed = shield.cloner.apply_portal_prefix(html, f"/portal/{clean_domain}")
+        prefixed = cloner.apply_portal_prefix(html, f"/portal/{clean_domain}")
         deceptive = shield.injector.inject_deception_layer(prefixed, ip)
         return Response(deceptive, status=200, content_type='text/html')
     return Response('Clone preview unavailable', status=404)
@@ -732,8 +1064,9 @@ def api_clear_data():
     from mirage_shield.shield_proxy import get_shield_instance
     try:
         db = get_db()
-        for table in ('events', 'attackers', 'credentials', 'quarantine_log', 'honeytoken_triggers'):
+        for table in ('events', 'attackers', 'site_attackers', 'credentials', 'quarantine_log', 'honeytoken_triggers'):
             db.execute(f"DELETE FROM {table}")
+        db.execute("UPDATE sites SET total_absorbed = 0, fake_records_served = 0, last_attack_at = NULL")
         db.commit()
         db.close()
 
@@ -755,7 +1088,7 @@ def api_clear_data():
 
 # ─── LIVE REAL-CAPTURE HONEYPOT TRAP ROUTES ─────────────────────────────
 
-def _handle_live_trap(trap_path):
+def _handle_live_trap(trap_path, site_id='global'):
     """Analyze, log, and serve a live honeypot trap directly on the web app."""
     from mirage_shield.shield_proxy import get_shield_instance
     shield = get_shield_instance()
@@ -772,6 +1105,7 @@ def _handle_live_trap(trap_path):
         headers=dict(request.headers),
         query_string=query_string,
         body=body,
+        site_id=site_id,
     )
 
     shield.stats['total_requests'] += 1
@@ -788,10 +1122,16 @@ def _handle_live_trap(trap_path):
             shield.stats['credentials_captured'] += 1
 
     content, content_type, status = shield.injector.serve_trap(
-        trap_path, ip, request.method, post_data
+        trap_path, ip, request.method, post_data, site_id=site_id
     )
+    if site_id and site_id != 'global':
+        shield._record_fake_data_metric(site_id, 1)
+        try:
+            DatabaseManager().increment_site_deception(site_id, absorbed_delta=1, fake_records_delta=0)
+        except Exception:
+            pass
     if decision == 'BLOCK':
-        shield._sync_detection_to_db(ip, trap_path, request.method, score, decision, breakdown, user_agent)
+        shield._sync_detection_to_db(ip, trap_path, request.method, score, decision, breakdown, user_agent, site_id=site_id)
         return shield._serve_block_page(ip, score)
     if content is None:
         return Response('Not Found', status=404)

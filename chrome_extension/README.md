@@ -1,6 +1,6 @@
 # 🧩 MIRAGE Shield — Chrome Extension
 
-Load MIRAGE Shield directly into Google Chrome so you can open **any live website**, click the extension icon, and spin up its deception honeypot clone in 1 click.
+Load MIRAGE Shield directly into Google Chrome so you can open **any live website**, click the extension icon, provision its **isolated personal dashboard**, and spin up its deception clone in 1 click.
 
 ## How to Install in Chrome (30 Seconds)
 
@@ -10,10 +10,10 @@ Load MIRAGE Shield directly into Google Chrome so you can open **any live websit
    `C:\Users\Jaskaran Bandral\Desktop\mirage-junior-main\mirage-junior-main\chrome_extension`
 4. Pin **MIRAGE Shield** to your Chrome toolbar!
 
-## How to Use During Presentation
+## How to Use
 
 1. Browse to **any website** in Chrome.
 2. Click the **MIRAGE Shield** extension icon.
 3. Choose **Live Vercel** (`https://mirage-junior.vercel.app`) or **Local (`:5000` / `:8443`)**.
-4. Click **🪞 Create Honeypot Clone & Protect**.
-5. Click **👁️ Preview Clone** to inspect the cloned decoy or **⚡ Simulate Attack** to watch blocking & scoring update live!
+4. Click **🛡️ Protect Site & Open Its Dashboard** — provisions that website's isolated `/site/<site_id>` dashboard and API key automatically.
+5. Click **⚡ Test Attack Probe** to absorb an SQLi attack and feed fake synthetic records to the attacker, or **👁️ Preview Clone** to open its trapped decoy portal.

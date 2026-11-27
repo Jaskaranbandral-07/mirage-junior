@@ -1,5 +1,5 @@
 # =====================================================================
-# MIRAGE Junior — GitHub Code Ownership & 2-Developer Division
+# MIRAGE Shield — GitHub Code Ownership & 2-Developer Division
 # =====================================================================
 # Automatically displays module ownership on GitHub & routes PR reviews.
 
@@ -8,8 +8,8 @@
 
 # ---------------------------------------------------------------------
 # 1. Jaskaran Bandral (@Jaskaranbandral-07) — Team Lead (Advanced Core)
-#    Deception Engines, Threat Scoring, Firewall Quarantine, SSH/FTP/HTTP
-#    Traps, Watchdog, MIRAGE Shield Proxy, Chrome Extension & Middleware
+#    Multi-Tenant Engine, Synthetic Deception, Backend SDKs (Python/Node),
+#    Threat Scoring, Firewall Quarantine, Honeypots, Shield Proxy & Extension
 # ---------------------------------------------------------------------
 /honeypots/                         @Jaskaranbandral-07
 /engine/                            @Jaskaranbandral-07
@@ -25,8 +25,8 @@
 
 # ---------------------------------------------------------------------
 # 2. Relish Sharma (@2024A7R009) — UI, Alerts, Bait & Deployment (Easy)
-#    HTML/CSS Views, Chart.js, Demo Seeder, Telegram Alert Helper,
-#    Static Bait Decoys, Core Unit Tests, Presentations & Vercel Config
+#    HTML/CSS Views, Per-Site Dashboard UI, Chart.js, Demo Seeder,
+#    Telegram Alert Helper, Static Bait Decoys, Core Tests & Vercel
 # ---------------------------------------------------------------------
 /dashboard/                         @2024A7R009
 /engine/alert_manager.py            @2024A7R009

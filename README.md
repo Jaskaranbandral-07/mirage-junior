@@ -6,8 +6,8 @@
   <img src="dashboard/static/img/mirage-shield-logo.png" alt="MIRAGE Shield Extension Logo" width="128" style="border-radius:16px;" />
 </p>
 
-# 🛡️ MIRAGE Junior — Intelligent Deception Network
-### *Next-Generation Lightweight Honeypot with Behavioral Threat Scoring & Auto-Quarantine*
+# 🛡️ MIRAGE Shield — Multi-Tenant Cyber Deception & WAF Platform
+### *Active Website Shielding, Backend SDK Middleware, Synthetic Fake-Data Traps & Per-Customer SOC Dashboards*
 
 [![Live Demo](https://img.shields.io/badge/Vercel-Live%20Demo-brightgreen?logo=vercel&style=for-the-badge)](https://mirage-junior.vercel.app)
 [![Python](https://img.shields.io/badge/Python-3.10+-3776AB?logo=python&logoColor=white&style=for-the-badge)](https://python.org)
@@ -16,28 +16,27 @@
 [![MITRE ATT&CK](https://img.shields.io/badge/MITRE%20ATT%26CK-Mapped-red?style=for-the-badge)](https://attack.mitre.org)
 
 <p align="center">
-  <b>A proactive cyber deception system that doesn't just passively log attacks — it scores, classifies, and auto-quarantines threats in real-time.</b>
+  <b>Installable website protection that absorbs attacks before they hit your backend, feeds attackers useless synthetic decoy data, and isolates telemetry into each website's personal dashboard.</b>
 </p>
 
-[🌐 Live Showcase](https://mirage-junior.vercel.app) • [📄 Full PDF Guide](MIRAGE_Junior_Project_Explanation.pdf) • [📚 Master Docs](MASTER_PROJECT_EXPLANATION.md) • [📊 8-Slide Deck (HTML)](presentation.html) • [📥 8-Slide PPTX](MIRAGE_Junior_Project_Presentation.pptx) • [👥 Contributors](CONTRIBUTORS.md)
+[🌐 Live Platform](https://mirage-junior.vercel.app) • [🏢 Protected Sites](https://mirage-junior.vercel.app/sites) • [📄 Full PDF Guide](MIRAGE_Junior_Project_Explanation.pdf) • [📚 Master Docs](MASTER_PROJECT_EXPLANATION.md) • [📊 8-Slide Deck (HTML)](presentation.html) • [👥 Contributors & Viva Guide](CONTRIBUTORS.md)
 
 </div>
 
 ---
 
-## 🌟 What Makes MIRAGE Junior Different?
+## 🌟 What Makes MIRAGE Shield Different?
 
-Most undergraduate honeypots stop at *"log the attack and display it in a basic table"*. **MIRAGE Junior transforms passive logging into an active defense pipeline:**
+Most security tools stop at *"log the attack"* or *"return a plain 403 block"*. **MIRAGE Shield turns defense into multi-tenant active deception:**
 
-| Feature | Standard Student Honeypot | 🛡️ MIRAGE Junior |
+| Feature | Traditional Firewall / Student Honeypot | 🛡️ MIRAGE Shield |
 | :--- | :---: | :---: |
-| **Attack Logging** | ✅ Basic IP and timestamp | ✅ Full protocol telemetry & details |
-| **Analytics Dashboard** | ⚠️ Static HTML table | ✅ **Rich SOC dashboard with Chart.js & dark neon theme** |
-| **Threat Scoring Engine** | ❌ Not implemented | ✅ **Real-time behavioral risk scoring (0–100 scale)** |
-| **Honeytoken Tripwires** | ❌ None | ✅ **Fake `.env`, `.xlsx`, and DB dumps that alarm when touched** |
-| **Automated Quarantine** | ❌ Zero auto-response | ✅ **Auto-blocks high-risk IPs via OS Firewall (`netsh`/`iptables`)** |
-| **Attack Timeline Replay** | ❌ None | ✅ **Chronological visual narrative replay per attacker** |
-| **MITRE ATT&CK Mapping** | ❌ None | ✅ **Every interaction mapped to real-world TTPs** |
+| **Per-Website Dashboards** | ❌ Single shared log | ✅ **Isolated personal dashboard + API key per customer site (`/site/<id>`)** |
+| **Backend Integration** | ❌ Separate toy server only | ✅ **2-line installable Python (Flask/WSGI) & Node.js (Express) middleware** |
+| **Attack Absorption** | ⚠️ Backend takes the hit | ✅ **Shield absorbs SQLi/XSS/RCE/recon before customer DB is touched** |
+| **Fake Data Circulation** | ❌ Empty error page | ✅ **Feeds attackers convincing, 100% useless synthetic JSON/SQL/env decoys** |
+| **Threat Scoring & MITRE** | ❌ Basic log lines | ✅ **Real-time 0–100 behavioral scoring + MITRE ATT&CK tagging** |
+| **Auto-Quarantine & Alerts** | ❌ Manual review | ✅ **OS Firewall auto-blocking (`netsh`/`iptables`) + Telegram alerts** |
 
 ---
 
@@ -240,17 +239,19 @@ mirage-junior/
 │
 ├── dashboard/
 │   ├── app.py                # Flask application factory
-│   ├── routes.py             # Route handlers & pagination (10 per page)
+│   ├── routes.py             # Multi-tenant routes, /api/ingest & live threat capture
 │   ├── demo_data.py          # Realistic attack telemetry generator
-│   ├── templates/            # 8 dark-themed cyber UI views (including MIRAGE Shield)
+│   ├── templates/            # 10 dark cyber views (incl. /sites & /site/<id>)
 │   └── static/               # Neon dark-mode stylesheet, Chart.js scripts & sci-fi logos
 │
-├── mirage_shield/            # NEW: Deception-as-a-Service Website Middleware
+├── mirage_shield/            # Deception-as-a-Service & Startup Backend SDKs
 │   ├── config.py             # Shield proxy ports, thresholds, & attack signatures
 │   ├── site_cloner.py        # Clones target HTML/CSS/JS/images locally
-│   ├── traffic_analyzer.py   # 6-factor scoring (ALLOW / REDIRECT / BLOCK)
+│   ├── traffic_analyzer.py   # Thread-safe 6-factor scoring (ALLOW / REDIRECT / BLOCK)
 │   ├── honeypot_injector.py  # Injects decoy admin, .env traps & JS beacons
-│   ├── shield_proxy.py       # Reverse proxy server & Shield APIs
+│   ├── synthetic_deception.py# Useless synthetic fake JSON/SQL/RCE data circulation
+│   ├── shield_proxy.py       # Multi-tenant reverse proxy server & Shield APIs
+│   ├── sdk/                  # Customer drop-in middleware (python_shield.py, node_shield.js)
 │   └── templates/            # Standalone Shield Command Center UI
 │
 ├── chrome_extension/         # NEW: Chrome Extension ("Protect This Website" popup)

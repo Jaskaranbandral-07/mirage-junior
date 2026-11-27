@@ -40,9 +40,9 @@ SCORING_RULES_FILE = os.path.join(BASE_DIR, "config", "scoring_rules.json")
 # === Database ===
 # On Vercel serverless functions, the root filesystem is read-only. We must use /tmp.
 if os.getenv("VERCEL") or os.getenv("AWS_LAMBDA_FUNCTION_NAME"):
-    DATABASE_PATH = os.getenv("DATABASE_PATH", "/tmp/mirage_junior.db")
+    DATABASE_PATH = os.getenv("DATABASE_PATH", "/tmp/mirage_shield.db")
 else:
-    DATABASE_PATH = os.getenv("DATABASE_PATH", os.path.join(BASE_DIR, "database", "mirage_junior.db"))
+    DATABASE_PATH = os.getenv("DATABASE_PATH", os.path.join(BASE_DIR, "database", "mirage_shield.db"))
 
 # === Bait Monitor ===
 BAIT_DIRECTORY = os.path.join(BASE_DIR, "bait")

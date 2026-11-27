@@ -23,6 +23,7 @@ Decision Matrix:
 import time
 import logging
 import ipaddress
+import threading
 from collections import defaultdict
 from urllib.parse import unquote_plus
 from typing import Tuple
@@ -51,7 +52,8 @@ class TrafficAnalyzer:
         )
         self.sticky_session = shield_cfg.STICKY_HONEYPOT_SESSION
 
-        # Per-IP state
+        # Per-IP state (thread-safe across concurrent Flask worker threads)
+        self._lock = threading.Lock()
         self.request_log = defaultdict(list)       # {ip: [timestamps]}
         self.ip_suspicion = defaultdict(float)     # {ip: cumulative_score}
         self.ip_paths = defaultdict(set)           # {ip: {paths}}
@@ -70,89 +72,98 @@ class TrafficAnalyzer:
 
     def analyze(self, ip: str, path: str, method: str,
                 user_agent: str, headers: dict,
-                query_string: str = "", body: str = "") -> Tuple[str, int, dict]:
+                query_string: str = "", body: str = "",
+                site_id: str = "global") -> Tuple[str, int, dict]:
         """
         Analyze an incoming HTTP request and decide ALLOW / REDIRECT / BLOCK.
         Returns: (decision, score, breakdown)
         """
-        # Explicit admin whitelist or strict non-local CIDR check
-        if self._is_whitelisted(ip):
-            return ALLOW, 0, {"whitelisted": True, "total": 0}
+        with self._lock:
+            # Explicit admin whitelist or strict non-local CIDR check
+            if self._is_whitelisted(ip):
+                return ALLOW, 0, {"whitelisted": True, "total": 0}
 
-        # Already hard-blocked
-        if ip in self.blocked_ips:
-            return BLOCK, 100, {"already_blocked": True, "total": 100}
+            # Already hard-blocked
+            if ip in self.blocked_ips:
+                return BLOCK, 100, {"already_blocked": True, "total": 100}
 
-        # Score all 6 behavioral dimensions
-        ua_score = self._score_user_agent(user_agent)
-        rate_score = self._score_request_rate(ip)
-        path_score, path_flags = self._score_path(ip, path)
-        payload_score, attack_types = self._score_payload(query_string, body, path)
-        header_score = self._score_headers(headers, method)
-        history_score = self._score_history(ip, path_score, payload_score)
+            # Score all 6 behavioral dimensions
+            ua_score = self._score_user_agent(user_agent)
+            rate_score = self._score_request_rate(ip)
+            path_score, path_flags = self._score_path(ip, path)
+            payload_score, attack_types = self._score_payload(query_string, body, path)
+            header_score = self._score_headers(headers, method)
+            history_score = self._score_history(ip, path_score, payload_score)
 
-        raw_score = ua_score + rate_score + path_score + payload_score + header_score + history_score
+            raw_score = ua_score + rate_score + path_score + payload_score + header_score + history_score
 
-        # Sticky deception floor: once caught, keep attacker in the clone
-        if self.sticky_session and ip in self.trapped_ips:
-            raw_score = max(raw_score, shield_cfg.SUSPICION_THRESHOLD)
+            # Sticky deception floor: once caught, keep attacker in the clone
+            if self.sticky_session and ip in self.trapped_ips:
+                raw_score = max(raw_score, shield_cfg.SUSPICION_THRESHOLD)
 
-        final_score = min(100, int(raw_score))
+            final_score = min(100, int(raw_score))
 
-        breakdown = {
-            "user_agent": ua_score,
-            "request_rate": rate_score,
-            "suspicious_path": path_score,
-            "payload_injection": payload_score,
-            "header_anomaly": header_score,
-            "behavioral_history": history_score,
-            "attack_types": attack_types,
-            "path_flags": path_flags,
-            "total": final_score,
-        }
+            breakdown = {
+                "user_agent": ua_score,
+                "request_rate": rate_score,
+                "suspicious_path": path_score,
+                "payload_injection": payload_score,
+                "header_anomaly": header_score,
+                "behavioral_history": history_score,
+                "attack_types": attack_types,
+                "path_flags": path_flags,
+                "total": final_score,
+            }
 
-        # Update cumulative IP memory
-        if final_score > 0:
-            # Accumulate risk smoothly on repeated hostile events
-            if path_score > 0 or payload_score > 0 or ua_score >= 20:
-                self.ip_suspicion[ip] = min(100.0, max(self.ip_suspicion[ip], final_score) + (15 if payload_score > 0 else 10))
-                if self.ip_suspicion[ip] > final_score:
-                    final_score = min(100, int(self.ip_suspicion[ip]))
-                    breakdown["total"] = final_score
+            # Update cumulative IP memory (escalate on repeat hostile events or automated exploit payloads)
+            if final_score > 0:
+                prev_suspicion = self.ip_suspicion[ip]
+                is_repeat = prev_suspicion > 0 and (path_score > 0 or payload_score > 0 or ua_score >= 20)
+                is_automated_exploit = payload_score > 0 and ua_score >= 20
+                if is_repeat or is_automated_exploit:
+                    self.ip_suspicion[ip] = min(
+                        100.0,
+                        max(prev_suspicion, final_score) + (15 if payload_score > 0 else 10),
+                    )
+                    if self.ip_suspicion[ip] > final_score:
+                        final_score = min(100, int(self.ip_suspicion[ip]))
+                        breakdown["total"] = final_score
+                else:
+                    self.ip_suspicion[ip] = max(prev_suspicion, float(final_score))
+
+            if len(self.ip_paths[ip]) < 200:
+                self.ip_paths[ip].add(path)
+
+            # Make routing decision
+            if final_score >= shield_cfg.BLOCK_THRESHOLD:
+                decision = BLOCK
+                self.blocked_ips.add(ip)
+                self.trapped_ips.discard(ip)
+                logger.warning(f"🚫 BLOCKED: {ip} (score: {final_score}, types: {attack_types})")
+            elif final_score >= shield_cfg.SUSPICION_THRESHOLD:
+                decision = REDIRECT
+                self.trapped_ips.add(ip)
+                logger.info(f"🪤 DIVERTED TO CLONE: {ip} → {path} (score: {final_score})")
             else:
-                self.ip_suspicion[ip] = max(self.ip_suspicion[ip], float(final_score))
+                decision = ALLOW
 
-        self.ip_paths[ip].add(path)
+            # Store telemetry for dashboard
+            self.analysis_history.append({
+                "timestamp": time.time(),
+                "site_id": site_id or "global",
+                "ip": ip,
+                "path": path,
+                "method": method,
+                "user_agent": (user_agent or "")[:120],
+                "score": final_score,
+                "decision": decision,
+                "attack_types": attack_types,
+                "breakdown": breakdown,
+            })
+            if len(self.analysis_history) > 1000:
+                self.analysis_history = self.analysis_history[-500:]
 
-        # Make routing decision
-        if final_score >= shield_cfg.BLOCK_THRESHOLD:
-            decision = BLOCK
-            self.blocked_ips.add(ip)
-            self.trapped_ips.discard(ip)
-            logger.warning(f"🚫 BLOCKED: {ip} (score: {final_score}, types: {attack_types})")
-        elif final_score >= shield_cfg.SUSPICION_THRESHOLD:
-            decision = REDIRECT
-            self.trapped_ips.add(ip)
-            logger.info(f"🪤 DIVERTED TO CLONE: {ip} → {path} (score: {final_score})")
-        else:
-            decision = ALLOW
-
-        # Store telemetry for dashboard
-        self.analysis_history.append({
-            "timestamp": time.time(),
-            "ip": ip,
-            "path": path,
-            "method": method,
-            "user_agent": (user_agent or "")[:120],
-            "score": final_score,
-            "decision": decision,
-            "attack_types": attack_types,
-            "breakdown": breakdown,
-        })
-        if len(self.analysis_history) > 1000:
-            self.analysis_history = self.analysis_history[-500:]
-
-        return decision, final_score, breakdown
+            return decision, final_score, breakdown
 
     # ═══════════════════════════════════════════════════
     # Individual Scoring Functions
@@ -298,36 +309,49 @@ class TrafficAnalyzer:
     def set_inspect_localhost(self, enabled: bool):
         self.inspect_localhost = bool(enabled)
 
-    def get_stats(self) -> dict:
-        total = len(self.analysis_history)
-        blocked = sum(1 for r in self.analysis_history if r["decision"] == BLOCK)
-        redirected = sum(1 for r in self.analysis_history if r["decision"] == REDIRECT)
-        allowed = sum(1 for r in self.analysis_history if r["decision"] == ALLOW)
+    def get_stats(self, site_id: str = None) -> dict:
+        with self._lock:
+            records = (
+                [r for r in self.analysis_history if r.get("site_id") == site_id]
+                if site_id and site_id != "global"
+                else self.analysis_history
+            )
+            total = len(records)
+            blocked = sum(1 for r in records if r["decision"] == BLOCK)
+            redirected = sum(1 for r in records if r["decision"] == REDIRECT)
+            allowed = sum(1 for r in records if r["decision"] == ALLOW)
 
-        return {
-            "total_analyzed": total,
-            "allowed": allowed,
-            "redirected_to_honeypot": redirected,
-            "blocked": blocked,
-            "currently_blocked_ips": len(self.blocked_ips),
-            "currently_trapped_ips": len(self.trapped_ips),
-            "tracked_ips": len(self.ip_suspicion),
-            "blocked_ip_list": sorted(list(self.blocked_ips)),
-            "trapped_ip_list": sorted(list(self.trapped_ips)),
-            "inspect_localhost": self.inspect_localhost,
-        }
+            return {
+                "total_analyzed": total,
+                "allowed": allowed,
+                "redirected_to_honeypot": redirected,
+                "blocked": blocked,
+                "currently_blocked_ips": len(self.blocked_ips),
+                "currently_trapped_ips": len(self.trapped_ips),
+                "tracked_ips": len(self.ip_suspicion),
+                "blocked_ip_list": sorted(list(self.blocked_ips)),
+                "trapped_ip_list": sorted(list(self.trapped_ips)),
+                "inspect_localhost": self.inspect_localhost,
+            }
 
-    def get_recent_analysis(self, limit: int = 50) -> list:
-        return self.analysis_history[-limit:][::-1]
+    def get_recent_analysis(self, limit: int = 50, site_id: str = None) -> list:
+        with self._lock:
+            records = (
+                [r for r in self.analysis_history if r.get("site_id") == site_id]
+                if site_id and site_id != "global"
+                else self.analysis_history
+            )
+            return records[-limit:][::-1]
 
     def unblock_ip(self, ip: str) -> bool:
         """Reset all suspicion/block state for an IP."""
-        changed = (ip in self.blocked_ips) or (ip in self.trapped_ips) or (ip in self.ip_suspicion)
-        self.blocked_ips.discard(ip)
-        self.trapped_ips.discard(ip)
-        self.ip_suspicion[ip] = 0
-        self.ip_paths[ip].clear()
-        self.request_log[ip].clear()
-        if changed:
-            logger.info(f"✅ Shield state reset / unblocked for IP: {ip}")
-        return changed
+        with self._lock:
+            changed = (ip in self.blocked_ips) or (ip in self.trapped_ips) or (ip in self.ip_suspicion)
+            self.blocked_ips.discard(ip)
+            self.trapped_ips.discard(ip)
+            self.ip_suspicion[ip] = 0
+            self.ip_paths[ip].clear()
+            self.request_log[ip].clear()
+            if changed:
+                logger.info(f"✅ Shield state reset / unblocked for IP: {ip}")
+            return changed

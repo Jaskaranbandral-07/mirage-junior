@@ -1,0 +1,120 @@
+{% extends 'base.html' %}
+{% block title %}Protected Sites - MIRAGE Shield{% endblock %}
+{% block header_title %}Protected Websites &amp; Customer Dashboards{% endblock %}
+
+{% block content %}
+<!-- Register New Customer Website -->
+<div class="card full-width" style="margin-bottom: 22px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 14px;">
+        <div>
+            <h3 style="color: var(--neon-cyan); margin-bottom: 4px;">
+                <i class="fa-solid fa-layer-group"></i> Multi-Tenant Customer Onboarding
+            </h3>
+            <p style="font-size: 0.85rem; color: var(--text-muted);">
+                Register any website to generate its isolated personal dashboard, private customer link, backend SDK API key, and deception clone.
+            </p>
+        </div>
+    </div>
+
+    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+        <input type="text" id="new-site-url" placeholder="https://customer-startup.com"
+               style="flex: 2; min-width: 240px; padding: 10px 14px; background: var(--bg-dark); border: 1px solid var(--border); border-radius: 6px; color: var(--text-bright);">
+        <input type="text" id="new-site-owner" placeholder="Owner / Company Name (optional)"
+               style="flex: 1; min-width: 180px; padding: 10px 14px; background: var(--bg-dark); border: 1px solid var(--border); border-radius: 6px; color: var(--text-bright);">
+        <button onclick="registerCustomerSite()" id="btnRegisterSite" class="btn btn-primary">
+            <i class="fa-solid fa-plus"></i> Create Dedicated Dashboard
+        </button>
+    </div>
+    <div id="sites-feedback" style="display:none; margin-top: 12px; padding: 10px 14px; border-radius: 6px; background: rgba(0,255,65,0.1); border: 1px solid rgba(0,255,65,0.3); color: var(--neon-green); font-size: 0.85rem;"></div>
+</div>
+
+<!-- Registered Customer Sites Grid -->
+<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: 18px;" id="sites-grid">
+    {% for s in sites %}
+    <div class="card" style="display: flex; flex-direction: column; gap: 12px; border-top: 3px solid var(--neon-cyan);">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 10px;">
+            <div>
+                <h3 style="color: var(--text-bright); font-size: 1.05rem; margin-bottom: 3px;">
+                    <i class="fa-solid fa-globe" style="color: var(--neon-cyan);"></i> {{ s.domain }}
+                </h3>
+                <div style="font-size: 0.78rem; color: var(--text-muted);">
+                    Owner: <strong style="color: var(--text-main);">{{ s.owner_name }}</strong> &bull; ID: <code>{{ s.site_id }}</code>
+                </div>
+            </div>
+            <span class="badge badge-scanner" style="white-space: nowrap;">SHIELD ACTIVE</span>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; background: var(--bg-dark); border: 1px solid var(--border); border-radius: 8px; padding: 10px; text-align: center;">
+            <div>
+                <div style="font-size: 1.15rem; font-weight: 700; color: var(--neon-yellow);">{{ s.total_absorbed or s.event_count or 0 }}</div>
+                <div style="font-size: 0.7rem; color: var(--text-muted);">Absorbed</div>
+            </div>
+            <div>
+                <div style="font-size: 1.15rem; font-weight: 700; color: var(--neon-green);">{{ s.fake_records_served or 0 }}</div>
+                <div style="font-size: 0.7rem; color: var(--text-muted);">Fake Records</div>
+            </div>
+            <div>
+                <div style="font-size: 1.15rem; font-weight: 700; color: var(--neon-purple);">{{ s.cred_count or 0 }}</div>
+                <div style="font-size: 0.7rem; color: var(--text-muted);">Creds Caught</div>
+            </div>
+        </div>
+
+        <div style="font-size: 0.76rem; color: var(--text-muted); font-family: monospace; background: var(--bg-darker); padding: 7px 10px; border-radius: 6px; border: 1px solid var(--border); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+            Key: {{ s.api_key[:14] }}••••••••••••
+        </div>
+
+        <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: auto;">
+            <a href="/site/{{ s.site_id }}" class="btn btn-primary" style="flex: 1; text-align: center; text-decoration: none;">
+                <i class="fa-solid fa-gauge-high"></i> Open Personal Dashboard
+            </a>
+            <a href="/portal/{{ s.domain }}" target="_blank" class="btn" style="text-decoration: none; background: rgba(0,212,255,0.12); color: var(--neon-cyan); border: 1px solid rgba(0,212,255,0.35);">
+                <i class="fa-solid fa-mask"></i> Clone
+            </a>
+        </div>
+    </div>
+    {% else %}
+    <div class="card full-width" style="grid-column: 1 / -1; text-align: center; padding: 36px;">
+        <p style="color: var(--text-muted); font-size: 0.95rem;">
+            No customer websites registered yet. Enter a domain above or click <strong>Protect Website</strong> in the MIRAGE Shield Chrome Extension!
+        </p>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function registerCustomerSite() {
+    const targetUrl = document.getElementById('new-site-url').value.trim();
+    const ownerName = document.getElementById('new-site-owner').value.trim() || 'Customer';
+    const btn = document.getElementById('btnRegisterSite');
+    const fb = document.getElementById('sites-feedback');
+    if (!targetUrl) {
+        fb.style.display = 'block';
+        fb.textContent = 'Enter a customer website URL first.';
+        return;
+    }
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Provisioning...';
+
+    fetch('/api/sites/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ target_url: targetUrl, owner_name: ownerName })
+    })
+    .then(r => r.json())
+    .then(res => {
+        if (res.success) {
+            window.location.href = res.dashboard_url;
+        } else {
+            fb.style.display = 'block';
+            fb.textContent = 'Error: ' + (res.error || 'Could not register site');
+        }
+    })
+    .finally(() => {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-plus"></i> Create Dedicated Dashboard';
+    });
+}
+</script>
+{% endblock %}

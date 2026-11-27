@@ -1,11 +1,12 @@
 """
-MIRAGE Junior — Main Entry Point
-Multi-layered Intelligent Response & Adaptive Gathering Engine (Junior Edition)
+MIRAGE Shield — Main Entry Point
+Multi-layered Intelligent Response & Adaptive Gathering Engine
 
-Starts all honeypot services, the dashboard, and monitoring systems.
+Starts all honeypot services, MIRAGE Shield proxy, multi-tenant dashboards,
+and active defense monitors.
 Usage:
     python main.py           # Normal mode
-    python main.py --demo    # Demo mode (seeds database with fake attack data)
+    python main.py --demo    # Demo mode (seeds database with sample attack data)
 """
 
 import threading
@@ -24,20 +25,19 @@ logger = logging.getLogger('MIRAGE')
 
 
 def print_banner():
-    """Print the MIRAGE Junior ASCII art banner."""
+    """Print the MIRAGE Shield ASCII art banner."""
     banner = """
     \033[92m
-    ███╗   ███╗██╗██████╗  █████╗  ██████╗ ███████╗         ██╗██████╗ 
-    ████╗ ████║██║██╔══██╗██╔══██╗██╔════╝ ██╔════╝         ██║██╔══██╗
-    ██╔████╔██║██║██████╔╝███████║██║  ███╗█████╗           ██║██████╔╝
-    ██║╚██╔╝██║██║██╔══██╗██╔══██║██║   ██║██╔══╝      ██  ██║██╔══██╗
-    ██║ ╚═╝ ██║██║██║  ██║██║  ██║╚██████╔╝███████╗    ╚█████╔╝██║  ██║
-    ╚═╝     ╚═╝╚═╝╚═╝  ╚═╝╚═╝  ╚═╝ ╚═════╝ ╚══════╝     ╚════╝ ╚═╝  ╚═╝
+    ███╗   ███╗██╗██████╗  █████╗  ██████╗ ███████╗    ███████╗██╗  ██╗██╗███████╗██╗     ██████╗ 
+    ████╗ ████║██║██╔══██╗██╔══██╗██╔════╝ ██╔════╝    ██╔════╝██║  ██║██║██╔════╝██║     ██╔══██╗
+    ██╔████╔██║██║██████╔╝███████║██║  ███╗█████╗      ███████╗███████║██║█████╗  ██║     ██║  ██║
+    ██║╚██╔╝██║██║██╔══██╗██╔══██║██║   ██║██╔══╝      ╚════██║██╔══██║██║██╔══╝  ██║     ██║  ██║
+    ██║ ╚═╝ ██║██║██║  ██║██║  ██║╚██████╔╝███████╗    ███████║██║  ██║██║███████╗███████╗██████╔╝
+    ╚═╝     ╚═╝╚═╝╚═╝  ╚═╝╚═╝  ╚═╝ ╚═════╝ ╚══════╝    ╚══════╝╚═╝  ╚═╝╚═╝╚══════╝╚══════╝╚═════╝ 
     \033[0m
     \033[96m╔══════════════════════════════════════════════════════════════╗
-    ║   Multi-layered Intelligent Response & Adaptive Gathering   ║
-    ║                    Engine — Junior Edition                   ║
-    ║           Next-Gen Intelligent Deception Network             ║
+    ║   MIRAGE Shield — Multi-Tenant Cyber Deception & WAF Suite   ║
+    ║      Per-Site Dashboards • Backend SDKs • Synthetic Traps    ║
     ╚══════════════════════════════════════════════════════════════╝\033[0m
     """
     print(banner)
@@ -169,7 +169,7 @@ if __name__ == "__main__":
             from database.db_manager import DatabaseManager
             db_clean = DatabaseManager()
             conn = db_clean.get_connection()
-            for tbl in ("events", "attackers", "credentials", "quarantine_log", "honeytoken_triggers"):
+            for tbl in ("events", "attackers", "site_attackers", "credentials", "quarantine_log", "honeytoken_triggers"):
                 conn.execute(f"DELETE FROM {tbl}")
             conn.commit()
             conn.close()
@@ -205,9 +205,10 @@ if __name__ == "__main__":
 
     print()
     logger.info("=" * 60)
-    logger.info("🚀 ALL SYSTEMS ONLINE — MIRAGE Junior is running!")
+    logger.info("🚀 ALL SYSTEMS ONLINE — MIRAGE Shield is running!")
     logger.info("=" * 60)
     logger.info("📊 Dashboard:     http://localhost:5000")
+    logger.info("🏢 Client Sites:  http://localhost:5000/sites")
     logger.info("🛡️  MIRAGE Shield: http://localhost:8443/mirage-shield/dashboard")
     logger.info("🌐 HTTP Decoy:    http://localhost:8080")
     logger.info("🖥️  SSH Trap:      ssh localhost -p 2222")
@@ -221,5 +222,5 @@ if __name__ == "__main__":
             time.sleep(1)
     except KeyboardInterrupt:
         print()
-        logger.info("🛑 Shutting down MIRAGE Junior... Goodbye!")
+        logger.info("🛑 Shutting down MIRAGE Shield... Goodbye!")
         sys.exit(0)

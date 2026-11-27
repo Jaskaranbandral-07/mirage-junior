@@ -1,7 +1,7 @@
 """
-Vercel Deployment Entry Point for MIRAGE Junior + MIRAGE Shield
-Runs live HTTP threat capture, GeoIP enrichment, honeytoken traps,
-MITRE ATT&CK tagging, and the real-time SOC analytics dashboard
+Vercel Deployment Entry Point for MIRAGE Shield
+Runs multi-tenant per-website dashboards, backend SDK ingestion,
+synthetic fake-data deception, GeoIP enrichment, and MITRE ATT&CK tagging
 without any pre-seeded fake data.
 """
 import os

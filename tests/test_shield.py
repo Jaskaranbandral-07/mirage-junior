@@ -351,6 +351,106 @@ def test_portal_subpage_routing_no_404(isolated_shield, tmp_path):
         assert b"Python Programming" in res_ref.data
 
 
+def test_multi_tenant_site_isolation_and_fake_data(isolated_shield):
+    """Two customer websites stay isolated and absorb attacks with useless fake data."""
+    from dashboard.app import create_app
+    from mirage_shield import shield_proxy
+
+    shield, db = isolated_shield
+    shield_proxy._shared_shield_instance = shield
+    app = create_app()
+    client = app.test_client()
+
+    r1 = client.post("/api/sites/register", json={"target_url": "https://alpha-shop.com", "owner_name": "Alpha"})
+    r2 = client.post("/api/sites/register", json={"target_url": "https://beta-fintech.io", "owner_name": "Beta"})
+    assert r1.status_code == 200 and r2.status_code == 200
+    s1 = r1.get_json()
+    s2 = r2.get_json()
+    assert s1["site_id"] != s2["site_id"]
+    assert s1["api_key"] != s2["api_key"]
+
+    # Absorb SQLi probe strictly on alpha-shop.com
+    absorb = client.post(f"/api/site/{s1['site_id']}/test-absorb", json={"kind": "sqli"}, headers={
+        "X-MIRAGE-Client-IP": "198.51.100.44",
+    })
+    assert absorb.status_code == 200
+    adata = absorb.get_json()
+    assert adata["fake_records_served"] >= 1
+    assert "DECOY" in adata["fake_response_preview"]
+
+    # Verify alpha has the event while beta stays at 0
+    stats1 = client.get(f"/api/site/{s1['site_id']}/stats").get_json()
+    stats2 = client.get(f"/api/site/{s2['site_id']}/stats").get_json()
+    assert stats1["total_hits"] >= 1
+    assert stats2["total_hits"] == 0
+
+    # Customer private share key check
+    bad_dash = client.get(f"/site/{s1['site_id']}?key=wrong_token")
+    assert bad_dash.status_code == 403
+    good_dash = client.get(s1["share_url"].replace("http://localhost", ""))
+    assert good_dash.status_code == 200
+    assert b"alpha-shop.com" in good_dash.data
+
+
+def test_python_backend_sdk_absorbs_attacks_and_ingests(isolated_shield):
+    """Customer Flask backend wrapped with protect_flask_app absorbs SQLi before DB route runs."""
+    from flask import Flask, jsonify
+    from dashboard.app import create_app
+    from mirage_shield import shield_proxy
+    from mirage_shield.sdk.python_shield import protect_flask_app
+
+    shield, _ = isolated_shield
+    shield_proxy._shared_shield_instance = shield
+    mirage_app = create_app()
+    mirage_client = mirage_app.test_client()
+
+    reg = mirage_client.post("/api/sites/register", json={"target_url": "https://customer-api.dev"}).get_json()
+    site_key = reg["api_key"]
+    site_id = reg["site_id"]
+
+    # Simulated customer startup backend
+    customer_app = Flask("customer_backend")
+    backend_hit_counter = {"count": 0}
+
+    @customer_app.route("/api/users")
+    def real_users():
+        backend_hit_counter["count"] += 1
+        return jsonify({"real_secret_users": ["real_ceo@customer-api.dev"]})
+
+    protect_flask_app(customer_app, site_key=site_key, shield_url="", domain="customer-api.dev")
+    cust_client = customer_app.test_client()
+
+    # 1. Clean traffic passes to real customer backend
+    clean_res = cust_client.get("/api/users", headers={"User-Agent": "Mozilla/5.0 Chrome/122.0.0.0"})
+    assert clean_res.status_code == 200
+    assert b"real_ceo@customer-api.dev" in clean_res.data
+    assert backend_hit_counter["count"] == 1
+
+    # 2. SQLi attack is absorbed by Shield — real backend NEVER executes, fake data returned!
+    atk_res = cust_client.get("/api/users?id=1' OR '1'='1--", headers={"User-Agent": "Mozilla/5.0 Chrome/122.0.0.0"})
+    assert atk_res.status_code == 200
+    assert b"real_ceo@customer-api.dev" not in atk_res.data
+    assert b"DECOY" in atk_res.data
+    assert backend_hit_counter["count"] == 1
+
+    # 3. Ingestion endpoint stores telemetry under the customer's site_id
+    ing = mirage_client.post("/api/ingest", json={
+        "ip": "203.0.113.77",
+        "path": "/api/users",
+        "method": "GET",
+        "score": 50,
+        "decision": "REDIRECT",
+        "attack_types": ["sql_injection"],
+        "fake_records_served": 5,
+    }, headers={"X-MIRAGE-Site-Key": site_key})
+    assert ing.status_code == 200
+    assert ing.get_json()["site_id"] == site_id
+
+    sdata = mirage_client.get(f"/api/site/{site_id}/stats").get_json()
+    assert sdata["total_hits"] == 1
+    assert sdata["site"]["fake_records_served"] == 5
+
+
 
 
 

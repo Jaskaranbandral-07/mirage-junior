@@ -190,7 +190,12 @@ function cloneTargetSite() {
             document.getElementById('shield-mode-label').textContent = res.clone_status?.mode || 'cloned';
             const previewLink = document.getElementById('preview-clone-link');
             if (previewLink) previewLink.href = res.preview_url || ('/portal/' + encodeURIComponent(res.clone_status?.domain || ''));
-            showFeedback('✅ Pixel-accurate honeypot clone ready for: ' + res.target_url);
+            if (res.dashboard_url) {
+                showFeedback('✅ Protected workspace created! Opening dedicated site dashboard...');
+                setTimeout(() => { window.location.href = res.dashboard_url; }, 700);
+            } else {
+                showFeedback('✅ Pixel-accurate honeypot clone ready for: ' + res.target_url);
+            }
         } else {
             showFeedback('❌ Error: ' + (res.error || 'Could not clone URL'));
         }

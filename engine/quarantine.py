@@ -27,11 +27,12 @@ class QuarantineManager:
         self.whitelist = self._load_whitelist()
 
     def _load_whitelist(self):
-        whitelist_file = os.path.join("config", "whitelist.json")
+        base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        whitelist_file = os.path.join(base_dir, "config", "whitelist.json")
         try:
             with open(whitelist_file, "r") as f:
                 return set(json.load(f))
-        except:
+        except Exception:
             return set()
 
     def is_whitelisted(self, ip_addr=None, ip_address=None):
@@ -58,7 +59,7 @@ class QuarantineManager:
         except ValueError:
             return False
 
-    def block_ip(self, ip_address, reason="Critical Threat", threat_score=100):
+    def block_ip(self, ip_address, reason="Critical Threat", threat_score=100, site_id="global"):
         if self.is_whitelisted(ip_address):
             logger.info(f"Cannot block {ip_address} - Whitelisted")
             return False
@@ -80,10 +81,10 @@ class QuarantineManager:
 
         # Always record quarantine in DB per PRD Section 15
         expires_at = datetime.now() + timedelta(seconds=QUARANTINE_DURATION)
-        self.db.quarantine_ip(ip_address, reason, threat_score, expires_at.strftime('%Y-%m-%d %H:%M:%S'))
+        self.db.quarantine_ip(ip_address, reason, threat_score, expires_at.strftime('%Y-%m-%d %H:%M:%S'), site_id=site_id)
         return True
 
-    def unblock_ip(self, ip_address, unblocked_by='manual'):
+    def unblock_ip(self, ip_address, unblocked_by='manual', site_id=None):
         logger.info(f"Attempting to unblock IP: {ip_address}")
         success = False
         try:
@@ -99,7 +100,7 @@ class QuarantineManager:
         except Exception as e:
             logger.error(f"Error unblocking IP: {e}")
 
-        self.db.unquarantine_ip(ip_address, unblocked_by)
+        self.db.unquarantine_ip(ip_address, unblocked_by, site_id=site_id)
         return success
 
     def check_expired(self):

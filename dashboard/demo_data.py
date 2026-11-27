@@ -1,5 +1,5 @@
 """
-MIRAGE Junior — Demo Data Seeder
+MIRAGE Shield — Demo Data Seeder
 Seeds the database with realistic simulated attack data for demonstrations.
 Run via: python main.py --demo
 """
@@ -17,7 +17,7 @@ def seed_data():
     
     db_path = getattr(settings_cfg, 'DATABASE_PATH', os.path.join(
         os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-        'database', 'mirage_junior.db'))
+        'database', 'mirage_shield.db'))
 
     # Ensure database directory exists
     if os.path.dirname(db_path):

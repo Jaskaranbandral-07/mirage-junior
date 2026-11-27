@@ -12,7 +12,7 @@ def create_app():
             resp = make_response('', 204)
             resp.headers['Access-Control-Allow-Origin'] = '*'
             resp.headers['Access-Control-Allow-Methods'] = 'GET, POST, OPTIONS'
-            resp.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization'
+            resp.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization, X-MIRAGE-Site-Key'
             return resp
 
     @app.after_request
@@ -20,7 +20,7 @@ def create_app():
         if request.path.startswith('/api/'):
             response.headers['Access-Control-Allow-Origin'] = '*'
             response.headers['Access-Control-Allow-Methods'] = 'GET, POST, OPTIONS'
-            response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization'
+            response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization, X-MIRAGE-Site-Key'
         return response
 
     return app
