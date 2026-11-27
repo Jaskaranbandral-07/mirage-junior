@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NovaPay FinTech — Cloud Payroll &amp; Merchant API</title>
+    <title>NovaPay — Global Cloud Payroll &amp; Merchant Payments</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         :root {
@@ -14,39 +14,43 @@
             --border: #e2e8f0;
             --brand: #4f46e5;
             --brand-dark: #4338ca;
+            --cyan: #0891b2;
             --emerald: #059669;
-            --rose: #e11d48;
             --amber: #d97706;
+            --rose: #e11d48;
         }
         * { box-sizing: border-box; margin: 0; padding: 0; }
+        html { scroll-behavior: smooth; }
         body {
             font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
             background: var(--bg);
             color: var(--ink);
-            line-height: 1.5;
+            line-height: 1.55;
         }
         .topbar {
-            background: var(--surface);
+            background: rgba(255, 255, 255, 0.94);
+            backdrop-filter: blur(10px);
             border-bottom: 1px solid var(--border);
             padding: 14px 28px;
             display: flex;
             align-items: center;
             justify-content: space-between;
             flex-wrap: wrap;
-            gap: 12px;
+            gap: 14px;
             position: sticky;
             top: 0;
-            z-index: 20;
+            z-index: 50;
         }
         .brand {
             display: flex;
             align-items: center;
             gap: 10px;
             font-weight: 800;
-            font-size: 1.2rem;
+            font-size: 1.22rem;
             color: var(--ink);
+            text-decoration: none;
         }
-        .brand-logo {
+        .brand-mark {
             width: 34px;
             height: 34px;
             border-radius: 9px;
@@ -55,57 +59,92 @@
             display: grid;
             place-items: center;
             font-weight: 800;
+            box-shadow: 0 4px 12px rgba(79, 70, 229, 0.25);
         }
-        .shield-pill {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            padding: 6px 12px;
-            border-radius: 999px;
-            background: #ecfdf5;
-            border: 1px solid #a7f3d0;
-            color: var(--emerald);
-            font-size: 0.82rem;
-            font-weight: 600;
-        }
-        .container {
-            max-width: 1180px;
-            margin: 0 auto;
-            padding: 28px 20px 60px;
-        }
-        .hero {
-            background: linear-gradient(135deg, #1e1b4b, #312e81 60%, #0f172a);
-            color: #fff;
-            border-radius: 16px;
-            padding: 32px;
-            margin-bottom: 24px;
+        .nav-links {
             display: flex;
-            justify-content: space-between;
             align-items: center;
-            flex-wrap: wrap;
             gap: 20px;
+            flex-wrap: wrap;
         }
-        .hero h1 { font-size: 1.85rem; margin-bottom: 8px; }
-        .hero p { color: #cbd5e1; max-width: 650px; font-size: 0.96rem; }
+        .nav-links a {
+            color: var(--muted);
+            text-decoration: none;
+            font-size: 0.9rem;
+            font-weight: 600;
+            transition: color 0.15s ease;
+        }
+        .nav-links a:hover { color: var(--brand); }
+        .nav-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
         .btn {
             display: inline-flex;
             align-items: center;
+            justify-content: center;
             gap: 7px;
             border: none;
             border-radius: 8px;
-            padding: 10px 16px;
+            padding: 9px 16px;
             font-size: 0.88rem;
             font-weight: 600;
             cursor: pointer;
             text-decoration: none;
-            transition: opacity 0.15s ease;
+            transition: transform 0.12s ease, opacity 0.15s ease, background 0.15s ease;
         }
-        .btn:hover { opacity: 0.92; }
+        .btn:hover { opacity: 0.93; }
+        .btn:active { transform: translateY(1px); }
         .btn-brand { background: var(--brand); color: #fff; }
         .btn-emerald { background: var(--emerald); color: #fff; }
-        .btn-rose { background: var(--rose); color: #fff; }
-        .btn-amber { background: var(--amber); color: #fff; }
-        .btn-outline { background: rgba(255,255,255,0.12); color: #fff; border: 1px solid rgba(255,255,255,0.28); }
+        .btn-ghost { background: #eef2ff; color: var(--brand); }
+        .btn-outline { background: transparent; color: var(--ink); border: 1px solid var(--border); }
+        .container {
+            max-width: 1180px;
+            margin: 0 auto;
+            padding: 28px 20px 64px;
+        }
+        .hero {
+            background: linear-gradient(135deg, #1e1b4b, #312e81 55%, #0f172a);
+            color: #fff;
+            border-radius: 18px;
+            padding: 40px 36px;
+            margin-bottom: 26px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(290px, 1fr));
+            gap: 28px;
+            align-items: center;
+        }
+        .pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            font-size: 0.78rem;
+            font-weight: 700;
+            letter-spacing: 0.4px;
+            padding: 5px 12px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.12);
+            color: #a5f3fc;
+            margin-bottom: 14px;
+        }
+        .hero h1 { font-size: 2.15rem; line-height: 1.2; margin-bottom: 12px; }
+        .hero p { color: #cbd5e1; font-size: 0.98rem; margin-bottom: 20px; max-width: 560px; }
+        .hero-metrics {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+        }
+        .metric-box {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.14);
+            border-radius: 12px;
+            padding: 16px;
+        }
+        .metric-val { font-size: 1.45rem; font-weight: 800; color: #fff; }
+        .metric-lbl { font-size: 0.78rem; color: #cbd5e1; margin-top: 2px; }
         .grid-2 {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
@@ -115,256 +154,509 @@
         .card {
             background: var(--surface);
             border: 1px solid var(--border);
-            border-radius: 12px;
-            padding: 20px;
-            box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+            border-radius: 14px;
+            padding: 22px;
+            box-shadow: 0 1px 4px rgba(15, 23, 42, 0.04);
         }
         .card h2 {
-            font-size: 1.05rem;
-            margin-bottom: 6px;
+            font-size: 1.08rem;
+            margin-bottom: 5px;
             display: flex;
             align-items: center;
             gap: 8px;
         }
-        .sub { color: var(--muted); font-size: 0.85rem; margin-bottom: 14px; }
-        .row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
-        input[type="text"], input[type="password"], input[type="email"] {
+        .sub { color: var(--muted); font-size: 0.86rem; margin-bottom: 15px; }
+        .row { display: flex; gap: 9px; flex-wrap: wrap; margin-bottom: 12px; align-items: center; }
+        input[type="text"], input[type="number"], input[type="password"], input[type="email"], select {
             flex: 1;
-            min-width: 180px;
+            min-width: 140px;
             padding: 9px 12px;
             border: 1px solid var(--border);
             border-radius: 8px;
             font-size: 0.9rem;
+            color: var(--ink);
+            background: #fff;
+        }
+        .chip-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+        .chip {
+            border: 1px solid var(--border);
+            background: #fff;
+            color: var(--muted);
+            padding: 5px 12px;
+            border-radius: 999px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .chip.active {
+            background: #eef2ff;
+            border-color: var(--brand);
+            color: var(--brand);
         }
         table { width: 100%; border-collapse: collapse; font-size: 0.86rem; }
-        th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--border); }
-        th { color: var(--muted); font-weight: 600; font-size: 0.78rem; text-transform: uppercase; }
-        .lab-card {
+        th, td { text-align: left; padding: 9px 8px; border-bottom: 1px solid var(--border); }
+        th { color: var(--muted); font-weight: 600; font-size: 0.76rem; text-transform: uppercase; }
+        .tier-badge {
+            padding: 2px 8px;
+            border-radius: 999px;
+            font-size: 0.74rem;
+            font-weight: 700;
+            background: #ecfdf5;
+            color: var(--emerald);
+        }
+        .quote-box {
+            background: #f1f5f9;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 14px;
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+        }
+        .quote-item small { display: block; color: var(--muted); font-size: 0.75rem; }
+        .quote-item strong { font-size: 1.05rem; color: var(--ink); }
+        .api-console {
             background: #0f172a;
             color: #e2e8f0;
             border-radius: 14px;
             padding: 22px;
-            border: 1px solid #1e293b;
+            margin-bottom: 24px;
         }
-        .lab-card h2 { color: #38bdf8; }
-        .lab-card .sub { color: #94a3b8; }
-        .inspector {
-            margin-top: 14px;
+        .api-console h2 { color: #38bdf8; }
+        .api-console .sub { color: #94a3b8; }
+        pre {
+            margin-top: 12px;
             background: #020617;
             border: 1px solid #334155;
             border-radius: 10px;
             padding: 14px;
-        }
-        .inspector-meta {
-            display: flex;
-            gap: 12px;
-            flex-wrap: wrap;
-            font-size: 0.8rem;
-            margin-bottom: 8px;
-            padding-bottom: 8px;
-            border-bottom: 1px solid #1e293b;
-        }
-        .tag {
-            padding: 3px 8px;
-            border-radius: 6px;
-            font-family: monospace;
-            background: #1e293b;
-        }
-        pre {
-            margin: 0;
             color: #4ade80;
             font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-            font-size: 0.8rem;
-            max-height: 270px;
+            font-size: 0.82rem;
+            max-height: 240px;
             overflow: auto;
             white-space: pre-wrap;
+        }
+        .modal-backdrop {
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.55);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            z-index: 100;
+        }
+        .modal-backdrop.open { display: flex; }
+        .modal {
+            background: #fff;
+            border-radius: 14px;
+            max-width: 440px;
+            width: 100%;
+            padding: 24px;
+            box-shadow: 0 20px 50px rgba(15, 23, 42, 0.25);
+        }
+        .toast {
+            position: fixed;
+            right: 20px;
+            bottom: 20px;
+            background: #0f172a;
+            color: #fff;
+            padding: 11px 16px;
+            border-radius: 10px;
+            font-size: 0.86rem;
+            display: none;
+            z-index: 200;
+            box-shadow: 0 8px 25px rgba(15, 23, 42, 0.25);
+        }
+        footer {
+            margin-top: 32px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 10px;
+            color: var(--muted);
+            font-size: 0.82rem;
         }
     </style>
 </head>
 <body>
     <header class="topbar">
-        <div class="brand">
-            <div class="brand-logo">N</div>
-            <span>NovaPay <span style="color: var(--brand);">FinTech</span></span>
-        </div>
-        <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
-            <span class="shield-pill">
-                <i class="fa-solid fa-shield-halved"></i> Protected by MIRAGE Shield SDK
-            </span>
-            <a id="open-mirage-dash" href="{{ shield_url or 'https://mirage-junior.vercel.app' }}/sites"
-               target="_blank" class="btn btn-brand">
-                <i class="fa-solid fa-chart-line"></i> Open MIRAGE Dashboard
-            </a>
+        <a href="#top" class="brand">
+            <div class="brand-mark">N</div>
+            <span>NovaPay</span>
+        </a>
+        <nav class="nav-links">
+            <a href="#directory">Merchants</a>
+            <a href="#calculator">Payout Calculator</a>
+            <a href="#invoicing">Invoicing</a>
+            <a href="#developers">API Explorer</a>
+        </nav>
+        <div class="nav-actions">
+            <button onclick="openModal('loginModal')" class="btn btn-outline">
+                <i class="fa-solid fa-right-to-bracket"></i> Merchant Sign In
+            </button>
+            <button onclick="openModal('contactModal')" class="btn btn-brand">
+                <i class="fa-solid fa-calendar-check"></i> Book Onboarding
+            </button>
         </div>
     </header>
 
-    <main class="container">
+    <main id="top" class="container">
         <section class="hero">
             <div>
-                <h1>Cloud Payroll &amp; Merchant APIs</h1>
+                <span class="pill"><i class="fa-solid fa-bolt"></i> Instant Multi-Currency Treasury &amp; Payroll</span>
+                <h1>Global vendor payouts &amp; billing built for SaaS startups.</h1>
                 <p>
-                    NovaPay is a live customer startup application protected at the WSGI layer by <strong>MIRAGE Shield</strong>.
-                    Legitimate requests hit NovaPay's real directory cleanly, while malicious probes are absorbed before reaching business logic and served synthetic fake records.
+                    Calculate cross-border FX settlement, search verified merchant directories, generate payment links, and test live treasury APIs in seconds.
                 </p>
-            </div>
-            <div style="min-width: 260px;">
-                <label style="display:block; font-size:0.75rem; color:#cbd5e1; margin-bottom:4px;">Connected MIRAGE Shield Server</label>
                 <div class="row" style="margin-bottom: 0;">
-                    <input type="text" id="shield-server-url" value="{{ shield_url }}" placeholder="http://127.0.0.1:5000">
-                    <button onclick="syncShieldServer()" class="btn btn-outline">Connect</button>
+                    <a href="#invoicing" class="btn btn-emerald"><i class="fa-solid fa-file-invoice-dollar"></i> Create Payment Link</a>
+                    <a href="#developers" class="btn btn-ghost"><i class="fa-solid fa-code"></i> Try Live APIs</a>
+                </div>
+            </div>
+            <div class="hero-metrics">
+                <div class="metric-box">
+                    <div class="metric-val">42+ Countries</div>
+                    <div class="metric-lbl">Local Instant Rails (ACH / IMPS / SEPA)</div>
+                </div>
+                <div class="metric-box">
+                    <div class="metric-val">99.98%</div>
+                    <div class="metric-lbl">Settlement Clearing Uptime</div>
+                </div>
+                <div class="metric-box">
+                    <div class="metric-val">0.9%</div>
+                    <div class="metric-lbl">Enterprise FX &amp; Payout Tier</div>
+                </div>
+                <div class="metric-box">
+                    <div class="metric-val">&lt; 180 ms</div>
+                    <div class="metric-lbl">REST API Median Latency</div>
                 </div>
             </div>
         </section>
 
         <div class="grid-2">
-            <!-- Customer Partner Lookup -->
-            <div class="card">
-                <h2><i class="fa-solid fa-magnifying-glass" style="color: var(--brand);"></i> Merchant Directory Search</h2>
-                <p class="sub">Try a clean lookup (<code>Enterprise</code>) or inject SQL (<code>' OR '1'='1--</code>) to see Shield absorption.</p>
-                <div class="row">
-                    <input type="text" id="search-query" value="Enterprise" placeholder="Search company or tier...">
-                    <button onclick="runCustomerSearch()" class="btn btn-brand">Search API</button>
+            <!-- Verified Merchant Directory -->
+            <section id="directory" class="card">
+                <h2><i class="fa-solid fa-building" style="color: var(--brand);"></i> Verified Merchant Directory</h2>
+                <p class="sub">Search registered partner companies or filter live by settlement tier.</p>
+
+                <div class="chip-row" id="tier-chips">
+                    <button class="chip active" onclick="filterTier('all', this)">All</button>
+                    <button class="chip" onclick="filterTier('Enterprise', this)">Enterprise</button>
+                    <button class="chip" onclick="filterTier('Growth', this)">Growth</button>
+                    <button class="chip" onclick="filterTier('Starter', this)">Starter</button>
                 </div>
+
+                <div class="row">
+                    <input type="text" id="merchant-search" placeholder="Search company, ID, or region...">
+                    <button onclick="searchMerchants()" class="btn btn-brand">Search</button>
+                </div>
+
                 <table>
                     <thead>
-                        <tr><th>ID</th><th>Company</th><th>Tier</th><th>Region</th></tr>
+                        <tr><th>ID</th><th>Company</th><th>Tier</th><th>Volume</th></tr>
                     </thead>
-                    <tbody id="merchant-rows">
-                        <tr><td>MCH-101</td><td>CloudScale Systems</td><td>Enterprise</td><td>AP-South</td></tr>
-                        <tr><td>MCH-102</td><td>KitePay Retail</td><td>Growth</td><td>EU-West</td></tr>
+                    <tbody id="merchant-table">
+                        {% for m in merchants %}
+                        <tr>
+                            <td><code>{{ m.merchant_id }}</code></td>
+                            <td>{{ m.company }}<br><small style="color:var(--muted);">{{ m.region }}</small></td>
+                            <td><span class="tier-badge">{{ m.tier }}</span></td>
+                            <td>{{ m.volume_usd }}</td>
+                        </tr>
+                        {% endfor %}
                     </tbody>
                 </table>
-            </div>
+            </section>
 
-            <!-- Employee Portal Login -->
-            <div class="card">
-                <h2><i class="fa-solid fa-user-lock" style="color: var(--emerald);"></i> Employee SSO Portal</h2>
-                <p class="sub">Normal sign-ins reach NovaPay's real auth controller; SQLi bypasses get trapped cleanly.</p>
+            <!-- Payroll & FX Settlement Estimator -->
+            <section id="calculator" class="card">
+                <h2><i class="fa-solid fa-calculator" style="color: var(--emerald);"></i> Payroll &amp; FX Settlement Estimator</h2>
+                <p class="sub">Estimate instant payout fees and local currency delivery amounts.</p>
+
                 <div class="row">
-                    <input type="email" id="login-email" placeholder="employee@novapay.example" value="analyst@novapay.example">
+                    <div style="flex:1;">
+                        <label style="font-size:0.78rem; color:var(--muted);">Monthly Volume (USD)</label>
+                        <input type="number" id="calc-volume" value="45000" min="500" style="width:100%; margin-top:4px;">
+                    </div>
+                    <div style="flex:1;">
+                        <label style="font-size:0.78rem; color:var(--muted);">Team Headcount</label>
+                        <input type="number" id="calc-employees" value="30" min="1" style="width:100%; margin-top:4px;">
+                    </div>
                 </div>
                 <div class="row">
-                    <input type="password" id="login-pass" placeholder="Password" value="DemoPass!2026">
-                    <button onclick="submitPortalLogin()" class="btn btn-emerald">Sign In</button>
+                    <select id="calc-currency">
+                        <option value="USD">USD — US Dollar</option>
+                        <option value="INR">INR — Indian Rupee</option>
+                        <option value="EUR">EUR — Euro</option>
+                        <option value="GBP">GBP — British Pound</option>
+                    </select>
+                    <button onclick="calculateEstimate()" class="btn btn-emerald">Calculate Payout</button>
                 </div>
-                <div id="login-status" style="font-size: 0.84rem; color: var(--muted);"></div>
-            </div>
+
+                <div class="quote-box" id="quote-box">
+                    <div class="quote-item"><small>Effective Fee Rate</small><strong id="q-rate">1.4%</strong></div>
+                    <div class="quote-item"><small>Settlement Rail</small><strong id="q-rail">Same-Day ACH</strong></div>
+                    <div class="quote-item"><small>Platform + Transfer Fee</small><strong id="q-fee">$750.00</strong></div>
+                    <div class="quote-item"><small>Estimated Net Payout</small><strong id="q-net">$44,250.00</strong></div>
+                </div>
+            </section>
         </div>
 
-        <!-- Live Presentation Attack Lab -->
-        <section class="lab-card">
-            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
-                <div>
-                    <h2><i class="fa-solid fa-flask"></i> College Presentation: Live Protection &amp; Deception Inspector</h2>
-                    <p class="sub" style="margin-bottom: 0;">
-                        Click any scenario below to send a real HTTP request to NovaPay and inspect whether the real backend ran or MIRAGE Shield fed synthetic decoy data.
-                    </p>
-                </div>
-                <span id="absorbed-badge" class="tag" style="color: #fbbf24;">Shield Absorbed: {{ recent_absorbed|length }}</span>
+        <!-- Instant Invoice & Payment Link Generator -->
+        <section id="invoicing" class="card" style="margin-bottom: 24px;">
+            <h2><i class="fa-solid fa-file-invoice-dollar" style="color: var(--cyan);"></i> Instant Invoice &amp; Payment Link Builder</h2>
+            <p class="sub">Issue a sample customer invoice and copy a working checkout preview link.</p>
+            <div class="row">
+                <input type="text" id="inv-client" placeholder="Client Company (e.g. Acme Robotics)">
+                <input type="email" id="inv-email" placeholder="Billing Email (optional)">
+                <input type="number" id="inv-amount" placeholder="Amount" value="2400" min="1">
+                <select id="inv-currency" style="max-width:110px;">
+                    <option value="USD">USD</option>
+                    <option value="INR">INR</option>
+                    <option value="EUR">EUR</option>
+                    <option value="GBP">GBP</option>
+                </select>
+                <button onclick="createInvoice()" class="btn btn-brand">Generate Link</button>
             </div>
-
-            <div class="row" style="margin-top: 16px;">
-                <button onclick="probeEndpoint('/api/customers?q=Enterprise', 'GET')" class="btn btn-emerald">
-                    1. Normal API Call (Real Backend)
-                </button>
-                <button onclick="probeEndpoint('/api/customers?q=1%27%20OR%20%271%27%3D%271--', 'GET')" class="btn btn-rose">
-                    2. SQL Injection (&apos; OR 1=1--)
-                </button>
-                <button onclick="probeEndpoint('/.env', 'GET')" class="btn btn-amber">
-                    3. Probe /.env Secrets
-                </button>
-                <button onclick="probeEndpoint('/download?file=../../../../etc/passwd', 'GET')" class="btn btn-amber">
-                    4. Path Traversal (/etc/passwd)
-                </button>
-                <button onclick="probeEndpoint('/login', 'POST', {email: &quot;admin' OR '1'='1--&quot;, password: 'x'})" class="btn btn-rose">
-                    5. Admin SQLi Login Probe
+            <div id="invoice-link-banner" style="display:none; margin-bottom: 12px; padding: 10px 14px; border-radius: 8px; background: #ecfdf5; border: 1px solid #a7f3d0; color: var(--emerald); font-size: 0.86rem; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap;">
+                <span id="invoice-link-text"></span>
+                <button onclick="copyLatestInvoice()" class="btn btn-emerald" style="padding: 6px 12px; font-size: 0.8rem;">
+                    <i class="fa-regular fa-copy"></i> Copy Checkout Link
                 </button>
             </div>
 
-            <div class="inspector">
-                <div class="inspector-meta">
-                    <span class="tag" id="meta-endpoint">Endpoint: Ready</span>
-                    <span class="tag" id="meta-status">HTTP: —</span>
-                    <span class="tag" id="meta-shield">X-Protected-By: —</span>
-                    <span class="tag" id="meta-real">X-NovaPay-Real-Backend: —</span>
-                </div>
-                <pre id="inspector-output">// Click any button above to inspect NovaPay's real vs. MIRAGE Shield deceptive response...</pre>
-            </div>
+            <table>
+                <thead>
+                    <tr><th>Invoice ID</th><th>Client</th><th>Amount</th><th>Status</th><th>Checkout</th></tr>
+                </thead>
+                <tbody id="invoice-table">
+                    {% for inv in invoices %}
+                    <tr>
+                        <td><code>{{ inv.invoice_id }}</code></td>
+                        <td>{{ inv.client }}</td>
+                        <td>{{ '%.2f'|format(inv.amount) }} {{ inv.currency }}</td>
+                        <td><span class="tier-badge">{{ inv.status }}</span></td>
+                        <td><a href="/pay/{{ inv.invoice_id }}" target="_blank" style="color: var(--brand); font-weight: 600;">Inspect JSON &rarr;</a></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
         </section>
 
-        <footer style="margin-top: 26px; text-align: center; color: var(--muted); font-size: 0.8rem;">
-            Demo Target Sandbox &mdash; AI-generated via <strong>Antigravity</strong> exclusively for live MIRAGE Shield protection testing &amp; evaluation showcase.
+        <!-- Developer REST API Explorer -->
+        <section id="developers" class="api-console">
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+                <div>
+                    <h2><i class="fa-solid fa-terminal"></i> Public Treasury API Explorer</h2>
+                    <p class="sub" style="margin-bottom:0;">Test live JSON endpoints served directly by NovaPay's Flask API.</p>
+                </div>
+                <div class="row" style="margin-bottom:0;">
+                    <button onclick="runApiPreview('/api/customers?tier=Enterprise')" class="btn btn-brand">GET /api/customers</button>
+                    <button onclick="runApiPreview('/api/v1/rates')" class="btn btn-emerald">GET /api/v1/rates</button>
+                    <button onclick="runApiPreview('/api/invoices')" class="btn btn-ghost">GET /api/invoices</button>
+                </div>
+            </div>
+            <pre id="api-output">// Select an API endpoint above to inspect the live response...</pre>
+        </section>
+
+        <footer>
+            <span>&copy; 2026 NovaPay Technologies Inc. All rights reserved.</span>
+            <span>Status: All Payment Rails Operational &bull; Sandbox Environment</span>
         </footer>
     </main>
 
+    <!-- Merchant Sign-In Modal -->
+    <div id="loginModal" class="modal-backdrop">
+        <div class="modal">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                <h3><i class="fa-solid fa-user-lock" style="color:var(--brand);"></i> Merchant Portal Sign In</h3>
+                <button onclick="closeModal('loginModal')" class="btn btn-outline" style="padding:4px 10px;">&times;</button>
+            </div>
+            <p class="sub">Sign in with your workspace email or try <code>demo@novapay.io</code> / <code>NovaPay@2026</code>.</p>
+            <form action="/login" method="POST" onsubmit="submitLogin(event)">
+                <div class="row">
+                    <input type="email" id="login-email" name="email" placeholder="Work Email" required>
+                </div>
+                <div class="row">
+                    <input type="password" id="login-password" name="password" placeholder="Password" required>
+                </div>
+                <div id="login-msg" style="font-size:0.84rem; margin-bottom:10px;"></div>
+                <button type="submit" class="btn btn-brand" style="width:100%;">Sign In to Workspace</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Onboarding / Contact Modal -->
+    <div id="contactModal" class="modal-backdrop">
+        <div class="modal">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                <h3><i class="fa-solid fa-calendar-check" style="color:var(--emerald);"></i> Schedule Onboarding</h3>
+                <button onclick="closeModal('contactModal')" class="btn btn-outline" style="padding:4px 10px;">&times;</button>
+            </div>
+            <p class="sub">Share your team details and an onboarding specialist will reach out.</p>
+            <form onsubmit="submitContact(event)">
+                <div class="row"><input type="text" id="contact-name" placeholder="Full Name" required></div>
+                <div class="row"><input type="email" id="contact-email" placeholder="Work Email" required></div>
+                <div class="row"><input type="text" id="contact-company" placeholder="Company Name"></div>
+                <div id="contact-msg" style="font-size:0.84rem; margin-bottom:10px;"></div>
+                <button type="submit" class="btn btn-emerald" style="width:100%;">Request Onboarding Call</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="toast" class="toast"></div>
+
     <script>
-        async function refreshDashboardLink(forceReg = false) {
-            try {
-                const res = await fetch('/api/shield-status' + (forceReg ? '?register=1' : ''));
-                const data = await res.json();
-                const link = document.getElementById('open-mirage-dash');
-                if (data.dashboard_url) link.href = data.dashboard_url;
-                document.getElementById('absorbed-badge').textContent = `Shield Absorbed: ${data.absorbed_count ?? 0}`;
-            } catch {}
+        let currentTier = 'all';
+        let latestPaymentUrl = '';
+
+        function showToast(msg) {
+            const t = document.getElementById('toast');
+            t.textContent = msg;
+            t.style.display = 'block';
+            setTimeout(() => { t.style.display = 'none'; }, 2800);
         }
 
-        async function syncShieldServer() {
-            const url = document.getElementById('shield-server-url').value.trim();
-            const res = await fetch('/api/shield-config', {
+        function openModal(id) { document.getElementById(id).classList.add('open'); }
+        function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+        async function searchMerchants() {
+            const q = document.getElementById('merchant-search').value.trim();
+            const res = await fetch(`/api/customers?q=${encodeURIComponent(q)}&tier=${encodeURIComponent(currentTier)}`);
+            const data = await res.json();
+            document.getElementById('merchant-table').innerHTML = (data.merchants || []).map(m => `
+                <tr>
+                    <td><code>${m.merchant_id}</code></td>
+                    <td>${m.company}<br><small style="color:var(--muted);">${m.region}</small></td>
+                    <td><span class="tier-badge">${m.tier}</span></td>
+                    <td>${m.volume_usd}</td>
+                </tr>
+            `).join('') || '<tr><td colspan="4" style="color:var(--muted);">No matching merchants found.</td></tr>';
+        }
+
+        function filterTier(tier, btn) {
+            currentTier = tier;
+            document.querySelectorAll('#tier-chips .chip').forEach(c => c.classList.remove('active'));
+            btn.classList.add('active');
+            searchMerchants();
+        }
+
+        async function calculateEstimate() {
+            const payload = {
+                volume_usd: document.getElementById('calc-volume').value,
+                employees: document.getElementById('calc-employees').value,
+                currency: document.getElementById('calc-currency').value,
+            };
+            const res = await fetch('/api/pricing/estimate', {
                 method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({shield_url: url})
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
+            });
+            const q = await res.json();
+            document.getElementById('q-rate').textContent = `${q.effective_rate_pct}%`;
+            document.getElementById('q-rail').textContent = q.settlement_rail;
+            document.getElementById('q-fee').textContent = `$${Number(q.platform_fee_usd).toLocaleString()}`;
+            document.getElementById('q-net').textContent = `${q.symbol}${Number(q.net_payout_local).toLocaleString()} (${q.currency})`;
+            showToast('Updated settlement quote');
+        }
+
+        async function createInvoice() {
+            const payload = {
+                client: document.getElementById('inv-client').value,
+                email: document.getElementById('inv-email').value,
+                amount: document.getElementById('inv-amount').value,
+                currency: document.getElementById('inv-currency').value,
+            };
+            const res = await fetch('/api/invoices', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
             });
             const data = await res.json();
-            if (data.dashboard_url) {
-                document.getElementById('open-mirage-dash').href = data.dashboard_url;
+            if (!res.ok) {
+                showToast(data.message || 'Please check invoice details');
+                return;
             }
-            alert('Connected NovaPay to MIRAGE Shield: ' + (data.shield_url || 'updated'));
+            latestPaymentUrl = data.payment_url;
+            const banner = document.getElementById('invoice-link-banner');
+            banner.style.display = 'flex';
+            document.getElementById('invoice-link-text').textContent = `Generated ${data.invoice.invoice_id} for ${data.invoice.client} (${data.payment_url})`;
+            document.getElementById('invoice-table').innerHTML = (data.invoices || []).map(inv => `
+                <tr>
+                    <td><code>${inv.invoice_id}</code></td>
+                    <td>${inv.client}</td>
+                    <td>${Number(inv.amount).toFixed(2)} ${inv.currency}</td>
+                    <td><span class="tier-badge">${inv.status}</span></td>
+                    <td><a href="/pay/${inv.invoice_id}" target="_blank" style="color: var(--brand); font-weight: 600;">Inspect JSON &rarr;</a></td>
+                </tr>
+            `).join('');
+            document.getElementById('inv-client').value = '';
+            showToast('Invoice payment link generated');
         }
 
-        async function runCustomerSearch() {
-            const q = document.getElementById('search-query').value;
-            await probeEndpoint('/api/customers?q=' + encodeURIComponent(q), 'GET', null, true);
+        function copyLatestInvoice() {
+            if (!latestPaymentUrl) return;
+            navigator.clipboard.writeText(latestPaymentUrl).then(() => showToast('Checkout link copied!'));
         }
 
-        async function submitPortalLogin() {
-            const email = document.getElementById('login-email').value;
-            const password = document.getElementById('login-pass').value;
-            const data = await probeEndpoint('/login', 'POST', {email, password});
-            const st = document.getElementById('login-status');
-            if (data) st.textContent = data.protectedBy ? 'Intercepted by MIRAGE Shield (Fake Data Served)' : (data.parsed?.message || 'Checked by real auth controller');
-        }
-
-        async function probeEndpoint(url, method = 'GET', bodyObj = null, updateTable = false) {
-            const opts = { method, headers: {} };
-            if (bodyObj) {
-                opts.headers['Content-Type'] = 'application/json';
-                opts.body = JSON.stringify(bodyObj);
+        async function runApiPreview(path) {
+            const t0 = performance.now();
+            const res = await fetch(path);
+            const txt = await res.text();
+            const ms = Math.round(performance.now() - t0);
+            try {
+                const parsed = JSON.parse(txt);
+                document.getElementById('api-output').textContent = `// GET ${path} (${res.status} OK, ${ms}ms)\n` + JSON.stringify(parsed, null, 2);
+            } catch {
+                document.getElementById('api-output').textContent = txt;
             }
-            const res = await fetch(url, opts);
-            const text = await res.text();
-            const protectedBy = res.headers.get('X-Protected-By') || 'Pass-Through (Allowed)';
-            const realExec = res.headers.get('X-NovaPay-Real-Backend') || 'BLOCKED BEFORE BACKEND';
-            const decision = res.headers.get('X-MIRAGE-Decision') || 'ALLOW';
-
-            document.getElementById('meta-endpoint').textContent = `${method} ${url}`;
-            document.getElementById('meta-status').textContent = `HTTP: ${res.status} (${decision})`;
-            document.getElementById('meta-shield').textContent = `X-Protected-By: ${protectedBy}`;
-            document.getElementById('meta-real').textContent = `Real Backend: ${realExec}`;
-            document.getElementById('inspector-output').textContent = text;
-
-            let parsed = null;
-            try { parsed = JSON.parse(text); } catch {}
-            if (updateTable && parsed && Array.isArray(parsed.merchants)) {
-                document.getElementById('merchant-rows').innerHTML = parsed.merchants.map(m =>
-                    `<tr><td>${m.merchant_id}</td><td>${m.company}</td><td>${m.tier}</td><td>${m.region}</td></tr>`
-                ).join('') || '<tr><td colspan="4">No matches</td></tr>';
-            }
-            refreshDashboardLink(true);
-            return { protectedBy: res.headers.get('X-Protected-By'), parsed };
         }
 
-        document.addEventListener('DOMContentLoaded', () => refreshDashboardLink(false));
+        async function submitLogin(e) {
+            e.preventDefault();
+            const msg = document.getElementById('login-msg');
+            const res = await fetch('/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    email: document.getElementById('login-email').value,
+                    password: document.getElementById('login-password').value,
+                }),
+            });
+            const data = await res.json();
+            if (res.ok) {
+                msg.style.color = 'var(--emerald)';
+                msg.textContent = `Signed in: ${data.workspace} (${data.role})`;
+                showToast('Workspace unlocked');
+            } else {
+                msg.style.color = 'var(--rose)';
+                msg.textContent = data.message || 'Sign-in failed';
+            }
+        }
+
+        async function submitContact(e) {
+            e.preventDefault();
+            const msg = document.getElementById('contact-msg');
+            const res = await fetch('/api/contact', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    name: document.getElementById('contact-name').value,
+                    email: document.getElementById('contact-email').value,
+                    company: document.getElementById('contact-company').value,
+                }),
+            });
+            const data = await res.json();
+            msg.style.color = res.ok ? 'var(--emerald)' : 'var(--rose)';
+            msg.textContent = data.message || 'Submitted';
+            if (res.ok) showToast(`Ticket ${data.ticket_id} created`);
+        }
+
+        document.addEventListener('DOMContentLoaded', () => runApiPreview('/api/v1/rates'));
     </script>
 </body>
 </html>

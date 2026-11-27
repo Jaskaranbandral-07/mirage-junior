@@ -497,57 +497,42 @@ def test_extension_page_and_zip_download(isolated_shield):
         assert "mirage-shield-extension/icons/icon48.png" in names
 
 
-def test_novapay_demo_target_protection_and_fallback(isolated_shield):
-    """Verify standalone NovaPay FinTech demo app protects APIs/login while MIRAGE root stays clean."""
+def test_novapay_demo_target_standalone_functionality(isolated_shield):
+    """Verify NovaPay demo site runs cleanly with zero MIRAGE references and working interactive endpoints."""
     from dashboard.app import create_app
     from mirage_shield import shield_proxy
     from demo_target.app import create_demo_app
-    from demo_target.shield_sdk import _fallback_inspect, _FallbackDeceptionEngine
 
     shield, _ = isolated_shield
     shield_proxy._shared_shield_instance = shield
     mirage_client = create_app().test_client()
-
-    # Main MIRAGE Shield platform must stay clean on root /.env
     assert mirage_client.get("/.env").status_code == 404
 
-    demo_app = create_demo_app(shield_url="")
+    demo_app = create_demo_app()
     demo_client = demo_app.test_client()
 
-    # Clean homepage & benign customer lookup run real NovaPay handlers
     home = demo_client.get("/")
     assert home.status_code == 200
     assert b"NovaPay" in home.data
+    assert b"mirage" not in home.data.lower()
 
-    clean_api = demo_client.get("/api/customers?q=Enterprise", headers={"User-Agent": "Mozilla/5.0 Chrome/122.0.0.0"})
-    assert clean_api.status_code == 200
-    assert clean_api.headers.get("X-NovaPay-Real-Backend") == "executed"
-    assert b"CloudScale Systems" in clean_api.data
+    # Merchant search & tier filtering
+    cust = demo_client.get("/api/customers?tier=Enterprise").get_json()
+    assert cust["status"] == "ok" and cust["count"] >= 2
 
-    # SQL injection on NovaPay is absorbed before handler executes and fed decoy data
-    sqli_api = demo_client.get("/api/customers?q=1%27%20OR%20%271%27%3D%271--", headers={"User-Agent": "Mozilla/5.0 Chrome/122.0.0.0"})
-    assert sqli_api.status_code == 200
-    assert sqli_api.headers.get("X-Protected-By") == "MIRAGE-Shield"
-    assert b"CloudScale Systems" not in sqli_api.data
-    assert b"DECOY" in sqli_api.data
+    # Pricing & FX calculator
+    quote = demo_client.post("/api/pricing/estimate", json={"volume_usd": 50000, "employees": 20, "currency": "INR"}).get_json()
+    assert quote["status"] == "ok" and quote["currency"] == "INR" and quote["net_payout_local"] > 0
 
-    # Secret /.env probe on NovaPay serves synthetic decoy secrets
-    env_probe = demo_client.get("/.env", headers={"User-Agent": "Mozilla/5.0 Chrome/122.0.0.0"})
-    assert env_probe.status_code == 200
-    assert env_probe.headers.get("X-Protected-By") == "MIRAGE-Shield"
-    assert b"DECOY" in env_probe.data
+    # Invoice link generator
+    inv = demo_client.post("/api/invoices", json={"client": "Zenith Labs", "amount": 1500, "currency": "USD"}).get_json()
+    assert inv["status"] == "ok" and inv["invoice"]["invoice_id"].startswith("INV-")
 
-    # POST SQLi login probe is intercepted before real login handler
-    sqli_login = demo_client.post("/login", json={"email": "admin' OR '1'='1--", "password": "x"}, headers={"User-Agent": "Mozilla/5.0 Chrome/122.0.0.0"})
-    assert sqli_login.status_code == 200
-    assert sqli_login.headers.get("X-Protected-By") == "MIRAGE-Shield"
-    assert b"DECOY" in sqli_login.data
-
-    # Also verify standalone fallback engine works identically when mono-repo isn't present
-    dec, score, atypes = _fallback_inspect("/api/customers", "GET", "Chrome", "q=1' OR '1'='1--", "")
-    assert dec == "REDIRECT" and "sql_injection" in atypes
-    body, ct, sc, cnt = _FallbackDeceptionEngine().generate_response("/.env", ["targeted_recon"])
-    assert sc == 200 and "DECOY" in body and cnt >= 1
+    # Merchant portal login (clean auth check)
+    bad_login = demo_client.post("/login", json={"email": "user@test.com", "password": "wrong"})
+    assert bad_login.status_code == 401
+    ok_login = demo_client.post("/login", json={"email": "demo@novapay.io", "password": "NovaPay@2026"})
+    assert ok_login.status_code == 200 and ok_login.get_json()["status"] == "ok"
 
 
 

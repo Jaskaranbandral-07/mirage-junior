@@ -1,18 +1,13 @@
-# NovaPay FinTech — AI-Generated Demo Victim Website
+# NovaPay — Cloud Payroll & Merchant Payments (Demo Target Website)
 
-> **Evaluation Transparency Note:** This standalone **NovaPay FinTech** dummy web app was generated using **Antigravity** exclusively as a simulated external customer website to test and showcase **MIRAGE Shield** live. Neither team member claims coding credit for this demo site.
+> **Evaluation Note:** Standalone third-party-style startup website generated via **Antigravity** strictly as a clean target site for live demonstrations (excluded from team coding credits). Contains zero MIRAGE code or references.
 
-## Deploy as Your 2nd Live Vercel Website (30 Seconds)
-1. Open [Vercel Dashboard](https://vercel.com/new) &rarr; **Add New Project**.
-2. Import **`Jaskaranbandral-07/mirage-junior`**.
-3. Click **Edit** next to **Root Directory**, type **`demo_target`**, and click **Continue**.
-4. Optional Environment Variables:
-   - `MIRAGE_SHIELD_URL` = `https://mirage-junior.vercel.app` *(already defaults to this on Vercel)*
-5. Click **Deploy**. Copy the new Vercel URL (e.g. `https://novapay-demo.vercel.app`) and paste it into **`mirage-junior.vercel.app/extension#demo-site`**.
+## Important for Live Vercel Demos
+When deploying `demo_target` on Vercel (`Root Directory: demo_target`):
+- Use your project's **public production URL** (found under Vercel Project &rarr; **Visit**), not a preview deployment URL gated by Vercel Authentication (`Login – Vercel`), or set **Project Settings &rarr; Deployment Protection &rarr; Vercel Authentication** to **Disabled** so external scanners and website cloners can reach NovaPay publicly.
 
 ## Run Locally
-Starts automatically alongside MIRAGE Shield on port `5050` when running `python main.py`, or standalone:
-
 ```bash
 python demo_target/app.py
 ```
+Runs cleanly on `http://localhost:5050`.

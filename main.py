@@ -102,12 +102,12 @@ def start_mirage_shield():
 
 
 def start_demo_target():
-    """Start the standalone NovaPay FinTech demo website protected by MIRAGE SDK."""
+    """Start the standalone NovaPay demo website on port 5050."""
     try:
-        from config.settings import DEMO_TARGET_PORT, DASHBOARD_PORT
+        from config.settings import DEMO_TARGET_PORT
         from demo_target.app import create_demo_app
         logger.info(f"🏢 Starting NovaPay Demo Target Website on port {DEMO_TARGET_PORT}...")
-        demo_app = create_demo_app(shield_url=f"http://127.0.0.1:{DASHBOARD_PORT}")
+        demo_app = create_demo_app()
         demo_app.run(host="0.0.0.0", port=DEMO_TARGET_PORT, debug=False, use_reloader=False)
     except Exception as e:
         logger.error(f"NovaPay Demo Website failed to start: {e}")
