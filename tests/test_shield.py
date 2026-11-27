@@ -690,6 +690,29 @@ def test_sites_no_demo_button_and_shield_gated_controls(isolated_shield):
     assert b'aria-disabled="false"' in shield_ready.data
 
 
+def test_cold_container_test_absorb_auto_recovers_and_returns_snapshot(isolated_shield):
+    """Verify POST /api/site/<id>/test-absorb works even on a cold container and returns full dashboard_data."""
+    from dashboard.app import create_app
+    from mirage_shield import shield_proxy
+
+    shield, _ = isolated_shield
+    shield_proxy._shared_shield_instance = shield
+    client = create_app().test_client()
+
+    # Site 'cold-startup-app' was NOT registered on this container yet, but payload passes target_url
+    res = client.post("/api/site/cold-startup-app/test-absorb", json={
+        "kind": "cred_trap",
+        "target_url": "https://cold-startup.app",
+        "domain": "cold-startup.app",
+    }, headers={"X-MIRAGE-Client-IP": "198.51.100.201"})
+    assert res.status_code == 200
+    data = res.get_json()
+    assert data["success"] is True
+    assert data["dashboard_data"]["total_hits"] == 1
+    assert data["dashboard_data"]["creds_captured"] == 1
+    assert data["dashboard_data"]["ips_quarantined"] == 1
+
+
 
 
 

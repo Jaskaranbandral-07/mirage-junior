@@ -386,31 +386,49 @@ def api_sdk_download(lang):
     return jsonify({'error': 'Supported SDK downloads: python, node'}), 404
 
 
+def _resolve_or_recover_site(db_mgr: DatabaseManager, site_id: str, payload: dict = None):
+    """Fetch a site workspace, or auto-recover it across serverless containers from context."""
+    site = db_mgr.get_site(site_id)
+    if site:
+        return site
+
+    payload = payload or {}
+    candidate = (
+        payload.get('target_url')
+        or payload.get('domain')
+        or request.args.get('target')
+        or request.args.get('domain')
+        or ''
+    ).strip()
+    if candidate:
+        try:
+            norm_id, _, norm_url = db_mgr.normalize_site_target(candidate)
+            if norm_id == site_id:
+                return db_mgr.register_or_get_site(
+                    norm_url,
+                    owner_name=(payload.get('owner_name') or 'Customer').strip(),
+                    preferred_api_key=payload.get('api_key'),
+                    preferred_dashboard_key=payload.get('dashboard_key'),
+                )
+        except ValueError:
+            pass
+
+    demo_target_url = getattr(settings_cfg, 'DEMO_TARGET_URL', '').strip()
+    if demo_target_url:
+        try:
+            demo_id, _, _ = db_mgr.normalize_site_target(demo_target_url)
+            if demo_id == site_id:
+                return db_mgr.register_or_get_site(demo_target_url, owner_name="NovaPay Cloud Payroll")
+        except ValueError:
+            pass
+    return None
+
+
 @dashboard_bp.route('/site/<site_id>')
 def site_dashboard(site_id):
     """Dedicated Personal Customer Dashboard strictly isolated to one protected website."""
     db_mgr = DatabaseManager()
-    site = db_mgr.get_site(site_id)
-
-    # Auto-recover site workspace if routed to a fresh serverless container
-    if not site:
-        candidate_target = (request.args.get('target') or request.args.get('domain') or '').strip()
-        if candidate_target:
-            try:
-                norm_id, _, norm_url = db_mgr.normalize_site_target(candidate_target)
-                if norm_id == site_id:
-                    site = db_mgr.register_or_get_site(norm_url)
-            except ValueError:
-                site = None
-        if not site:
-            demo_target_url = getattr(settings_cfg, 'DEMO_TARGET_URL', '').strip()
-            if demo_target_url:
-                try:
-                    demo_id, _, _ = db_mgr.normalize_site_target(demo_target_url)
-                    if demo_id == site_id:
-                        site = db_mgr.register_or_get_site(demo_target_url, owner_name="NovaPay Cloud Payroll")
-                except ValueError:
-                    pass
+    site = _resolve_or_recover_site(db_mgr, site_id)
 
     if not site:
         return Response("Protected site workspace not found.", status=404)
@@ -640,7 +658,7 @@ def api_site_stats(site_id):
     """Isolated JSON stats & live feeds for a single customer website."""
     from mirage_shield.shield_proxy import get_shield_instance
     db_mgr = DatabaseManager()
-    site = db_mgr.get_site(site_id)
+    site = _resolve_or_recover_site(db_mgr, site_id)
     if not site:
         return jsonify({'error': 'Site not found'}), 404
     data = db_mgr.get_site_dashboard_data(site_id)
@@ -655,12 +673,12 @@ def api_site_stats(site_id):
 def api_site_test_absorb(site_id):
     """Simulate an absorbed attack on a customer site and return the useless fake payload."""
     from mirage_shield.shield_proxy import get_shield_instance
+    payload = request.get_json(silent=True) or {}
     db_mgr = DatabaseManager()
-    site = db_mgr.get_site(site_id)
+    site = _resolve_or_recover_site(db_mgr, site_id, payload=payload)
     if not site:
         return jsonify({'success': False, 'error': 'Site not found'}), 404
 
-    payload = request.get_json(silent=True) or {}
     attack_kind = payload.get('kind', 'sqli')
     shield = get_shield_instance()
     ip = get_real_client_ip()
@@ -716,6 +734,9 @@ def api_site_test_absorb(site_id):
     shield.stats['redirected'] += 1
     shield.stats['fake_records_served'] += fake_count
 
+    dash_data = db_mgr.get_site_dashboard_data(site_id)
+    dash_data['site'] = db_mgr.get_site(site_id) or site
+
     return jsonify({
         'success': True,
         'site_id': site_id,
@@ -723,6 +744,7 @@ def api_site_test_absorb(site_id):
         'fake_records_served': fake_count,
         'fake_response_preview': body_str,
         'content_type': content_type,
+        'dashboard_data': dash_data,
     })
 
 
@@ -730,7 +752,7 @@ def api_site_test_absorb(site_id):
 def api_site_clear(site_id):
     """Purge telemetry strictly for one customer website."""
     db_mgr = DatabaseManager()
-    if not db_mgr.get_site(site_id):
+    if not _resolve_or_recover_site(db_mgr, site_id):
         return jsonify({'status': 'error', 'message': 'Site not found'}), 404
     db_mgr.clear_site_telemetry(site_id)
     return jsonify({'status': 'success', 'message': f'Cleared telemetry for {site_id}.'})

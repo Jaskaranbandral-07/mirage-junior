@@ -211,9 +211,13 @@ protect_flask_app(
 <script>
 const SITE_ID = "{{ site.site_id }}";
 const SITE_API_KEY = "{{ site.api_key }}";
+const SITE_DASHBOARD_KEY = "{{ site.dashboard_key }}";
 const SITE_DOMAIN = "{{ site.domain }}";
+const SITE_TARGET_URL = "{{ site.target_url }}";
+const SITE_OWNER = "{{ site.owner_name }}";
 const SHIELD_BASE_URL = "{{ shield_base_url }}";
 const SHARE_URL = "{{ share_url }}";
+const SITE_SNAP_KEY = `mirage_site_snap_${SITE_ID}`;
 
 const SDK_SNIPPETS = {
     flask: `from mirage_shield.sdk.python_shield import protect_flask_app\n\nprotect_flask_app(\n    app,\n    site_key="${SITE_API_KEY}",\n    shield_url="${SHIELD_BASE_URL}",\n    domain="${SITE_DOMAIN}"\n)`,
@@ -266,93 +270,149 @@ function copyShareLink() {
     showSiteToast('Private customer dashboard link copied: ' + SHARE_URL);
 }
 
+function readCachedSnapshot() {
+    try {
+        const raw = sessionStorage.getItem(SITE_SNAP_KEY);
+        return raw ? JSON.parse(raw) : null;
+    } catch {
+        return null;
+    }
+}
+
+function saveCachedSnapshot(data) {
+    try {
+        if (data && !data.error) {
+            sessionStorage.setItem(SITE_SNAP_KEY, JSON.stringify(data));
+        }
+    } catch {}
+}
+
 function testAbsorb(kind) {
-    fetch(`/api/site/${SITE_ID}/test-absorb`, {
+    const box = document.getElementById('fake-preview-box');
+    if (box) box.textContent = `Sending ${kind.toUpperCase()} attack probe through Shield layer...`;
+
+    fetch(`/api/site/${encodeURIComponent(SITE_ID)}/test-absorb`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ kind })
+        body: JSON.stringify({
+            kind,
+            target_url: SITE_TARGET_URL,
+            domain: SITE_DOMAIN,
+            owner_name: SITE_OWNER,
+            api_key: SITE_API_KEY,
+            dashboard_key: SITE_DASHBOARD_KEY,
+        })
     })
-    .then(r => r.json())
+    .then(async (r) => {
+        const res = await r.json().catch(() => ({}));
+        if (!r.ok || !res.success) {
+            throw new Error(res.error || `HTTP ${r.status}`);
+        }
+        return res;
+    })
     .then(res => {
-        if (res.success) {
-            document.getElementById('fake-preview-box').textContent = res.fake_response_preview;
-            showSiteToast(`Absorbed ${kind.toUpperCase()} probe & fed ${res.fake_records_served} fake records!`);
+        if (box) box.textContent = res.fake_response_preview || '// Decoy response returned';
+        showSiteToast(`Absorbed ${kind.toUpperCase()} probe & fed ${res.fake_records_served} fake records!`);
+        if (res.dashboard_data) {
+            saveCachedSnapshot(res.dashboard_data);
+            applySiteDashboardData(res.dashboard_data);
+        } else {
             refreshSiteDashboard();
         }
+    })
+    .catch(err => {
+        if (box) box.textContent = `Probe failed: ${err.message || 'Network error'}`;
+        showSiteToast(`Probe error: ${err.message || 'Could not reach server'}`);
     });
 }
 
 function clearSiteData() {
     if (!confirm(`Purge all captured logs strictly for ${SITE_DOMAIN}?`)) return;
-    fetch(`/api/site/${SITE_ID}/clear`, { method: 'POST' })
+    try { sessionStorage.removeItem(SITE_SNAP_KEY); } catch {}
+    fetch(`/api/site/${encodeURIComponent(SITE_ID)}/clear`, { method: 'POST' })
         .then(r => r.json())
         .then(() => {
             showSiteToast(`Cleared telemetry for ${SITE_DOMAIN}.`);
-            refreshSiteDashboard();
+            refreshSiteDashboard(true);
         });
 }
 
 function unblockSiteIP(ip) {
     fetch('/api/unblock/' + encodeURIComponent(ip), { method: 'POST' })
         .then(() => {
+            try { sessionStorage.removeItem(SITE_SNAP_KEY); } catch {}
             showSiteToast(`Unblocked IP ${ip}.`);
-            refreshSiteDashboard();
+            refreshSiteDashboard(true);
         });
 }
 
-function refreshSiteDashboard() {
-    fetch(`/api/site/${SITE_ID}/stats`)
+function applySiteDashboardData(data) {
+    if (!data || data.error) return;
+    const esc = (window.MirageSiteSync && window.MirageSiteSync.escapeHtml) || ((v) => String(v ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'));
+    document.getElementById('sd-absorbed').textContent = data.site?.total_absorbed || data.total_hits || 0;
+    document.getElementById('sd-fake').textContent = data.site?.fake_records_served || 0;
+    document.getElementById('sd-ips').textContent = data.unique_ips || 0;
+    document.getElementById('sd-creds').textContent = data.creds_captured || 0;
+    document.getElementById('sd-blocked').textContent = data.ips_quarantined || 0;
+
+    if (threatChart && data.threat_distribution) {
+        const d = data.threat_distribution;
+        threatChart.data.datasets[0].data = [d.Scanner || 0, d.Suspicious || 0, d.Active || 0, d.Critical || 0];
+        threatChart.update('none');
+    }
+    if (mitreChart && data.mitre_stats) {
+        mitreChart.data.labels = Object.keys(data.mitre_stats);
+        mitreChart.data.datasets[0].data = Object.values(data.mitre_stats);
+        mitreChart.update('none');
+    }
+
+    const evBody = document.getElementById('sd-events-body');
+    if (data.recent_events && data.recent_events.length) {
+        window._sdEventsCache = data.recent_events.slice(0, 15);
+        evBody.innerHTML = window._sdEventsCache.map((e, idx) => {
+            const t = esc((e.timestamp || '').slice(11, 19) || e.timestamp);
+            const cls = e.classification === 'CRITICAL' ? 'badge-critical' : 'badge-suspicious';
+            const ip = esc(e.ip_address);
+            return `<tr><td>${t}</td><td><a href="/attacker/${encodeURIComponent(e.ip_address || '')}" style="color:var(--neon-cyan);">${ip}</a></td><td>${esc(e.event_type)}</td><td><code>${esc(e.mitre_id || '-')}</code></td><td><span class="badge ${cls}">${Number(e.threat_score || e.threat_pts || 0)}</span></td><td><button onclick="inspectSiteEvent(${idx})" class="btn" style="padding:3px 9px;font-size:0.74rem;background:rgba(0,212,255,0.12);color:var(--neon-cyan);border:1px solid rgba(0,212,255,0.35);"><i class="fa-solid fa-code"></i> Inspect</button></td></tr>`;
+        }).join('');
+    } else {
+        window._sdEventsCache = [];
+        evBody.innerHTML = '<tr><td colspan="6" class="text-muted" style="text-align:center;">No attacks absorbed for this website yet.</td></tr>';
+    }
+
+    const crBody = document.getElementById('sd-creds-body');
+    if (data.credentials && data.credentials.length) {
+        crBody.innerHTML = data.credentials.slice(0, 12).map(c => {
+            const t = esc((c.timestamp || '').slice(11, 19) || c.timestamp);
+            return `<tr><td>${t}</td><td><code>${esc(c.ip_address)}</code></td><td style="color:var(--neon-purple);">${esc(c.username)}</td><td style="color:var(--neon-red);">${esc(c.password)}</td></tr>`;
+        }).join('');
+    } else {
+        crBody.innerHTML = '<tr><td colspan="4" class="text-muted" style="text-align:center;">No credentials trapped on this site yet.</td></tr>';
+    }
+
+    const blkDiv = document.getElementById('sd-blocked-list');
+    if (blkDiv) {
+        const blks = data.active_quarantines || [];
+        blkDiv.innerHTML = blks.length
+            ? blks.map(q => `<span class="badge badge-critical" style="display:inline-flex;align-items:center;gap:8px;padding:6px 12px;">${esc(q.ip_address)} (${Number(q.threat_score || 100)} pts) <button onclick="unblockSiteIP('${esc(q.ip_address)}')" style="background:none;border:none;color:#fff;cursor:pointer;font-weight:bold;" title="Unblock IP">&times;</button></span>`).join('')
+            : `<span style="color: var(--text-muted); font-size: 0.85rem;">No IPs currently quarantined for ${esc(SITE_DOMAIN)}.</span>`;
+    }
+}
+
+function refreshSiteDashboard(forceServer = false) {
+    fetch(`/api/site/${encodeURIComponent(SITE_ID)}/stats?target=${encodeURIComponent(SITE_TARGET_URL)}`)
         .then(r => r.json())
         .then(data => {
             if (data.error) return;
-            document.getElementById('sd-absorbed').textContent = data.site?.total_absorbed || data.total_hits || 0;
-            document.getElementById('sd-fake').textContent = data.site?.fake_records_served || 0;
-            document.getElementById('sd-ips').textContent = data.unique_ips || 0;
-            document.getElementById('sd-creds').textContent = data.creds_captured || 0;
-            document.getElementById('sd-blocked').textContent = data.ips_quarantined || 0;
-
-            if (threatChart && data.threat_distribution) {
-                const d = data.threat_distribution;
-                threatChart.data.datasets[0].data = [d.Scanner || 0, d.Suspicious || 0, d.Active || 0, d.Critical || 0];
-                threatChart.update('none');
+            const cached = readCachedSnapshot();
+            if (!forceServer && cached && (cached.total_hits || 0) > (data.total_hits || 0) && (data.total_hits || 0) === 0) {
+                applySiteDashboardData(cached);
+                return;
             }
-            if (mitreChart && data.mitre_stats) {
-                mitreChart.data.labels = Object.keys(data.mitre_stats);
-                mitreChart.data.datasets[0].data = Object.values(data.mitre_stats);
-                mitreChart.update('none');
-            }
-
-            const evBody = document.getElementById('sd-events-body');
-            if (data.recent_events && data.recent_events.length) {
-                window._sdEventsCache = data.recent_events.slice(0, 15);
-                evBody.innerHTML = window._sdEventsCache.map((e, idx) => {
-                    const t = (e.timestamp || '').slice(11, 19) || e.timestamp;
-                    const cls = e.classification === 'CRITICAL' ? 'badge-critical' : 'badge-suspicious';
-                    return `<tr><td>${t}</td><td><a href="/attacker/${e.ip_address}" style="color:var(--neon-cyan);">${e.ip_address}</a></td><td>${e.event_type}</td><td><code>${e.mitre_id || '-'}</code></td><td><span class="badge ${cls}">${e.threat_score || e.threat_pts || 0}</span></td><td><button onclick="inspectSiteEvent(${idx})" class="btn" style="padding:3px 9px;font-size:0.74rem;background:rgba(0,212,255,0.12);color:var(--neon-cyan);border:1px solid rgba(0,212,255,0.35);"><i class="fa-solid fa-code"></i> Inspect</button></td></tr>`;
-                }).join('');
-            } else {
-                window._sdEventsCache = [];
-                evBody.innerHTML = '<tr><td colspan="6" class="text-muted" style="text-align:center;">No attacks absorbed for this website yet.</td></tr>';
-            }
-
-            const crBody = document.getElementById('sd-creds-body');
-            if (data.credentials && data.credentials.length) {
-                crBody.innerHTML = data.credentials.slice(0, 12).map(c => {
-                    const t = (c.timestamp || '').slice(11, 19) || c.timestamp;
-                    return `<tr><td>${t}</td><td><code>${c.ip_address}</code></td><td style="color:var(--neon-purple);">${c.username}</td><td style="color:var(--neon-red);">${c.password}</td></tr>`;
-                }).join('');
-            } else {
-                crBody.innerHTML = '<tr><td colspan="4" class="text-muted" style="text-align:center;">No credentials trapped on this site yet.</td></tr>';
-            }
-
-            const blkDiv = document.getElementById('sd-blocked-list');
-            if (blkDiv) {
-                const blks = data.active_quarantines || [];
-                blkDiv.innerHTML = blks.length
-                    ? blks.map(q => `<span class="badge badge-critical" style="display:inline-flex;align-items:center;gap:8px;padding:6px 12px;">${q.ip_address} (${q.threat_score || 100} pts) <button onclick="unblockSiteIP('${q.ip_address}')" style="background:none;border:none;color:#fff;cursor:pointer;font-weight:bold;" title="Unblock IP">&times;</button></span>`).join('')
-                    : `<span style="color: var(--text-muted); font-size: 0.85rem;">No IPs currently quarantined for ${SITE_DOMAIN}.</span>`;
-            }
-        });
+            saveCachedSnapshot(data);
+            applySiteDashboardData(data);
+        })
+        .catch(() => {});
 }
 
 document.addEventListener('DOMContentLoaded', () => {
