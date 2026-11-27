@@ -43,14 +43,14 @@
             &nbsp;|&nbsp; Clone Mode: <span class="tag" id="shield-mode-label">{{ shield_stats.clone_status.mode }}</span>
         </div>
         <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-            <a href="/.env" target="_blank" class="btn btn-warning" style="text-decoration: none;">
-                <i class="fa-solid fa-mask"></i> Hit /.env Trap (Real IP)
+            <a href="/sites" class="btn btn-primary" style="text-decoration: none;">
+                <i class="fa-solid fa-layer-group"></i> Protected Sites
             </a>
-            <a href="/wp-login.php" target="_blank" class="btn" style="text-decoration: none; background: rgba(188,140,255,0.16); color: var(--neon-purple); border: 1px solid rgba(188,140,255,0.4);">
-                <i class="fa-solid fa-key"></i> Hit Login Trap (Real IP)
+            <a href="/portal/{{ shield_stats.clone_status.domain }}/.env" target="_blank" class="btn btn-warning" style="text-decoration: none;">
+                <i class="fa-solid fa-mask"></i> Test Clone /.env Trap
             </a>
-            <a href="/?id=1%27%20OR%20%271%27%3D%271--" target="_blank" class="btn btn-danger" style="text-decoration: none;">
-                <i class="fa-solid fa-bolt"></i> Send SQLi Probe (Real IP)
+            <a href="/portal/{{ shield_stats.clone_status.domain }}/wp-login.php" target="_blank" class="btn" style="text-decoration: none; background: rgba(188,140,255,0.16); color: var(--neon-purple); border: 1px solid rgba(188,140,255,0.4);">
+                <i class="fa-solid fa-key"></i> Test Clone Login Trap
             </a>
             <button onclick="purgeShieldTelemetry()" class="btn" style="background: rgba(255,68,68,0.12); color: var(--neon-red); border: 1px solid rgba(255,68,68,0.35);">
                 <i class="fa-solid fa-trash-can"></i> Purge Data

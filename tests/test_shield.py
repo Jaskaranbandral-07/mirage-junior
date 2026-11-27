@@ -229,7 +229,7 @@ def test_main_dashboard_shield_integration(isolated_shield):
 
 
 def test_real_web_trap_capture_and_purge(isolated_shield):
-    """Verify real HTTP probes on the dashboard app capture real IPs, creds, and purge cleanly."""
+    """Verify platform root stays clean (no self-traps) while customer portals capture traps & purge cleanly."""
     from dashboard.app import create_app
     from mirage_shield import shield_proxy
 
@@ -244,16 +244,20 @@ def test_real_web_trap_capture_and_purge(isolated_shield):
     assert clear_res.status_code == 200
     assert clear_res.get_json()["status"] == "success"
 
-    # Real external IP probe via X-Forwarded-For on /.env
-    env_res = client.get("/.env", headers={
+    # MIRAGE Shield platform root should NOT trap itself
+    root_probe = client.get("/.env")
+    assert root_probe.status_code == 404
+
+    # Customer portal trap probe via X-Forwarded-For on /portal/demo-target.com/.env
+    env_res = client.get("/portal/demo-target.com/.env", headers={
         "X-Forwarded-For": "198.51.100.88",
         "User-Agent": "curl/8.4.0",
     })
     assert env_res.status_code == 200
     assert b"AWS_ACCESS_KEY_ID" in env_res.data
 
-    # Real credential capture on /wp-login.php
-    wp_res = client.post("/wp-login.php", data={
+    # Real credential capture inside cloned customer portal
+    wp_res = client.post("/portal/demo-target.com/wp-login.php", data={
         "log": "real_attacker",
         "pwd": "RealCapturedPassword!99",
     }, headers={
@@ -264,6 +268,7 @@ def test_real_web_trap_capture_and_purge(isolated_shield):
 
     events = db.get_events_by_ip("198.51.100.88")
     assert len(events) >= 1
+    assert all(e["site_id"] == "demo-target-com" for e in events)
 
     # Verify purge removes all captured telemetry cleanly
     purge = client.post("/api/clear-data")

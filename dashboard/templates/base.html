@@ -47,9 +47,6 @@
             <a href="/quarantine" class="nav-link {{ 'active' if request.path == '/quarantine' else '' }}">
                 <i class="fa-solid fa-lock"></i> <span>Quarantine</span>
             </a>
-            <a href="/honeytokens" class="nav-link {{ 'active' if request.path == '/honeytokens' else '' }}">
-                <i class="fa-solid fa-cheese"></i> <span>Honeytokens</span>
-            </a>
             <a href="/settings" class="nav-link {{ 'active' if request.path == '/settings' else '' }}">
                 <i class="fa-solid fa-gear"></i> <span>Settings</span>
             </a>
@@ -123,14 +120,6 @@
                 </div>
                 <i class="fa-solid fa-chevron-right arrow-icon"></i>
             </a>
-            <a href="/honeytokens" class="drawer-nav-item {{ 'active' if request.path == '/honeytokens' else '' }}">
-                <div class="nav-icon-box"><i class="fa-solid fa-cheese"></i></div>
-                <div class="nav-text-box">
-                    <strong>Honeytoken Tripwires</strong>
-                    <small>Planted .env, .xlsx & SQL bait files</small>
-                </div>
-                <i class="fa-solid fa-chevron-right arrow-icon"></i>
-            </a>
             <a href="/shield" class="drawer-nav-item {{ 'active' if request.path == '/shield' else '' }}">
                 <div class="nav-icon-box"><i class="fa-solid fa-shield-halved"></i></div>
                 <div class="nav-text-box">
@@ -199,10 +188,10 @@
             <span>Quarantine</span>
             {% if request.path == '/quarantine' %}<span class="active-dot"></span>{% endif %}
         </a>
-        <a href="/honeytokens" class="bottom-nav-item {{ 'active' if request.path == '/honeytokens' else '' }}">
-            <div class="bottom-icon"><i class="fa-solid fa-biohazard"></i></div>
-            <span>Bait</span>
-            {% if request.path == '/honeytokens' %}<span class="active-dot"></span>{% endif %}
+        <a href="/sites" class="bottom-nav-item {{ 'active' if request.path == '/sites' or request.path.startswith('/site/') else '' }}">
+            <div class="bottom-icon"><i class="fa-solid fa-layer-group"></i></div>
+            <span>Sites</span>
+            {% if request.path == '/sites' or request.path.startswith('/site/') %}<span class="active-dot"></span>{% endif %}
         </a>
         <a href="/shield" class="bottom-nav-item {{ 'active' if request.path == '/shield' else '' }}">
             <div class="bottom-icon"><i class="fa-solid fa-mask"></i></div>

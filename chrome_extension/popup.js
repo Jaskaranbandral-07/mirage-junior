@@ -174,31 +174,42 @@ document.getElementById("btn-sim-attack").addEventListener("click", async () => 
   const baseUrl = backendInput.value.trim().replace(/\/+$/, "");
   const slug = currentSiteId || getDomainSlug(targetInput.value.trim());
   try {
-    if (!baseUrl.includes(":8443") && slug) {
-      const regRes = await fetch(`${baseUrl}/api/sites/register`, {
+    if (baseUrl.includes(":8443")) {
+      const simRes = await fetch(`${baseUrl}/mirage-shield/api/simulate`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ target_url: targetInput.value.trim() }),
+        body: JSON.stringify({ scenario: "sqli" }),
       });
-      if (regRes.ok) {
-        const reg = await regRes.json();
-        const activeSlug = reg.site_id || slug;
-        currentSiteId = activeSlug;
-        currentDashboardUrl = `${baseUrl}/site/${activeSlug}`;
-        const testRes = await fetch(`${baseUrl}/api/site/${activeSlug}/test-absorb`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ kind: "sqli" }),
-        });
-        const tdata = await testRes.json();
-        showFeedback(`🚨 Absorbed SQLi & served ${tdata.fake_records_served ?? 0} fake records!`);
-        refreshStats();
-        return;
-      }
+      const sdata = await simRes.json();
+      showFeedback(`🚨 Proxy ${sdata.decision || "TESTED"} (score ${sdata.score ?? 0})`);
+      refreshStats();
+      return;
     }
-    const res = await fetch(`${baseUrl}/.env`);
-    showFeedback(`🚨 Probe captured (HTTP ${res.status}).`);
-    refreshStats();
+    if (!slug) {
+      showFeedback("Enter a customer website URL first.", true);
+      return;
+    }
+    const regRes = await fetch(`${baseUrl}/api/sites/register`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ target_url: targetInput.value.trim() }),
+    });
+    if (regRes.ok) {
+      const reg = await regRes.json();
+      const activeSlug = reg.site_id || slug;
+      currentSiteId = activeSlug;
+      currentDashboardUrl = `${baseUrl}/site/${activeSlug}`;
+      const testRes = await fetch(`${baseUrl}/api/site/${activeSlug}/test-absorb`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ kind: "sqli" }),
+      });
+      const tdata = await testRes.json();
+      showFeedback(`🚨 Absorbed SQLi & served ${tdata.fake_records_served ?? 0} fake records!`);
+      refreshStats();
+      return;
+    }
+    showFeedback("❌ Could not register site for test probe.", true);
   } catch {
     showFeedback("❌ Could not reach MIRAGE Shield server.", true);
   }

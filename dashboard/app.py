@@ -2,8 +2,15 @@ from flask import Flask, request, make_response
 from dashboard.routes import dashboard_bp
 
 def create_app():
+    from config import settings as settings_cfg
+    from database import db_setup as db_s
+
+    # Ensure multi-tenant schema exists for whichever DATABASE_PATH is active
+    db_s.DATABASE_PATH = getattr(settings_cfg, 'DATABASE_PATH', db_s.DATABASE_PATH)
+    db_s.init_db()
+
     app = Flask(__name__)
-    app.config['SECRET_KEY'] = 'mirage-junior-secret'
+    app.config['SECRET_KEY'] = 'mirage-shield-secret'
     app.register_blueprint(dashboard_bp)
 
     @app.before_request

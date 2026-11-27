@@ -10,8 +10,7 @@ SHIELD_HOST = os.environ.get("SHIELD_HOST", "0.0.0.0")
 SHIELD_PORT = int(os.environ.get("MIRAGE_SHIELD_PORT", os.environ.get("SHIELD_PORT", 8443)))
 
 # ─── Target Website (the REAL site to protect) ─────────────
-DEFAULT_HTTP_PORT = os.environ.get("MIRAGE_HTTP_PORT", "8080")
-TARGET_URL = os.environ.get("SHIELD_TARGET_URL", os.environ.get("SHIELD_TARGET", f"http://127.0.0.1:{DEFAULT_HTTP_PORT}"))
+TARGET_URL = os.environ.get("SHIELD_TARGET_URL", os.environ.get("SHIELD_TARGET", "https://example.com"))
 
 # ─── Clone Storage (Vercel uses read-only FS except /tmp) ──
 if os.getenv("VERCEL") or os.getenv("AWS_LAMBDA_FUNCTION_NAME"):

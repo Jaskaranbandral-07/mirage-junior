@@ -3,25 +3,25 @@
 {% block header_title %}Overview Dashboard{% endblock %}
 
 {% block content %}
-<!-- Live Sensor & Real Trap Controls Bar -->
+<!-- Platform Status & Quick Actions Bar -->
 <div class="live-action-bar">
     <div class="live-status-pill">
         <span class="pulse"></span>
         {% if is_vercel %}
-        <strong>Cloud Serverless Mode:</strong> Web Traps (<code>/.env</code>, <code>/wp-login.php</code>), Shield Proxy &amp; <code>/api/ingest</code>
-        <span style="font-size:0.75rem; color: var(--neon-yellow); margin-left:6px;">(Ephemeral /tmp DB per instance)</span>
+        <strong>Multi-Tenant SaaS Mode:</strong> Customer Site Shields, Cloned Portals &amp; Backend SDK Ingestion
+        <span style="font-size:0.75rem; color: var(--neon-yellow); margin-left:6px;">(Ephemeral /tmp DB per serverless instance)</span>
         {% else %}
-        <strong>Live Real-Capture Mode:</strong> SSH (:2222), HTTP (:8080), FTP (:2121), Shield (:8443), Web Traps (/.env, /wp-login.php)
+        <strong>Active Customer Protection:</strong> Shield Reverse Proxy (:8443), Cloned Portals &amp; Backend SDK Ingestion
         {% endif %}
     </div>
     <div class="live-action-buttons">
-        <a href="/.env" target="_blank" class="btn btn-warning" style="text-decoration: none;" title="Open live /.env trap to capture your real IP & headers">
-            <i class="fa-solid fa-biohazard"></i> Test Live /.env Trap
+        <a href="/sites" class="btn btn-primary" style="text-decoration: none;" title="Protect a new website or open its personal dashboard">
+            <i class="fa-solid fa-plus"></i> Protect Website
         </a>
-        <a href="/wp-login.php" target="_blank" class="btn btn-primary" style="text-decoration: none;" title="Open live fake WordPress login trap">
-            <i class="fa-solid fa-key"></i> Test Fake Login Trap
+        <a href="/shield" class="btn" style="text-decoration: none; background: rgba(0,212,255,0.14); color: var(--neon-cyan); border: 1px solid rgba(0,212,255,0.35);" title="Open MIRAGE Shield Reverse Proxy console">
+            <i class="fa-solid fa-shield-halved"></i> Shield Proxy
         </a>
-        <button onclick="clearAllTelemetry()" class="btn btn-danger" title="Purge old telemetry records from database">
+        <button onclick="clearAllTelemetry()" class="btn btn-danger" title="Purge captured telemetry records">
             <i class="fa-solid fa-trash-can"></i> Purge Data
         </button>
     </div>

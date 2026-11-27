@@ -9,32 +9,22 @@
     <a href="/attacks?protocol=ALL{% if search %}&search={{ search }}{% endif %}" 
        class="btn {{ 'btn-primary' if not protocol or protocol == 'ALL' else '' }}" 
        style="padding: 5px 14px; font-size: 0.8rem; border-radius: 20px; text-decoration: none; {{ 'background: var(--card-bg); color: var(--text-muted); border: 1px solid var(--border);' if protocol and protocol != 'ALL' else '' }}">
-       All Attacks ({{ total_all }})
-    </a>
-    <a href="/attacks?protocol=SSH{% if search %}&search={{ search }}{% endif %}" 
-       class="btn {{ 'btn-primary' if protocol == 'SSH' else '' }}" 
-       style="padding: 5px 14px; font-size: 0.8rem; border-radius: 20px; text-decoration: none; {{ 'background: var(--card-bg); color: #00b4d8; border: 1px solid rgba(0,180,216,0.3);' if protocol != 'SSH' else '' }}">
-       <i class="fa-solid fa-terminal"></i> SSH ({{ protocol_counts.get('SSH', 0) }})
-    </a>
-    <a href="/attacks?protocol=HTTP{% if search %}&search={{ search }}{% endif %}" 
-       class="btn {{ 'btn-primary' if protocol == 'HTTP' else '' }}" 
-       style="padding: 5px 14px; font-size: 0.8rem; border-radius: 20px; text-decoration: none; {{ 'background: var(--card-bg); color: var(--neon-green); border: 1px solid rgba(0,255,65,0.3);' if protocol != 'HTTP' else '' }}">
-       <i class="fa-solid fa-globe"></i> HTTP ({{ protocol_counts.get('HTTP', 0) }})
-    </a>
-    <a href="/attacks?protocol=FTP{% if search %}&search={{ search }}{% endif %}" 
-       class="btn {{ 'btn-primary' if protocol == 'FTP' else '' }}" 
-       style="padding: 5px 14px; font-size: 0.8rem; border-radius: 20px; text-decoration: none; {{ 'background: var(--card-bg); color: var(--neon-orange); border: 1px solid rgba(255,140,0,0.3);' if protocol != 'FTP' else '' }}">
-       <i class="fa-solid fa-folder-open"></i> FTP ({{ protocol_counts.get('FTP', 0) }})
-    </a>
-    <a href="/attacks?protocol=HONEYTOKEN{% if search %}&search={{ search }}{% endif %}" 
-       class="btn {{ 'btn-primary' if protocol == 'HONEYTOKEN' else '' }}" 
-       style="padding: 5px 14px; font-size: 0.8rem; border-radius: 20px; text-decoration: none; {{ 'background: var(--card-bg); color: var(--neon-red); border: 1px solid rgba(255,68,68,0.3);' if protocol != 'HONEYTOKEN' else '' }}">
-       <i class="fa-solid fa-biohazard"></i> Honeytokens ({{ protocol_counts.get('HONEYTOKEN', 0) }})
+       All Absorbed ({{ total_all }})
     </a>
     <a href="/attacks?protocol=SHIELD{% if search %}&search={{ search }}{% endif %}" 
        class="btn {{ 'btn-primary' if protocol == 'SHIELD' else '' }}" 
        style="padding: 5px 14px; font-size: 0.8rem; border-radius: 20px; text-decoration: none; {{ 'background: var(--card-bg); color: var(--neon-cyan); border: 1px solid rgba(0,212,255,0.35);' if protocol != 'SHIELD' else '' }}">
        <i class="fa-solid fa-shield-halved"></i> Shield Absorbed ({{ protocol_counts.get('SHIELD', 0) }})
+    </a>
+    <a href="/attacks?protocol=HONEYTOKEN{% if search %}&search={{ search }}{% endif %}" 
+       class="btn {{ 'btn-primary' if protocol == 'HONEYTOKEN' else '' }}" 
+       style="padding: 5px 14px; font-size: 0.8rem; border-radius: 20px; text-decoration: none; {{ 'background: var(--card-bg); color: var(--neon-red); border: 1px solid rgba(255,68,68,0.3);' if protocol != 'HONEYTOKEN' else '' }}">
+       <i class="fa-solid fa-biohazard"></i> Clone Traps ({{ protocol_counts.get('HONEYTOKEN', 0) }})
+    </a>
+    <a href="/attacks?protocol=HTTP{% if search %}&search={{ search }}{% endif %}" 
+       class="btn {{ 'btn-primary' if protocol == 'HTTP' else '' }}" 
+       style="padding: 5px 14px; font-size: 0.8rem; border-radius: 20px; text-decoration: none; {{ 'background: var(--card-bg); color: var(--neon-green); border: 1px solid rgba(0,255,65,0.3);' if protocol != 'HTTP' else '' }}">
+       <i class="fa-solid fa-globe"></i> Form Traps ({{ protocol_counts.get('HTTP', 0) }})
     </a>
 </div>
 

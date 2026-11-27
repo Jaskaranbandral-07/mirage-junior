@@ -20,14 +20,7 @@ dashboard_bp = Blueprint('dashboard', __name__)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 WHITELIST_PATH = os.path.join(BASE_DIR, 'config', 'whitelist.json')
 
-TRAP_ENDPOINTS = {
-    '/.env', '/.git/config', '/.git', '/wp-login.php', '/wp-admin',
-    '/phpmyadmin', '/phpmyadmin/', '/admin/login', '/api/config', '/api/keys',
-    '/backup.sql', '/database.sql', '/dump.sql', '/debug', '/phpinfo.php',
-    '/robots.txt', '/server-status'
-}
-
-DASHBOARD_UI_ROUTES = {'/', '/attacks', '/quarantine', '/honeytokens', '/shield', '/sites', '/settings'}
+DASHBOARD_UI_ROUTES = {'/', '/attacks', '/quarantine', '/shield', '/sites', '/settings'}
 
 
 def _is_dashboard_route(norm_path: str) -> bool:
@@ -51,39 +44,18 @@ def get_real_client_ip():
 
 def get_db():
     """Get a database connection with Row factory."""
-    db_path = getattr(settings_cfg, 'DATABASE_PATH', os.path.join(BASE_DIR, 'database', 'mirage_junior.db'))
+    db_path = getattr(settings_cfg, 'DATABASE_PATH', os.path.join(BASE_DIR, 'database', 'mirage_shield.db'))
     conn = sqlite3.connect(db_path)
     conn.row_factory = sqlite3.Row
     return conn
 
 
-def _record_real_http_attack(ip, path, method, score, decision, breakdown, user_agent, form_data=None):
-    """Persist real captured HTTP attack/probe telemetry into SQLite and ScoringEngine."""
-    from mirage_shield.shield_proxy import get_shield_instance
-    shield = get_shield_instance()
-    shield.stats['total_requests'] += 1
-    if decision == 'BLOCK':
-        shield.stats['blocked'] += 1
-    elif decision == 'REDIRECT':
-        shield.stats['redirected'] += 1
-    else:
-        shield.stats['allowed'] += 1
-
-    # Sync non-benign detections into persistent MIRAGE database
-    if decision in ('REDIRECT', 'BLOCK'):
-        shield._sync_detection_to_db(ip, path, method, score, decision, breakdown, user_agent)
-
-    if form_data:
-        shield.stats['credentials_captured'] += 1
-        shield.injector.capture_form_submission(ip, path, form_data)
-
-
 @dashboard_bp.before_app_request
-def capture_real_web_threats():
+def portal_relative_navigation():
     """
-    Real-time threat inspection on every live request hitting the web app.
-    Ignores static assets and dashboard AJAX polling; captures real probes,
-    SQLi, XSS, path traversal, and scanner traffic automatically.
+    Keep relative JS/HTML navigation originating from inside a cloned customer portal
+    (/portal/<domain>) routed inside that customer's deception portal.
+    The MIRAGE Shield platform itself never traps or inspects its own routes.
     """
     path = request.path or '/'
     if (
@@ -92,71 +64,25 @@ def capture_real_web_threats():
         or path.startswith('/portal/')
         or path.startswith('/mirage-shield/')
         or path == '/favicon.ico'
+        or request.method == 'OPTIONS'
     ):
-        return None
-    if request.method == 'OPTIONS':
         return None
 
     norm_path = '/' + path.strip('/').lower() if path.strip('/') else '/'
-    # Explicit trap routes handle their own logging + trap response
-    if norm_path in TRAP_ENDPOINTS or path.lower() in TRAP_ENDPOINTS:
+    if _is_dashboard_route(norm_path):
         return None
 
-    from mirage_shield.shield_proxy import get_shield_instance
-    shield = get_shield_instance()
-    ip = get_real_client_ip()
-    user_agent = request.headers.get('User-Agent', '')
-    query_string = request.query_string.decode('utf-8', errors='ignore')
-    body = request.get_data(as_text=True) if request.method in ('POST', 'PUT', 'PATCH') else ''
-
-    # Skip scanning normal clean dashboard navigation unless it carries an attack payload or bad UA
-    if _is_dashboard_route(norm_path) and not query_string and not body:
-        ua_score = shield.analyzer._score_user_agent(user_agent)
-        if ua_score < 20:
-            shield.stats['total_requests'] += 1
-            shield.stats['allowed'] += 1
-            return None
-
-    decision, score, breakdown = shield.analyzer.analyze(
-        ip=ip,
-        path=path,
-        method=request.method,
-        user_agent=user_agent,
-        headers=dict(request.headers),
-        query_string=query_string,
-        body=body,
-    )
-
-    if decision in ('REDIRECT', 'BLOCK'):
-        _record_real_http_attack(ip, path, request.method, score, decision, breakdown, user_agent)
-        # Do not lock out clean dashboard UI pages themselves, only block attack requests or unknown trap paths
-        if decision == 'BLOCK' and not _is_dashboard_route(norm_path):
-            return shield._serve_block_page(ip, score)
-        if not _is_dashboard_route(norm_path):
-            attack_types = breakdown.get('attack_types') or []
-            if attack_types or norm_path.startswith('/api'):
-                body_str, ct, sc, fake_cnt = shield.deception.generate_response(
-                    path=path, attack_types=attack_types, ip=ip, domain=request.host or 'mirage-shield'
-                )
-                shield._record_fake_data_metric('global', fake_cnt)
-                return Response(body_str, status=sc, content_type=ct)
-            return shield._serve_honeypot(ip, path, request.method, breakdown=breakdown)
-    else:
-        # If user clicked a relative link inside /portal/<domain> (e.g. via JS navigation),
-        # keep them seamlessly inside the cloned subpage instead of 404ing
-        referer = request.headers.get('Referer', '')
-        if '/portal/' in referer and not _is_dashboard_route(norm_path):
-            try:
-                from urllib.parse import urlparse
-                ref_path = urlparse(referer).path
-                parts = [p for p in ref_path.split('/') if p]
-                if len(parts) >= 2 and parts[0] == 'portal':
-                    domain = parts[1]
-                    return shield_clean_portal(domain, path.lstrip('/'))
-            except Exception:
-                pass
-        shield.stats['total_requests'] += 1
-        shield.stats['allowed'] += 1
+    referer = request.headers.get('Referer', '')
+    if '/portal/' in referer:
+        try:
+            from urllib.parse import urlparse
+            ref_path = urlparse(referer).path
+            parts = [p for p in ref_path.split('/') if p]
+            if len(parts) >= 2 and parts[0] == 'portal':
+                domain = parts[1]
+                return shield_clean_portal(domain, path.lstrip('/'))
+        except Exception:
+            pass
     return None
 
 
@@ -308,33 +234,6 @@ def quarantine():
     db.close()
     return render_template('quarantine.html', active=active, history=history,
                            total_blocked=total_blocked, currently_active=currently_active)
-
-
-@dashboard_bp.route('/honeytokens')
-def honeytokens():
-    """Honeytoken status and trigger history."""
-    db = get_db()
-    triggers = [dict(r) for r in db.execute(
-        "SELECT * FROM honeytoken_triggers ORDER BY timestamp DESC"
-    ).fetchall()]
-    # Token inventory
-    tokens = [
-        {'name': '.env', 'type': 'http_endpoint', 'path': '/honeypots/templates/env_file.txt', 'status': 'Active'},
-        {'name': 'credentials.xlsx', 'type': 'ftp_file', 'path': '/bait/', 'status': 'Active'},
-        {'name': 'backup_database.sql', 'type': 'filesystem', 'path': '/bait/backup_database.sql', 'status': 'Active'},
-        {'name': 'admin_passwords.txt', 'type': 'filesystem', 'path': '/bait/admin_passwords.txt', 'status': 'Active'},
-        {'name': 'id_rsa', 'type': 'filesystem', 'path': '/bait/ssh_keys/id_rsa', 'status': 'Active'},
-    ]
-    # Count triggers per token
-    for token in tokens:
-        count = db.execute(
-            "SELECT COUNT(*) FROM honeytoken_triggers WHERE token_name = ?", (token['name'],)
-        ).fetchone()[0]
-        token['trigger_count'] = count
-        token['token_name'] = token['name']
-        token['token_type'] = token['type']
-    db.close()
-    return render_template('honeytokens.html', triggers=triggers, tokens=tokens)
 
 
 @dashboard_bp.route('/settings', methods=['GET', 'POST'])
@@ -566,111 +465,6 @@ def api_export_csv():
     fname = f"mirage_shield_{site_id or 'all'}_events.csv"
     return Response(output.getvalue(), mimetype='text/csv',
                     headers={'Content-Disposition': f'attachment; filename={fname}'})
-
-
-@dashboard_bp.route('/api/simulate-attack', methods=['POST'])
-def api_simulate_attack():
-    """Trigger a live realistic attack capture for demonstration & verification."""
-    data = request.get_json(silent=True) or {}
-    attack_type = data.get('type') or request.args.get('type', 'sqli')
-
-    attack_presets = {
-        'sqli': {
-            'ip': '185.220.101.45',
-            'country': 'Germany',
-            'city': 'Frankfurt',
-            'port': 8080,
-            'protocol': 'HTTP',
-            'event_type': 'sql_injection',
-            'details': {'path': '/phpmyadmin/', 'payload': "admin' OR '1'='1'--", 'method': 'POST'},
-            'threat_pts': 20,
-            'mitre_id': 'T1190'
-        },
-        'ssh': {
-            'ip': '194.26.29.112',
-            'country': 'Russia',
-            'city': 'Moscow',
-            'port': 2222,
-            'protocol': 'SSH',
-            'event_type': 'brute_force',
-            'details': {'service': 'SSH', 'user': 'root', 'pwd_attempts': 14, 'action': 'dictionary_attack'},
-            'threat_pts': 30,
-            'mitre_id': 'T1110.001'
-        },
-        'honeytoken': {
-            'ip': '45.155.205.233',
-            'country': 'Netherlands',
-            'city': 'Amsterdam',
-            'port': 8080,
-            'protocol': 'HONEYTOKEN',
-            'event_type': 'honeytoken_access',
-            'details': {'file': '.env', 'accessed_key': 'AWS_SECRET_ACCESS_KEY', 'action': 'tripwire_tripped'},
-            'threat_pts': 40,
-            'mitre_id': 'T1552.001'
-        },
-        'traversal': {
-            'ip': '103.203.57.18',
-            'country': 'India',
-            'city': 'Mumbai',
-            'port': 8080,
-            'protocol': 'HTTP',
-            'event_type': 'directory_traversal',
-            'details': {'path': '../../../../etc/passwd', 'status': 'blocked'},
-            'threat_pts': 15,
-            'mitre_id': 'T1083'
-        }
-    }
-
-    preset = attack_presets.get(attack_type, attack_presets['sqli'])
-    ip = preset['ip']
-
-    try:
-        db_mgr = DatabaseManager()
-        scorer = ScoringEngine()
-
-        # Log attack event
-        db_mgr.log_event(
-            ip_address=ip,
-            port=preset['port'],
-            protocol=preset['protocol'],
-            event_type=preset['event_type'],
-            details=preset['details'],
-            threat_pts=preset['threat_pts'],
-            mitre_id=preset['mitre_id']
-        )
-
-        # Log credential attempt if applicable
-        if attack_type == 'ssh':
-            db_mgr.log_credential(ip, 'SSH', 'root', 'admin1234', success=False)
-        elif attack_type == 'sqli':
-            db_mgr.log_credential(ip, 'HTTP', "admin' OR 1=1--", "password123", success=False)
-
-        # Recalculate threat score & quarantine if >= 25
-        scorer.calculate_threat_score(ip)
-
-        conn = db_mgr.get_connection()
-        conn.row_factory = sqlite3.Row
-        attacker = conn.execute("SELECT threat_score, classification, is_quarantined FROM attackers WHERE ip_address = ?", (ip,)).fetchone()
-        conn.close()
-
-        threat_score = attacker['threat_score'] if attacker else preset['threat_pts']
-        is_quarantined = bool(attacker['is_quarantined']) if attacker else False
-
-        return jsonify({
-            'status': 'success',
-            'message': f"Threat capture recorded: {preset['event_type']} from {ip}",
-            'event': {
-                'ip': ip,
-                'country': preset['country'],
-                'protocol': preset['protocol'],
-                'event_type': preset['event_type'],
-                'threat_pts': preset['threat_pts'],
-                'threat_score': threat_score,
-                'quarantined': is_quarantined
-            }
-        })
-    except Exception as e:
-        return jsonify({'status': 'error', 'message': str(e)}), 500
 
 
 # ─── MULTI-TENANT SITE WORKSPACES & BACKEND SDK INGESTION ───────────────
@@ -1026,21 +820,6 @@ def dashboard_beacon_collect():
     return jsonify({'status': 'recorded'})
 
 
-@dashboard_bp.route('/login', methods=['GET', 'POST'])
-def cloned_form_trap():
-    """Capture credentials submitted from any cloned website login form."""
-    from mirage_shield.shield_proxy import get_shield_instance
-    shield = get_shield_instance()
-    ip = get_real_client_ip()
-    if request.method == 'POST':
-        form_data = request.form.to_dict() or request.get_json(silent=True) or {}
-        if form_data:
-            shield.stats['credentials_captured'] += 1
-            content, content_type, status = shield.injector.capture_form_submission(ip, '/login', form_data)
-            return Response(content, status=status, content_type=content_type)
-    return _handle_live_trap('/admin/login')
-
-
 @dashboard_bp.route('/api/shield/preview')
 def api_shield_preview():
     """Safely preview the cloned deception site HTML."""
@@ -1087,10 +866,12 @@ def api_clear_data():
         return jsonify({'status': 'error', 'message': str(e)}), 500
 
 
-# ─── LIVE REAL-CAPTURE HONEYPOT TRAP ROUTES ─────────────────────────────
+# ─── CUSTOMER PORTAL DECEPTION TRAP HANDLER ─────────────────────────────
+# Note: Only invoked inside /portal/<domain>/... for cloned customer sites,
+# never mounted on MIRAGE Shield's own platform root.
 
 def _handle_live_trap(trap_path, site_id='global'):
-    """Analyze, log, and serve a live honeypot trap directly on the web app."""
+    """Analyze, log, and serve a deception trap inside a customer portal."""
     from mirage_shield.shield_proxy import get_shield_instance
     shield = get_shield_instance()
     ip = get_real_client_ip()
@@ -1137,66 +918,6 @@ def _handle_live_trap(trap_path, site_id='global'):
     if content is None:
         return Response('Not Found', status=404)
     return Response(content, status=status, content_type=content_type)
-
-
-@dashboard_bp.route('/.env')
-def live_trap_env():
-    return _handle_live_trap('/.env')
-
-
-@dashboard_bp.route('/.git/config')
-@dashboard_bp.route('/.git')
-def live_trap_git():
-    return _handle_live_trap('/.git/config')
-
-
-@dashboard_bp.route('/wp-login.php', methods=['GET', 'POST'])
-@dashboard_bp.route('/wp-admin', methods=['GET', 'POST'])
-def live_trap_wp():
-    return _handle_live_trap('/wp-login.php')
-
-
-@dashboard_bp.route('/phpmyadmin/', methods=['GET', 'POST'])
-@dashboard_bp.route('/phpmyadmin', methods=['GET', 'POST'])
-def live_trap_pma():
-    return _handle_live_trap('/phpmyadmin')
-
-
-@dashboard_bp.route('/admin/login', methods=['GET', 'POST'])
-def live_trap_admin():
-    return _handle_live_trap('/admin/login')
-
-
-@dashboard_bp.route('/api/config')
-def live_trap_api_config():
-    return _handle_live_trap('/api/config')
-
-
-@dashboard_bp.route('/api/keys')
-def live_trap_api_keys():
-    return _handle_live_trap('/api/keys')
-
-
-@dashboard_bp.route('/backup.sql')
-@dashboard_bp.route('/database.sql')
-@dashboard_bp.route('/dump.sql')
-def live_trap_sql():
-    return _handle_live_trap('/backup.sql')
-
-
-@dashboard_bp.route('/debug')
-def live_trap_debug():
-    return _handle_live_trap('/debug')
-
-
-@dashboard_bp.route('/phpinfo.php')
-def live_trap_phpinfo():
-    return _handle_live_trap('/phpinfo.php')
-
-
-@dashboard_bp.route('/robots.txt')
-def live_trap_robots():
-    return _handle_live_trap('/robots.txt')
 
 
 

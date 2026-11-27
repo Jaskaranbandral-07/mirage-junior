@@ -9,9 +9,8 @@
 # ---------------------------------------------------------------------
 # 1. Jaskaran Bandral (@Jaskaranbandral-07) — Team Lead (Advanced Core)
 #    Multi-Tenant Engine, Synthetic Deception, Backend SDKs (Python/Node),
-#    Threat Scoring, Firewall Quarantine, Honeypots, Shield Proxy & Extension
+#    Threat Scoring, Firewall Quarantine, Shield Proxy & Chrome Extension
 # ---------------------------------------------------------------------
-/honeypots/                         @Jaskaranbandral-07
 /engine/                            @Jaskaranbandral-07
 /database/                          @Jaskaranbandral-07
 /config/                            @Jaskaranbandral-07
@@ -24,14 +23,12 @@
 /College_PRD.md                     @Jaskaranbandral-07
 
 # ---------------------------------------------------------------------
-# 2. Relish Sharma (@2024A7R009) — UI, Alerts, Bait & Deployment (Easy)
-#    HTML/CSS Views, Per-Site Dashboard UI, Chart.js, Demo Seeder,
-#    Telegram Alert Helper, Static Bait Decoys, Core Tests & Vercel
+# 2. Relish Sharma (@2024A7R009) — UI, Alerts & Deployment (Easy)
+#    HTML/CSS Views, Per-Site Dashboard UI, Chart.js, Telegram Alert
+#    Integration, Core Scoring Tests, Presentations & Vercel Deploy
 # ---------------------------------------------------------------------
 /dashboard/                         @2024A7R009
 /engine/alert_manager.py            @2024A7R009
-/bait/                              @2024A7R009
-/ftp_root/                          @2024A7R009
 /tests/                             @2024A7R009
 /vercel_app.py                      @2024A7R009
 /vercel.json                        @2024A7R009

@@ -16,17 +16,13 @@ if os.path.exists(env_file):
         pass
 
 # === Network Configuration ===
-HTTP_PORT = int(os.getenv("MIRAGE_HTTP_PORT", 8080))
-SSH_PORT = int(os.getenv("MIRAGE_SSH_PORT", 2222))
-FTP_PORT = int(os.getenv("MIRAGE_FTP_PORT", 2121))
 DASHBOARD_PORT = int(os.getenv("MIRAGE_DASHBOARD_PORT", 5000))
 SHIELD_PORT = int(os.getenv("MIRAGE_SHIELD_PORT", 8443))
-SHIELD_TARGET_URL = os.getenv("SHIELD_TARGET_URL", f"http://127.0.0.1:{HTTP_PORT}")
+SHIELD_TARGET_URL = os.getenv("SHIELD_TARGET_URL", "https://example.com")
 
 # === Telegram Configuration ===
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "")
 TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID", "8904919229")
-
 
 # === Geolocation ===
 GEO_API_URL = "http://ip-api.com/json/{ip}"
@@ -43,7 +39,3 @@ if os.getenv("VERCEL") or os.getenv("AWS_LAMBDA_FUNCTION_NAME"):
     DATABASE_PATH = os.getenv("DATABASE_PATH", "/tmp/mirage_shield.db")
 else:
     DATABASE_PATH = os.getenv("DATABASE_PATH", os.path.join(BASE_DIR, "database", "mirage_shield.db"))
-
-# === Bait Monitor ===
-BAIT_DIRECTORY = os.path.join(BASE_DIR, "bait")
-
