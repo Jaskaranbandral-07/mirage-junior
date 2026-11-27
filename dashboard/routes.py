@@ -11,6 +11,7 @@ import sqlite3
 import json
 import os
 import time
+import zipfile
 import config.settings as settings_cfg
 from database.db_manager import DatabaseManager
 from engine.scoring_engine import ScoringEngine
@@ -20,7 +21,7 @@ dashboard_bp = Blueprint('dashboard', __name__)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 WHITELIST_PATH = os.path.join(BASE_DIR, 'config', 'whitelist.json')
 
-DASHBOARD_UI_ROUTES = {'/', '/attacks', '/quarantine', '/shield', '/sites', '/settings'}
+DASHBOARD_UI_ROUTES = {'/', '/attacks', '/quarantine', '/shield', '/sites', '/settings', '/extension'}
 
 
 def _is_dashboard_route(norm_path: str) -> bool:
@@ -302,7 +303,47 @@ def sites_hub():
     """Multi-tenant Protected Websites & Customer Workspaces directory."""
     db_mgr = DatabaseManager()
     sites = db_mgr.list_sites()
-    return render_template('sites.html', sites=sites)
+    demo_target_url = getattr(settings_cfg, 'DEMO_TARGET_URL', '')
+    return render_template('sites.html', sites=sites, demo_target_url=demo_target_url,
+                           is_vercel=bool(os.getenv('VERCEL')))
+
+
+@dashboard_bp.route('/extension')
+def extension_download_page():
+    """Chrome Extension download page + Demo Startup Website launcher for presentations."""
+    demo_target_url = getattr(settings_cfg, 'DEMO_TARGET_URL', '')
+    return render_template('extension.html', demo_target_url=demo_target_url,
+                           is_vercel=bool(os.getenv('VERCEL')))
+
+
+@dashboard_bp.route('/api/extension/download')
+def api_extension_download():
+    """Package chrome_extension/ on-the-fly into a clean installable .zip archive."""
+    ext_dir = os.path.join(BASE_DIR, 'chrome_extension')
+    if not os.path.isdir(ext_dir):
+        return jsonify({'error': 'Chrome extension package not found'}), 404
+
+    buf = io.BytesIO()
+    skip_names = {'.DS_Store', 'Thumbs.db'}
+    with zipfile.ZipFile(buf, 'w', compression=zipfile.ZIP_DEFLATED) as zf:
+        for walk_root, _, files in os.walk(ext_dir):
+            if '__pycache__' in walk_root:
+                continue
+            for fname in sorted(files):
+                if fname in skip_names or fname.endswith('.pyc'):
+                    continue
+                full_path = os.path.join(walk_root, fname)
+                rel_path = os.path.relpath(full_path, ext_dir).replace('\\', '/')
+                zf.write(full_path, arcname=f"mirage-shield-extension/{rel_path}")
+    buf.seek(0)
+    return Response(
+        buf.getvalue(),
+        mimetype='application/zip',
+        headers={
+            'Content-Disposition': 'attachment; filename="mirage-shield-extension.zip"',
+            'Cache-Control': 'no-store',
+        },
+    )
 
 
 @dashboard_bp.route('/site/<site_id>')

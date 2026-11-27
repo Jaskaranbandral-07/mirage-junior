@@ -41,6 +41,9 @@ class SyntheticDeceptionEngine:
         if "sql_injection" in attack_types:
             return self._fake_sqli_dump(domain, ip)
 
+        if any(tok in norm for tok in ("/.env", "/.git", "backup.sql", "dump.sql")):
+            return self._fake_env_response(domain)
+
         if norm.startswith("/api") or "graphql" in norm or "json" in norm or "export" in norm:
             return self._fake_api_records(norm, domain, ip)
 
@@ -123,6 +126,19 @@ class SyntheticDeceptionEngine:
             "BACKUP_ARCHIVE=/var/backups/backup.sql\n"
         )
         return body, "text/plain", 200, 4
+
+    def _fake_env_response(self, domain: str) -> tuple:
+        body = (
+            f"# Decoy Environment Snapshot ({domain})\n"
+            "APP_ENV=production\n"
+            f"DB_HOST=db-replica.{domain}\n"
+            "DB_USER=decoy_svc_ro\n"
+            "DB_PASSWORD=decoy_not_a_real_password_991\n"
+            "STRIPE_SECRET_KEY=sk_decoy_invalid_0000000000\n"
+            "AWS_ACCESS_KEY_ID=AKIADECOYSANDBOX0000\n"
+            "AWS_SECRET_ACCESS_KEY=DECOY_SECRET_KEY_UNUSABLE\n"
+        )
+        return body, "text/plain; charset=utf-8", 200, 6
 
     def _fake_generic_decoy(self, path: str, domain: str) -> tuple:
         payload = {

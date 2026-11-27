@@ -39,7 +39,7 @@
 | **Customer Backend SDKs** | `mirage_shield/sdk/python_shield.py`<br>`mirage_shield/sdk/node_shield.js` | Drop-in 2-line Python (Flask/WSGI) and Node.js (Express) middleware packages allowing startups to protect any backend and stream telemetry via Site API Key. |
 | **Multi-Tenant Database** | `database/db_setup.py`<br>`database/db_manager.py` | SQLite WAL schema with `sites`, `site_attackers`, and `site_id` workspace isolation per customer website. |
 | **Intelligence & Quarantine** | `engine/scoring_engine.py`<br>`engine/mitre_tagger.py`<br>`engine/quarantine.py`<br>`engine/geo_enricher.py` | Behavioral threat scoring (0–100), MITRE ATT&CK auto-tagging, OS firewall auto-quarantine (`netsh`/`iptables`) with CIDR whitelist, and GeoIP lookup. |
-| **Multi-Tenant Routes & Extension** | `dashboard/routes.py`<br>`chrome_extension/*` | Per-website dashboards (`/sites`, `/site/<site_id>`, `/portal/<domain>`, `/api/ingest`) and Manifest V3 Chrome extension. |
+| **Multi-Tenant Routes & Extension** | `dashboard/routes.py`<br>`chrome_extension/*`<br>`demo_target/shield_sdk.py` | Per-website dashboards (`/sites`, `/site/<site_id>`, `/portal/<domain>`, `/api/ingest`), extension `.zip` packager (`/api/extension/download`), Chrome extension, and NovaPay SDK middleware. |
 | **Orchestration & Shield Tests** | `main.py`<br>`run_shield.py`<br>`tests/test_shield.py` | Service launcher plus end-to-end tests covering multi-tenant isolation, synthetic deception, and backend SDK absorption. |
 | **Documentation & Ownership** | `College_PRD.md`<br>`README.md`<br>`.github/CODEOWNERS` | Technical architecture documentation and GitHub code ownership setup. |
 
@@ -52,7 +52,7 @@
 ### 🛠️ Key Modules & Contributions:
 | Module | Primary Files | Description |
 | :--- | :--- | :--- |
-| **Dashboard Factory & UI Views** | `dashboard/app.py`<br>`dashboard/templates/*.html` | Dark-themed cyber SaaS dashboard pages: Global Overview, Protected Sites Directory, Personal Customer Site Dashboard, Attack Log, Attacker Deep-Dive, Quarantine Manager, and Settings. |
+| **Dashboard Factory & UI Views** | `dashboard/app.py`<br>`dashboard/templates/*.html`<br>`demo_target/app.py`<br>`demo_target/templates/novapay.html` | Dark-themed cyber SaaS dashboard pages, Extension Download & Demo Hub (`/extension`), NovaPay FinTech Demo Target UI, Attack Log, Quarantine Manager, and Settings. |
 | **Frontend Styling** | `dashboard/static/css/style.css` | Custom neon dark-mode CSS with responsive grid layouts, Chart.js wrappers, mobile cyber navigation dock, and status badges. |
 | **Data Visualizations** | `dashboard/static/js/charts.js`<br>`dashboard/static/js/timeline.js` | Chart.js integration (Threat Distribution, Top Countries, 24h Timeline, MITRE Heatmap), 5-second auto-refresh polling, and attack timeline replay. |
 | **Telegram Alerting & Settings** | `engine/alert_manager.py`<br>`dashboard/templates/settings.html` | Graded Telegram Bot API push alerting (`CRITICAL`, `ACTIVE_THREAT`, `SUSPICIOUS`) and user-configurable Telegram Bot Token / Chat ID / Whitelist panel. |

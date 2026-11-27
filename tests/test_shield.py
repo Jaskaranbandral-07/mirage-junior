@@ -469,6 +469,87 @@ def test_python_backend_sdk_absorbs_attacks_and_ingests(isolated_shield):
     assert sdata2["ips_quarantined"] == 1
 
 
+def test_extension_page_and_zip_download(isolated_shield):
+    """Verify /extension page and 1-click /api/extension/download valid zip archive."""
+    import io
+    import zipfile
+    from dashboard.app import create_app
+    from mirage_shield import shield_proxy
+
+    shield, _ = isolated_shield
+    shield_proxy._shared_shield_instance = shield
+    client = create_app().test_client()
+
+    page = client.get("/extension")
+    assert page.status_code == 200
+    assert b"/api/extension/download" in page.data
+
+    dl = client.get("/api/extension/download")
+    assert dl.status_code == 200
+    assert "application/zip" in (dl.headers.get("Content-Type") or "")
+    assert "mirage-shield-extension.zip" in (dl.headers.get("Content-Disposition") or "")
+
+    with zipfile.ZipFile(io.BytesIO(dl.data), "r") as zf:
+        names = set(zf.namelist())
+        assert "mirage-shield-extension/manifest.json" in names
+        assert "mirage-shield-extension/popup.html" in names
+        assert "mirage-shield-extension/popup.js" in names
+        assert "mirage-shield-extension/icons/icon48.png" in names
+
+
+def test_novapay_demo_target_protection_and_fallback(isolated_shield):
+    """Verify standalone NovaPay FinTech demo app protects APIs/login while MIRAGE root stays clean."""
+    from dashboard.app import create_app
+    from mirage_shield import shield_proxy
+    from demo_target.app import create_demo_app
+    from demo_target.shield_sdk import _fallback_inspect, _FallbackDeceptionEngine
+
+    shield, _ = isolated_shield
+    shield_proxy._shared_shield_instance = shield
+    mirage_client = create_app().test_client()
+
+    # Main MIRAGE Shield platform must stay clean on root /.env
+    assert mirage_client.get("/.env").status_code == 404
+
+    demo_app = create_demo_app(shield_url="")
+    demo_client = demo_app.test_client()
+
+    # Clean homepage & benign customer lookup run real NovaPay handlers
+    home = demo_client.get("/")
+    assert home.status_code == 200
+    assert b"NovaPay" in home.data
+
+    clean_api = demo_client.get("/api/customers?q=Enterprise", headers={"User-Agent": "Mozilla/5.0 Chrome/122.0.0.0"})
+    assert clean_api.status_code == 200
+    assert clean_api.headers.get("X-NovaPay-Real-Backend") == "executed"
+    assert b"CloudScale Systems" in clean_api.data
+
+    # SQL injection on NovaPay is absorbed before handler executes and fed decoy data
+    sqli_api = demo_client.get("/api/customers?q=1%27%20OR%20%271%27%3D%271--", headers={"User-Agent": "Mozilla/5.0 Chrome/122.0.0.0"})
+    assert sqli_api.status_code == 200
+    assert sqli_api.headers.get("X-Protected-By") == "MIRAGE-Shield"
+    assert b"CloudScale Systems" not in sqli_api.data
+    assert b"DECOY" in sqli_api.data
+
+    # Secret /.env probe on NovaPay serves synthetic decoy secrets
+    env_probe = demo_client.get("/.env", headers={"User-Agent": "Mozilla/5.0 Chrome/122.0.0.0"})
+    assert env_probe.status_code == 200
+    assert env_probe.headers.get("X-Protected-By") == "MIRAGE-Shield"
+    assert b"DECOY" in env_probe.data
+
+    # POST SQLi login probe is intercepted before real login handler
+    sqli_login = demo_client.post("/login", json={"email": "admin' OR '1'='1--", "password": "x"}, headers={"User-Agent": "Mozilla/5.0 Chrome/122.0.0.0"})
+    assert sqli_login.status_code == 200
+    assert sqli_login.headers.get("X-Protected-By") == "MIRAGE-Shield"
+    assert b"DECOY" in sqli_login.data
+
+    # Also verify standalone fallback engine works identically when mono-repo isn't present
+    dec, score, atypes = _fallback_inspect("/api/customers", "GET", "Chrome", "q=1' OR '1'='1--", "")
+    assert dec == "REDIRECT" and "sql_injection" in atypes
+    body, ct, sc, cnt = _FallbackDeceptionEngine().generate_response("/.env", ["targeted_recon"])
+    assert sc == 200 and "DECOY" in body and cnt >= 1
+
+
 
 
 

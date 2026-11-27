@@ -47,6 +47,9 @@
             <a href="/quarantine" class="nav-link {{ 'active' if request.path == '/quarantine' else '' }}">
                 <i class="fa-solid fa-lock"></i> <span>Quarantine</span>
             </a>
+            <a href="/extension" class="nav-link {{ 'active' if request.path == '/extension' else '' }}">
+                <i class="fa-solid fa-puzzle-piece"></i> <span>Get Extension</span>
+            </a>
             <a href="/settings" class="nav-link {{ 'active' if request.path == '/settings' else '' }}">
                 <i class="fa-solid fa-gear"></i> <span>Settings</span>
             </a>
@@ -125,6 +128,14 @@
                 <div class="nav-text-box">
                     <strong>MIRAGE Shield</strong>
                     <small>Website cloner &amp; deception proxy</small>
+                </div>
+                <i class="fa-solid fa-chevron-right arrow-icon"></i>
+            </a>
+            <a href="/extension" class="drawer-nav-item {{ 'active' if request.path == '/extension' else '' }}">
+                <div class="nav-icon-box"><i class="fa-solid fa-puzzle-piece"></i></div>
+                <div class="nav-text-box">
+                    <strong>Get Chrome Extension</strong>
+                    <small>1-click .zip download &amp; Demo Website</small>
                 </div>
                 <i class="fa-solid fa-chevron-right arrow-icon"></i>
             </a>

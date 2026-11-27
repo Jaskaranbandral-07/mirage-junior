@@ -14,6 +14,23 @@
                 Register any website to generate its isolated personal dashboard, private customer link, backend SDK API key, and deception clone.
             </p>
         </div>
+        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+            <a href="/api/extension/download" download="mirage-shield-extension.zip" class="btn"
+               style="text-decoration: none; background: rgba(0,255,65,0.12); color: var(--neon-green); border: 1px solid rgba(0,255,65,0.35);">
+                <i class="fa-solid fa-puzzle-piece"></i> Download Extension
+            </a>
+            {% if demo_target_url %}
+            <a href="{{ demo_target_url }}" target="_blank" class="btn"
+               style="text-decoration: none; background: rgba(0,212,255,0.12); color: var(--neon-cyan); border: 1px solid rgba(0,212,255,0.35);">
+                <i class="fa-solid fa-building-shield"></i> Open Demo Website
+            </a>
+            {% else %}
+            <a href="/extension#demo-site" class="btn"
+               style="text-decoration: none; background: rgba(0,212,255,0.12); color: var(--neon-cyan); border: 1px solid rgba(0,212,255,0.35);">
+                <i class="fa-solid fa-building-shield"></i> Demo Website Setup
+            </a>
+            {% endif %}
+        </div>
     </div>
 
     <div style="display: flex; gap: 10px; flex-wrap: wrap;">

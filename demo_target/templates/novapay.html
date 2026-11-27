@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NovaPay FinTech — Cloud Payroll &amp; Merchant API</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --bg: #f8fafc;
+            --surface: #ffffff;
+            --ink: #0f172a;
+            --muted: #64748b;
+            --border: #e2e8f0;
+            --brand: #4f46e5;
+            --brand-dark: #4338ca;
+            --emerald: #059669;
+            --rose: #e11d48;
+            --amber: #d97706;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: var(--bg);
+            color: var(--ink);
+            line-height: 1.5;
+        }
+        .topbar {
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
+            padding: 14px 28px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 12px;
+            position: sticky;
+            top: 0;
+            z-index: 20;
+        }
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 800;
+            font-size: 1.2rem;
+            color: var(--ink);
+        }
+        .brand-logo {
+            width: 34px;
+            height: 34px;
+            border-radius: 9px;
+            background: linear-gradient(135deg, var(--brand), #06b6d4);
+            color: #fff;
+            display: grid;
+            place-items: center;
+            font-weight: 800;
+        }
+        .shield-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 12px;
+            border-radius: 999px;
+            background: #ecfdf5;
+            border: 1px solid #a7f3d0;
+            color: var(--emerald);
+            font-size: 0.82rem;
+            font-weight: 600;
+        }
+        .container {
+            max-width: 1180px;
+            margin: 0 auto;
+            padding: 28px 20px 60px;
+        }
+        .hero {
+            background: linear-gradient(135deg, #1e1b4b, #312e81 60%, #0f172a);
+            color: #fff;
+            border-radius: 16px;
+            padding: 32px;
+            margin-bottom: 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+        .hero h1 { font-size: 1.85rem; margin-bottom: 8px; }
+        .hero p { color: #cbd5e1; max-width: 650px; font-size: 0.96rem; }
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            border: none;
+            border-radius: 8px;
+            padding: 10px 16px;
+            font-size: 0.88rem;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            transition: opacity 0.15s ease;
+        }
+        .btn:hover { opacity: 0.92; }
+        .btn-brand { background: var(--brand); color: #fff; }
+        .btn-emerald { background: var(--emerald); color: #fff; }
+        .btn-rose { background: var(--rose); color: #fff; }
+        .btn-amber { background: var(--amber); color: #fff; }
+        .btn-outline { background: rgba(255,255,255,0.12); color: #fff; border: 1px solid rgba(255,255,255,0.28); }
+        .grid-2 {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+            gap: 20px;
+            margin-bottom: 24px;
+        }
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+        }
+        .card h2 {
+            font-size: 1.05rem;
+            margin-bottom: 6px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .sub { color: var(--muted); font-size: 0.85rem; margin-bottom: 14px; }
+        .row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+        input[type="text"], input[type="password"], input[type="email"] {
+            flex: 1;
+            min-width: 180px;
+            padding: 9px 12px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 0.9rem;
+        }
+        table { width: 100%; border-collapse: collapse; font-size: 0.86rem; }
+        th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--border); }
+        th { color: var(--muted); font-weight: 600; font-size: 0.78rem; text-transform: uppercase; }
+        .lab-card {
+            background: #0f172a;
+            color: #e2e8f0;
+            border-radius: 14px;
+            padding: 22px;
+            border: 1px solid #1e293b;
+        }
+        .lab-card h2 { color: #38bdf8; }
+        .lab-card .sub { color: #94a3b8; }
+        .inspector {
+            margin-top: 14px;
+            background: #020617;
+            border: 1px solid #334155;
+            border-radius: 10px;
+            padding: 14px;
+        }
+        .inspector-meta {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            font-size: 0.8rem;
+            margin-bottom: 8px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #1e293b;
+        }
+        .tag {
+            padding: 3px 8px;
+            border-radius: 6px;
+            font-family: monospace;
+            background: #1e293b;
+        }
+        pre {
+            margin: 0;
+            color: #4ade80;
+            font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+            font-size: 0.8rem;
+            max-height: 270px;
+            overflow: auto;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+    <header class="topbar">
+        <div class="brand">
+            <div class="brand-logo">N</div>
+            <span>NovaPay <span style="color: var(--brand);">FinTech</span></span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+            <span class="shield-pill">
+                <i class="fa-solid fa-shield-halved"></i> Protected by MIRAGE Shield SDK
+            </span>
+            <a id="open-mirage-dash" href="{{ shield_url or 'https://mirage-junior.vercel.app' }}/sites"
+               target="_blank" class="btn btn-brand">
+                <i class="fa-solid fa-chart-line"></i> Open MIRAGE Dashboard
+            </a>
+        </div>
+    </header>
+
+    <main class="container">
+        <section class="hero">
+            <div>
+                <h1>Cloud Payroll &amp; Merchant APIs</h1>
+                <p>
+                    NovaPay is a live customer startup application protected at the WSGI layer by <strong>MIRAGE Shield</strong>.
+                    Legitimate requests hit NovaPay's real directory cleanly, while malicious probes are absorbed before reaching business logic and served synthetic fake records.
+                </p>
+            </div>
+            <div style="min-width: 260px;">
+                <label style="display:block; font-size:0.75rem; color:#cbd5e1; margin-bottom:4px;">Connected MIRAGE Shield Server</label>
+                <div class="row" style="margin-bottom: 0;">
+                    <input type="text" id="shield-server-url" value="{{ shield_url }}" placeholder="http://127.0.0.1:5000">
+                    <button onclick="syncShieldServer()" class="btn btn-outline">Connect</button>
+                </div>
+            </div>
+        </section>
+
+        <div class="grid-2">
+            <!-- Customer Partner Lookup -->
+            <div class="card">
+                <h2><i class="fa-solid fa-magnifying-glass" style="color: var(--brand);"></i> Merchant Directory Search</h2>
+                <p class="sub">Try a clean lookup (<code>Enterprise</code>) or inject SQL (<code>' OR '1'='1--</code>) to see Shield absorption.</p>
+                <div class="row">
+                    <input type="text" id="search-query" value="Enterprise" placeholder="Search company or tier...">
+                    <button onclick="runCustomerSearch()" class="btn btn-brand">Search API</button>
+                </div>
+                <table>
+                    <thead>
+                        <tr><th>ID</th><th>Company</th><th>Tier</th><th>Region</th></tr>
+                    </thead>
+                    <tbody id="merchant-rows">
+                        <tr><td>MCH-101</td><td>CloudScale Systems</td><td>Enterprise</td><td>AP-South</td></tr>
+                        <tr><td>MCH-102</td><td>KitePay Retail</td><td>Growth</td><td>EU-West</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Employee Portal Login -->
+            <div class="card">
+                <h2><i class="fa-solid fa-user-lock" style="color: var(--emerald);"></i> Employee SSO Portal</h2>
+                <p class="sub">Normal sign-ins reach NovaPay's real auth controller; SQLi bypasses get trapped cleanly.</p>
+                <div class="row">
+                    <input type="email" id="login-email" placeholder="employee@novapay.example" value="analyst@novapay.example">
+                </div>
+                <div class="row">
+                    <input type="password" id="login-pass" placeholder="Password" value="DemoPass!2026">
+                    <button onclick="submitPortalLogin()" class="btn btn-emerald">Sign In</button>
+                </div>
+                <div id="login-status" style="font-size: 0.84rem; color: var(--muted);"></div>
+            </div>
+        </div>
+
+        <!-- Live Presentation Attack Lab -->
+        <section class="lab-card">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+                <div>
+                    <h2><i class="fa-solid fa-flask"></i> College Presentation: Live Protection &amp; Deception Inspector</h2>
+                    <p class="sub" style="margin-bottom: 0;">
+                        Click any scenario below to send a real HTTP request to NovaPay and inspect whether the real backend ran or MIRAGE Shield fed synthetic decoy data.
+                    </p>
+                </div>
+                <span id="absorbed-badge" class="tag" style="color: #fbbf24;">Shield Absorbed: {{ recent_absorbed|length }}</span>
+            </div>
+
+            <div class="row" style="margin-top: 16px;">
+                <button onclick="probeEndpoint('/api/customers?q=Enterprise', 'GET')" class="btn btn-emerald">
+                    1. Normal API Call (Real Backend)
+                </button>
+                <button onclick="probeEndpoint('/api/customers?q=1%27%20OR%20%271%27%3D%271--', 'GET')" class="btn btn-rose">
+                    2. SQL Injection (&apos; OR 1=1--)
+                </button>
+                <button onclick="probeEndpoint('/.env', 'GET')" class="btn btn-amber">
+                    3. Probe /.env Secrets
+                </button>
+                <button onclick="probeEndpoint('/download?file=../../../../etc/passwd', 'GET')" class="btn btn-amber">
+                    4. Path Traversal (/etc/passwd)
+                </button>
+                <button onclick="probeEndpoint('/login', 'POST', {email: &quot;admin' OR '1'='1--&quot;, password: 'x'})" class="btn btn-rose">
+                    5. Admin SQLi Login Probe
+                </button>
+            </div>
+
+            <div class="inspector">
+                <div class="inspector-meta">
+                    <span class="tag" id="meta-endpoint">Endpoint: Ready</span>
+                    <span class="tag" id="meta-status">HTTP: —</span>
+                    <span class="tag" id="meta-shield">X-Protected-By: —</span>
+                    <span class="tag" id="meta-real">X-NovaPay-Real-Backend: —</span>
+                </div>
+                <pre id="inspector-output">// Click any button above to inspect NovaPay's real vs. MIRAGE Shield deceptive response...</pre>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        async function refreshDashboardLink(forceReg = false) {
+            try {
+                const res = await fetch('/api/shield-status' + (forceReg ? '?register=1' : ''));
+                const data = await res.json();
+                const link = document.getElementById('open-mirage-dash');
+                if (data.dashboard_url) link.href = data.dashboard_url;
+                document.getElementById('absorbed-badge').textContent = `Shield Absorbed: ${data.absorbed_count ?? 0}`;
+            } catch {}
+        }
+
+        async function syncShieldServer() {
+            const url = document.getElementById('shield-server-url').value.trim();
+            const res = await fetch('/api/shield-config', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({shield_url: url})
+            });
+            const data = await res.json();
+            if (data.dashboard_url) {
+                document.getElementById('open-mirage-dash').href = data.dashboard_url;
+            }
+            alert('Connected NovaPay to MIRAGE Shield: ' + (data.shield_url || 'updated'));
+        }
+
+        async function runCustomerSearch() {
+            const q = document.getElementById('search-query').value;
+            await probeEndpoint('/api/customers?q=' + encodeURIComponent(q), 'GET', null, true);
+        }
+
+        async function submitPortalLogin() {
+            const email = document.getElementById('login-email').value;
+            const password = document.getElementById('login-pass').value;
+            const data = await probeEndpoint('/login', 'POST', {email, password});
+            const st = document.getElementById('login-status');
+            if (data) st.textContent = data.protectedBy ? 'Intercepted by MIRAGE Shield (Fake Data Served)' : (data.parsed?.message || 'Checked by real auth controller');
+        }
+
+        async function probeEndpoint(url, method = 'GET', bodyObj = null, updateTable = false) {
+            const opts = { method, headers: {} };
+            if (bodyObj) {
+                opts.headers['Content-Type'] = 'application/json';
+                opts.body = JSON.stringify(bodyObj);
+            }
+            const res = await fetch(url, opts);
+            const text = await res.text();
+            const protectedBy = res.headers.get('X-Protected-By') || 'Pass-Through (Allowed)';
+            const realExec = res.headers.get('X-NovaPay-Real-Backend') || 'BLOCKED BEFORE BACKEND';
+            const decision = res.headers.get('X-MIRAGE-Decision') || 'ALLOW';
+
+            document.getElementById('meta-endpoint').textContent = `${method} ${url}`;
+            document.getElementById('meta-status').textContent = `HTTP: ${res.status} (${decision})`;
+            document.getElementById('meta-shield').textContent = `X-Protected-By: ${protectedBy}`;
+            document.getElementById('meta-real').textContent = `Real Backend: ${realExec}`;
+            document.getElementById('inspector-output').textContent = text;
+
+            let parsed = null;
+            try { parsed = JSON.parse(text); } catch {}
+            if (updateTable && parsed && Array.isArray(parsed.merchants)) {
+                document.getElementById('merchant-rows').innerHTML = parsed.merchants.map(m =>
+                    `<tr><td>${m.merchant_id}</td><td>${m.company}</td><td>${m.tier}</td><td>${m.region}</td></tr>`
+                ).join('') || '<tr><td colspan="4">No matches</td></tr>';
+            }
+            refreshDashboardLink(true);
+            return { protectedBy: res.headers.get('X-Protected-By'), parsed };
+        }
+
+        document.addEventListener('DOMContentLoaded', () => refreshDashboardLink(false));
+    </script>
+</body>
+</html>

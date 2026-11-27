@@ -18,7 +18,12 @@ if os.path.exists(env_file):
 # === Network Configuration ===
 DASHBOARD_PORT = int(os.getenv("MIRAGE_DASHBOARD_PORT", 5000))
 SHIELD_PORT = int(os.getenv("MIRAGE_SHIELD_PORT", 8443))
+DEMO_TARGET_PORT = int(os.getenv("DEMO_TARGET_PORT", 5050))
 SHIELD_TARGET_URL = os.getenv("SHIELD_TARGET_URL", "https://example.com")
+DEMO_TARGET_URL = os.getenv(
+    "DEMO_TARGET_URL",
+    "" if os.getenv("VERCEL") else f"http://localhost:{DEMO_TARGET_PORT}",
+)
 
 # === Telegram Configuration ===
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "")

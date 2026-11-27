@@ -101,6 +101,18 @@ def start_mirage_shield():
         logger.error(f"MIRAGE Shield failed to start: {e}")
 
 
+def start_demo_target():
+    """Start the standalone NovaPay FinTech demo website protected by MIRAGE SDK."""
+    try:
+        from config.settings import DEMO_TARGET_PORT, DASHBOARD_PORT
+        from demo_target.app import create_demo_app
+        logger.info(f"🏢 Starting NovaPay Demo Target Website on port {DEMO_TARGET_PORT}...")
+        demo_app = create_demo_app(shield_url=f"http://127.0.0.1:{DASHBOARD_PORT}")
+        demo_app.run(host="0.0.0.0", port=DEMO_TARGET_PORT, debug=False, use_reloader=False)
+    except Exception as e:
+        logger.error(f"NovaPay Demo Website failed to start: {e}")
+
+
 if __name__ == "__main__":
     print_banner()
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
@@ -128,6 +140,8 @@ if __name__ == "__main__":
     ]
     if "--no-shield" not in sys.argv:
         services.append(("MIRAGE Shield Proxy", start_mirage_shield))
+    if "--no-demo" not in sys.argv:
+        services.append(("NovaPay Demo Target", start_demo_target))
 
     for name, target in services:
         t = threading.Thread(target=target, name=name, daemon=True)
@@ -140,6 +154,8 @@ if __name__ == "__main__":
     logger.info("=" * 60)
     logger.info("📊 Platform Overview: http://localhost:5000")
     logger.info("🏢 Protected Sites:   http://localhost:5000/sites")
+    logger.info("🧩 Get Extension:     http://localhost:5000/extension")
+    logger.info("💳 Demo Startup Site: http://localhost:5050")
     logger.info("🛡️  Standalone Proxy:  http://localhost:8443/mirage-shield/dashboard")
     logger.info("=" * 60)
     logger.info("Press Ctrl+C to shut down.")

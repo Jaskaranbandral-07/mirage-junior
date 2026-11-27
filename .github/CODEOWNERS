@@ -16,6 +16,7 @@
 /config/                            @Jaskaranbandral-07
 /mirage_shield/                     @Jaskaranbandral-07
 /chrome_extension/                  @Jaskaranbandral-07
+/demo_target/shield_sdk.py          @Jaskaranbandral-07
 /main.py                            @Jaskaranbandral-07
 /run_shield.py                      @Jaskaranbandral-07
 /requirements.txt                   @Jaskaranbandral-07
@@ -28,6 +29,7 @@
 #    Integration, Core Scoring Tests, Presentations & Vercel Deploy
 # ---------------------------------------------------------------------
 /dashboard/                         @2024A7R009
+/demo_target/                       @2024A7R009
 /engine/alert_manager.py            @2024A7R009
 /tests/                             @2024A7R009
 /vercel_app.py                      @2024A7R009
